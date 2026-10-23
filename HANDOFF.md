@@ -38,6 +38,18 @@ Máy chỉ có **Command Line Tools**, không có Xcode: Swift 6.4, SDK MacOSX27
 | `swift build --product hexer-cli` | CLI: `dump`, `find`, `replace`, `checksum`, `stats`, `diff`, `export`, `import` (`ihex`/`srec`/`etl`), `disasm`, `edit`, `split`, `concat`, `disks` (`list`/`read`), `bench`, `selftest`, `help` |
 | `hexer-cli selftest` | Kiểm known-answer ngay trong binary (checksum, digest, bảng mã, piece tree, tìm kiếm, Intel Hex/S-Record, lưu tệp, Capstone). Dùng cho bản build không chạy được test suite, ví dụ lát x86_64 của bản universal: `arch -x86_64 hexer-cli selftest`. |
 
+### CI và phát hành (GitHub Actions)
+- **`.github/workflows/ci.yml`:**
+  - Chạy khi push lên `main` hoặc mở pull request (bỏ qua thay đổi chỉ ở `*.md`, `docs/`, `Distribution/`), hoặc chạy tay.
+  - Chạy `Scripts/test.sh`, `Scripts/crosscheck.sh` (HxD64.exe không có trên runner nên bị bỏ qua) và `Scripts/bundle.sh`; tải `Hexer.app` lên làm artifact, giữ 7 ngày.
+- **`.github/workflows/release.yml`:**
+  - Chạy khi push tag `v*`, ví dụ `git tag v0.2 && git push origin v0.2`.
+  - Gọi lại `ci.yml`; nếu đạt thì lấy phiên bản từ tag, ghi vào `CFBundleShortVersionString`, chạy `Scripts/make_dmg.sh`.
+  - Tạo release bằng `gh release create`, kèm DMG, tệp `.sha256` và ghi chú từ `Distribution/release-notes.md`. Tag có dấu `-` (ví dụ `v1.0-beta`) thành pre-release.
+- **Runner:** `xcode-27` (macOS 27, Xcode 27.0, SDK 27; nhãn còn ở dạng preview), chọn qua `DEVELOPER_DIR`. Khi `DEVELOPER_DIR` trỏ tới một Xcode, Package.swift không thêm `-plugin-path` của CLT.
+- **Repo đang private:** API công khai trả 404, nên không xem được kết quả Actions nếu không đăng nhập (`gh` chưa cài trên máy này). Release của repo private chỉ người có quyền vào repo mới tải được.
+- **Chi phí:** phút chạy runner macOS bị tính nhiều hơn Linux (gần đây là gấp 10 lần) vào hạn mức Actions của repo private; nên kiểm tra mức dùng trong Settings ▸ Billing.
+
 ### Những điểm dễ vấp
 - **`@State` không biên dịch được**, vì CLT thiếu SwiftUIMacros. Dùng model `@Observable` + `@Bindable`. `@FocusState`, `@Namespace` và `@AppStorage` vẫn dùng được.
 - **Test target cần `-plugin-path …/host/plugins/testing`.** Hằng `testSettings` trong `Package.swift` lo việc này; thiếu nó thì thỉnh thoảng báo không tìm thấy TestingMacros.

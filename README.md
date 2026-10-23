@@ -85,6 +85,7 @@ open build/Hexer.app
 | `SIGN_IDENTITY="Developer ID Application: …" Scripts/bundle.sh` | Sign with your identity instead of ad hoc |
 | `Scripts/test.sh` | Unit tests (swift-testing), including raw-disk tests on attached disk images |
 | `Scripts/crosscheck.sh` | Checks `hexer-cli` against `xxd`, `grep`, `shasum`, `cmp`, `split`, `diskutil`, `dd` and others |
+| `git tag vX.Y && git push origin vX.Y` | GitHub Actions tests the tag, builds the disk image and publishes it on the Releases page |
 | `Scripts/make_dmg.sh` | Universal disk image for distribution, with installation guides in English and Vietnamese |
 | `Scripts/vm_test.sh` | Runs the build on a macOS virtual machine in UTM over SSH (for example macOS 15) and captures screenshots |
 

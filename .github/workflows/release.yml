@@ -1,0 +1,51 @@
+# Pushing a version tag (v0.1, v1.0.2, …) runs the tests, builds the universal disk image and
+# publishes it with its SHA-256 on the repository's Releases page.
+#
+#   git tag v0.2 && git push origin v0.2
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    needs: test
+    runs-on: xcode-27
+    timeout-minutes: 45
+    permissions:
+      contents: write # create the release
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.0.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Version from the tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          plutil -replace CFBundleShortVersionString -string "$VERSION" Resources/Info.plist
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Disk image (universal)
+        run: Scripts/make_dmg.sh
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          DMG="build/Hexer-$VERSION.dmg"
+          (cd build && shasum -a 256 "Hexer-$VERSION.dmg") > "$DMG.sha256"
+          sed "s/@VERSION@/$VERSION/g" Distribution/release-notes.md > build/release-notes.md
+          echo "SHA-256: \`$(cut -d' ' -f1 "$DMG.sha256")\`" >> build/release-notes.md
+          PRERELEASE=""
+          case "$VERSION" in *-*) PRERELEASE="--prerelease" ;; esac
+          gh release create "$GITHUB_REF_NAME" "$DMG" "$DMG.sha256" \
+            --title "Hexer $VERSION" --notes-file build/release-notes.md --verify-tag $PRERELEASE

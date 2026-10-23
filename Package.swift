@@ -3,9 +3,11 @@ import Foundation
 import PackageDescription
 
 // With only the Command Line Tools installed, SwiftPM sometimes compiles test targets without
-// loading swift-testing's macro plugin; point the compiler at it explicitly.
+// loading swift-testing's macro plugin; point the compiler at it explicitly. Not when an Xcode is
+// selected through DEVELOPER_DIR (as in CI): its toolchain brings its own plugin.
 let testingPluginDir = "/Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing"
-let testSettings: [SwiftSetting] = FileManager.default.fileExists(atPath: testingPluginDir)
+let usesXcode = Context.environment["DEVELOPER_DIR"]?.contains(".app/") ?? false
+let testSettings: [SwiftSetting] = !usesXcode && FileManager.default.fileExists(atPath: testingPluginDir)
     ? [.unsafeFlags(["-plugin-path", testingPluginDir])]
     : []
 
