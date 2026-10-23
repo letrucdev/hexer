@@ -47,7 +47,8 @@ Máy chỉ có **Command Line Tools**, không có Xcode: Swift 6.4, SDK MacOSX27
   - Gọi lại `ci.yml`; nếu đạt thì lấy phiên bản từ tag, ghi vào `CFBundleShortVersionString`, chạy `Scripts/make_dmg.sh`.
   - Tạo release bằng `gh release create`, kèm DMG, tệp `.sha256` và ghi chú từ `Distribution/release-notes.md`. Tag có dấu `-` (ví dụ `v1.0-beta`) thành pre-release.
 - **Runner:** `xcode-27` (macOS 27, Xcode 27.0, SDK 27; nhãn còn ở dạng preview), chọn qua `DEVELOPER_DIR`. Khi `DEVELOPER_DIR` trỏ tới một Xcode, Package.swift không thêm `-plugin-path` của CLT.
-- **Repo đang private:** API công khai trả 404, nên không xem được kết quả Actions nếu không đăng nhập (`gh` chưa cài trên máy này). Release của repo private chỉ người có quyền vào repo mới tải được.
+- **Repo public** (https://github.com/letrucdev/hexer). Không đăng nhập vẫn xem được trạng thái từng bước qua API (`/actions/runs`, `/actions/runs/<id>/jobs`), nhưng log thì phải đăng nhập. Vì vậy `Scripts/ci_run.sh` lặp lại các dòng lỗi của bước bị lỗi thành annotation (`/check-runs/<id>/annotations`), đọc công khai được. Máy này chưa cài `gh`; Python của máy thiếu chứng chỉ SSL, nên gọi API bằng `curl`.
+- **Kết quả:** CI mất khoảng 4 phút; workflow Release (gồm cả CI) khoảng 7 phút.
 - **Chi phí:** phút chạy runner macOS bị tính nhiều hơn Linux (gần đây là gấp 10 lần) vào hạn mức Actions của repo private; nên kiểm tra mức dùng trong Settings ▸ Billing.
 
 ### Những điểm dễ vấp
@@ -243,6 +244,8 @@ Resources/        Info.plist, entitlements (không sandbox), Icon, Licenses, Loc
   - **GitHub Actions** (theo yêu cầu của người dùng): `ci.yml` và `release.yml` (xem §2 "CI và phát hành").
     - Trước khi push, đã chạy lại các bước của CI trong một bản sao sạch của repo: test, crosscheck, bundle và DMG đều đạt.
     - Người dùng đã chuyển repo sang **public**, nên đọc được trạng thái Actions qua API công khai. Log chi tiết vẫn phải đăng nhập mới xem được.
+    - Lần chạy CI đầu lỗi ở `DiskEnumeratorTests`: ổ khởi động của runner (máy ảo) không có `busProtocol`; máy ảo UTM cũng vậy. Test giờ chấp nhận ổ chỉ có model hoặc tên media. Sau đó CI xanh trên `xcode-27`.
+    - **Release đầu tiên `v0.1`:** https://github.com/letrucdev/hexer/releases/tag/v0.1, gồm `Hexer-0.1.dmg` (6,5 MB, universal, build 9) và `Hexer-0.1.dmg.sha256`. Đã tải về kiểm: checksum khớp, chữ ký hợp lệ, `minos 15.0`.
   - **README:**
     - Thêm `README.md` (tiếng Anh): ảnh chính đổi theo giao diện sáng/tối (`<picture>`), tính năng, ảnh chụp, build, CLI, cấu trúc dự án.
     - Ảnh nằm trong `docs/images`, chụp từ app thật bằng `-HexerSnapshotShadow` trên dữ liệu của chính dự án (binary Hexer, Intel Hex dựng từ binary đó, ảnh đĩa FAT "HEXER").
