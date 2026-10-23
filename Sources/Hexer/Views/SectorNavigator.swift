@@ -40,7 +40,7 @@ struct SectorNavigator: View {
         .font(.callout)
         .padding(.horizontal, 8)
         .frame(height: GlassBar.height)
-        .glassEffect(.regular.interactive(), in: .capsule)
+        .barGlass()
         .onAppear { input.text = "\(current)" }
         .onChange(of: current) { input.text = "\(current)" }
     }

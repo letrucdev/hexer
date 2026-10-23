@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/macOS-26%2B-111111?style=flat-square&logo=apple&logoColor=white" alt="macOS 26 or later">
+  <img src="https://img.shields.io/badge/macOS-15%2B-111111?style=flat-square&logo=apple&logoColor=white" alt="macOS 15 or later">
   <img src="https://img.shields.io/badge/Swift-6-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 6">
   <img src="https://img.shields.io/badge/SwiftUI%20%2B%20AppKit-Liquid%20Glass-0A64D8?style=flat-square" alt="SwiftUI and AppKit with Liquid Glass">
   <img src="https://img.shields.io/badge/build-no%20Xcode%20required-2EA44F?style=flat-square" alt="No Xcode required">
@@ -67,7 +67,7 @@ Hexer opens files, disks and firmware images of any size and lets you inspect, s
 
 ## Requirements
 
-- macOS 26 or later (designed for macOS 27), on Apple silicon or Intel.
+- macOS 15 Sequoia or later, on Apple silicon or Intel. Designed for macOS 27; Liquid Glass controls appear on macOS 26 and later, standard materials on macOS 15.
 - To build: the Command Line Tools for Xcode with Swift 6.2 or later. Xcode itself is not needed.
 
 ## Building

@@ -2,7 +2,7 @@
 
 Cập nhật lần cuối: 2026-10-24. Đọc file này trước khi code tiếp; phần thiết kế giao diện nằm ở [DESIGN.md](DESIGN.md).
 
-Hexer là trình sửa hex cho macOS 27 viết bằng SwiftUI + AppKit với Liquid Glass. Mục tiêu là đủ tính năng như **HxD 2.5**, được dựng lại từ `HxD64.exe` bằng REA.
+Hexer là trình sửa hex thiết kế cho macOS 27, viết bằng SwiftUI + AppKit với Liquid Glass, và **chạy từ macOS 15** (macOS 15 không có kính, xem DESIGN.md §11). Mục tiêu là đủ tính năng như **HxD 2.5**, được dựng lại từ `HxD64.exe` bằng REA.
 
 | Tài liệu | Đường dẫn |
 |---|---|
@@ -22,7 +22,7 @@ Hexer là trình sửa hex cho macOS 27 viết bằng SwiftUI + AppKit với Liq
 
 ## 2. Môi trường và lệnh
 
-Máy chỉ có **Command Line Tools**, không có Xcode: Swift 6.4, SDK MacOSX27, SwiftPM tools 6.2, Swift 6 language mode.
+Máy chỉ có **Command Line Tools**, không có Xcode: Swift 6.4, SDK MacOSX27, SwiftPM tools 6.2, Swift 6 language mode. Deployment target **macOS 15** (`Package.swift`, `LSMinimumSystemVersion`); `bundle.sh` ghi `minos 15.0`, `sdk 27.0` vào binary.
 
 | Lệnh | Tác dụng |
 |---|---|
@@ -40,6 +40,7 @@ Máy chỉ có **Command Line Tools**, không có Xcode: Swift 6.4, SDK MacOSX27
 - **`@State` không biên dịch được**, vì CLT thiếu SwiftUIMacros. Dùng model `@Observable` + `@Bindable`. `@FocusState`, `@Namespace` và `@AppStorage` vẫn dùng được.
 - **Test target cần `-plugin-path …/host/plugins/testing`.** Hằng `testSettings` trong `Package.swift` lo việc này; thiếu nó thì thỉnh thoảng báo không tìm thấy TestingMacros.
 - **SourceKit báo "No such module 'HexerPlatform'"** trong editor. Lỗi này giả, vì không có project Xcode; cứ build bằng script là được.
+- **API mới hơn macOS 15:** trình biên dịch báo lỗi nếu dùng mà không có `if #available`. Kính luôn đi qua helper trong `GlassBarStyle.swift` (`barGlass`, `barGlassID`, `GlassGroup`). Kiểm giao diện macOS 15 bằng `-HexerNoGlass 1`.
 - **Lỗi isolation của Swift 6:** module app chạy với `defaultIsolation(MainActor)`. Hằng `static let` hay helper dùng từ nền phải đánh dấu `nonisolated`.
 - **Bundle cần thêm chuỗi tiếng Việt.** Mỗi chuỗi UI mới phải có bản dịch trong `Scripts/l10n/vi.py`. Chạy `python3 -I Scripts/l10n/vi.py` để sinh `Resources/Localization/vi.lproj/Localizable.strings`; nếu thiếu, `bundle.sh` dừng. Pattern mà audit nhận diện nằm trong `Scripts/l10n_audit.swift`: `Text`/`Button`/`L(…)`…, helper `item`/`menu`/`sub`/`pane`/`field`/`fact`/`group`, nút icon (`GlassBarIconButton`, `iconButton`…), `title:`/`placeholder:` và hai nhánh `Text(c ? "A" : "B")`. Helper mới nhận chuỗi UI thì thêm vào danh sách này.
 - **Khoá dịch không được chứa `\n`.** Câu nhiều dòng thì ghép từ nhiều `L(…)` (xem `App/ErrorMessages.swift`).
@@ -52,7 +53,7 @@ Ví dụ:
 build/Hexer.app/Contents/MacOS/Hexer file.bin -HexerGoTo 0x100 -HexerAction goToOffset: -HexerSnapshot /path/shot.png -HexerQuit 1
 ```
 
-- Các cờ: `-HexerAction sel:`, `-HexerSnapshot path`, `-HexerSnapshotShadow 1` (giữ bóng cửa sổ trên nền trong suốt, dùng cho ảnh README), `-HexerAppearance light|dark` (ép giao diện qua `NSApp.appearance`; đừng dùng `-NSRequiresAquaSystemAppearance`, cờ đó làm toolbar trong suốt), `-HexerFindAllSelect n` (chọn kết quả thứ n sau Find All, mặc định 2), `-HexerDemo DIR` + `-HexerDemoFirmware HEX` (kịch bản quay video, xem bảng lệnh), `-HexerAlertSnapshot path` (chụp alert modal kế tiếp, in nút nào nhận Return/Esc, rồi huỷ alert), `-HexerQuit 1`, `-HexerFind/-HexerFindType/-HexerFindAll`, `-HexerReplace/-HexerReplaceAll`, `-HexerSave`, `-HexerUndoAll`, `-HexerChecksums`, `-HexerExpected`, `-HexerCompare/-HexerCompareSteps/-HexerCompareList`, `-HexerCopyAs`, `-HexerImport path` (nhận thêm `-HexerWindowSize`, `-HexerGoTo`, `-HexerAction`), `-HexerOpenDisk diskN` (+ `-HexerOpenDiskWritable 1`, chỉ áp dụng cho ảnh đĩa), `-HexerPrintPDF`, `-HexerSectorSize`, `-HexerWindowSize WxH`, `-HexerGoTo`, `-HexerSelect a-b`, `-HexerMode`, `-HexerEncoding`, `-HexerBytesPerRow`, `-HexerDrawer`, `-HexerHideInspector`, `-HexerSettingsPane n`.
+- Các cờ: `-HexerAction sel:`, `-HexerSnapshot path`, `-HexerSnapshotShadow 1` (giữ bóng cửa sổ trên nền trong suốt, dùng cho ảnh README), `-HexerAppearance light|dark` (ép giao diện qua `NSApp.appearance`; đừng dùng `-NSRequiresAquaSystemAppearance`, cờ đó làm toolbar trong suốt), `-HexerFindAllSelect n` (chọn kết quả thứ n sau Find All, mặc định 2), `-HexerDemo DIR` + `-HexerDemoFirmware HEX` (kịch bản quay video, xem bảng lệnh), `-HexerNoGlass 1` (giao diện macOS 15, không kính), `-HexerAlertSnapshot path` (chụp alert modal kế tiếp, in nút nào nhận Return/Esc, rồi huỷ alert), `-HexerQuit 1`, `-HexerFind/-HexerFindType/-HexerFindAll`, `-HexerReplace/-HexerReplaceAll`, `-HexerSave`, `-HexerUndoAll`, `-HexerChecksums`, `-HexerExpected`, `-HexerCompare/-HexerCompareSteps/-HexerCompareList`, `-HexerCopyAs`, `-HexerImport path` (nhận thêm `-HexerWindowSize`, `-HexerGoTo`, `-HexerAction`), `-HexerOpenDisk diskN` (+ `-HexerOpenDiskWritable 1`, chỉ áp dụng cho ảnh đĩa), `-HexerPrintPDF`, `-HexerSectorSize`, `-HexerWindowSize WxH`, `-HexerGoTo`, `-HexerSelect a-b`, `-HexerMode`, `-HexerEncoding`, `-HexerBytesPerRow`, `-HexerDrawer`, `-HexerHideInspector`, `-HexerSettingsPane n`.
 - **Cờ nào cũng phải kèm giá trị** (ví dụ `1`). Nếu không, AppKit coi chữ đứng sau là tên tệp và mở nó.
 - Tiếng Việt: thêm `-AppleLanguages '(vi)'`.
 - Ảnh chụp dùng `screencapture -l <windowID>` (cần quyền Screen Recording). **Không bao giờ chụp theo vùng màn hình**, vì sẽ dính cửa sổ app khác.
@@ -143,20 +144,21 @@ Resources/        Info.plist, entitlements (không sandbox), Icon, Licenses, Loc
 ## 6. Cần cải thiện (ưu tiên từ trên xuống)
 
 1. **CI (tuỳ chọn).** Repo đã có trên GitHub. Có thể thêm workflow macOS chạy `Scripts/test.sh` và `Scripts/crosscheck.sh`. Crosscheck cần sửa đường dẫn cứng tới `HxD64.exe` (`HXD=` trong script; nếu không có tệp thì bỏ qua) và cần `hdiutil` cho phần ổ đĩa.
-2. **Kiểm thử ổ đĩa thật.**
+2. **Chạy thử thật trên macOS 15 và macOS 26.** App mới chỉ được kiểm trên macOS 27, có thêm cờ `-HexerNoGlass 1` để xem giao diện không kính. Trình biên dịch đã đảm bảo không gọi API mới hơn macOS 15 khi chưa kiểm tra phiên bản, và các ký hiệu của kính đều được liên kết dạng weak. Nhưng toolbar, sidebar, inspector và bố cục SwiftUI trên 15 hoặc 26 có thể khác 27. Cách kiểm: máy ảo (UTM, VirtualBuddy hoặc Tart trên Apple silicon) hoặc một volume APFS cài macOS cũ, rồi chạy `hexer-cli selftest` và chụp các màn hình chính.
+3. **Kiểm thử ổ đĩa thật.**
    - Prompt của authopen trên ổ trong (cần mật khẩu admin) chưa được thử.
    - Đường ghi ổ đĩa mới chỉ có unit test trên ảnh đĩa attach. Cần thử trên USB thật: ghi, unmount, so `dd`. `hexer-cli disks read diskN` (với sudo) giúp so nhanh.
-3. **Kính của find bar trên lưới (chế độ sáng).** Chữ của lưới phía sau vẫn lờ mờ xuyên qua ô tìm kiếm. Đọc vẫn được, nhưng kém rõ hơn chế độ tối. Đây là `.glassEffect(.regular)` của hệ thống; chỉ chỉnh nếu người dùng thấy khó đọc.
-4. **Gập vùng undefined, phần còn lại:**
+4. **Kính của find bar trên lưới (chế độ sáng).** Chữ của lưới phía sau vẫn lờ mờ xuyên qua ô tìm kiếm. Đọc vẫn được, nhưng kém rõ hơn chế độ tối. Đây là `.glassEffect(.regular)` của hệ thống; chỉ chỉnh nếu người dùng thấy khó đọc.
+5. **Gập vùng undefined, phần còn lại:**
    - Đi qua dòng gập bằng ↑/↓ thì caret mất cột (về byte đầu của vùng).
    - Bản in (Print) không gập.
    - Chưa có cách gập lại riêng một vùng đã mở, ngoài việc tắt rồi bật lại View ▸ Fold Undefined Sections. Có thể thêm menu ngữ cảnh "Fold Section".
-5. **Chiều rộng tối thiểu khi mở ngăn Checksums:** khoảng 1270 pt (tiếng Anh) và 1300 pt (tiếng Việt), so với 1166 pt khi không mở ngăn. Thủ phạm còn lại có thể là bảng hoặc segmented tab của drawer; đo bằng cách so `-HexerWindowSize 1100x700` có và không có `-HexerDrawer checksums`.
-6. **Cảnh báo NSTableView reentrancy.** Thấy một lần, chưa tái hiện được. Nghi ở drawer kết quả hoặc danh sách compare khi cập nhật trong lúc layout.
-7. **Role của segmented control (SDK 27).** SwiftUI chưa đặt được role `tabs` / `valueSelection` của `NSSegmentedControl`. Nếu cần đúng HIG, bọc AppKit cho tab drawer.
-8. **Ký app.** Dùng `SIGN_IDENTITY` (Developer ID hoặc chứng chỉ tự ký) để không mất quyền Screen Recording sau mỗi lần build.
-9. **Bản địa hoá còn sót:** phần mô tả errno (`strerror`) trong thông báo lỗi vẫn là tiếng Anh; số trong chuỗi dùng định dạng theo vùng của hệ thống (ví dụ "1,840" khi chỉ đổi ngôn ngữ sang tiếng Việt).
-10. **Hiệu năng:** chạy `hexer-cli bench` và mở tệp thưa 6 GB (`mkfile -n 6g`) sau các thay đổi lớn ở Storage hoặc HexGrid. Đã kiểm lại sau khi thêm gập vùng (2026-10-24): tệp 6 GB mở và nhảy tới cuối bình thường.
+6. **Chiều rộng tối thiểu khi mở ngăn Checksums:** khoảng 1270 pt (tiếng Anh) và 1300 pt (tiếng Việt), so với 1166 pt khi không mở ngăn. Thủ phạm còn lại có thể là bảng hoặc segmented tab của drawer; đo bằng cách so `-HexerWindowSize 1100x700` có và không có `-HexerDrawer checksums`.
+7. **Cảnh báo NSTableView reentrancy.** Thấy một lần, chưa tái hiện được. Nghi ở drawer kết quả hoặc danh sách compare khi cập nhật trong lúc layout.
+8. **Role của segmented control (SDK 27).** SwiftUI chưa đặt được role `tabs` / `valueSelection` của `NSSegmentedControl`. Nếu cần đúng HIG, bọc AppKit cho tab drawer.
+9. **Ký app.** Dùng `SIGN_IDENTITY` (Developer ID hoặc chứng chỉ tự ký) để không mất quyền Screen Recording sau mỗi lần build.
+10. **Bản địa hoá còn sót:** phần mô tả errno (`strerror`) trong thông báo lỗi vẫn là tiếng Anh; số trong chuỗi dùng định dạng theo vùng của hệ thống (ví dụ "1,840" khi chỉ đổi ngôn ngữ sang tiếng Việt).
+11. **Hiệu năng:** chạy `hexer-cli bench` và mở tệp thưa 6 GB (`mkfile -n 6g`) sau các thay đổi lớn ở Storage hoặc HexGrid. Đã kiểm lại sau khi thêm gập vùng (2026-10-24): tệp 6 GB mở và nhảy tới cuối bình thường.
 
 ## 7. Quy ước khi code tiếp
 
@@ -207,6 +209,11 @@ Resources/        Info.plist, entitlements (không sandbox), Icon, Licenses, Loc
       - Ô tìm và ô thay thế co xuống tối thiểu 90 pt.
       - Find bar cách hai mép lưới 16 pt.
   - Commit đầu tiên và push lên `letrucdev/hexer` (theo yêu cầu của người dùng).
+  - **Hỗ trợ macOS 15** (theo yêu cầu của người dùng):
+    - Thử build bản sao với mức tối thiểu macOS 15: chỉ vướng 16 chỗ, toàn API kính trong 5 tệp. macOS 14 vướng thêm `Mutex` (Synchronization) ở HexerDisasm; macOS 13 trở xuống không khả thi vì `@Observable`.
+    - Gom kính vào `barGlass`, `barGlassID`, `GlassGroup`. Trên macOS 15 dùng material chuẩn kèm viền mảnh; nút prominent và chip dùng nền accent.
+    - Hạ deployment target và `LSMinimumSystemVersion` xuống 15.0.
+    - Kiểm: ký hiệu kính được liên kết dạng weak (`dyld_info -imports`), framework liên kết đều có trên macOS 15, chụp `-HexerNoGlass 1` ở sáng, tối, tiếng Việt, cửa sổ hẹp, compare và sector navigator. **Chưa chạy trên macOS 15 thật** (§6 mục 2).
   - **README:**
     - Thêm `README.md` (tiếng Anh): ảnh chính đổi theo giao diện sáng/tối (`<picture>`), tính năng, ảnh chụp, build, CLI, cấu trúc dự án.
     - Ảnh nằm trong `docs/images`, chụp từ app thật bằng `-HexerSnapshotShadow` trên dữ liệu của chính dự án (binary Hexer, Intel Hex dựng từ binary đó, ảnh đĩa FAT "HEXER").

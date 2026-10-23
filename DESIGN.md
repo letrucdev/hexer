@@ -2,8 +2,8 @@
 
 Tài liệu này mô tả thiết kế của Hexer theo bản vẽ trên Claude Design và theo giao diện đang chạy trong app. Khi sửa UI, cập nhật **cả ba**: mã nguồn, canvas, và file này.
 
-- **Canvas (nguồn gốc):** https://claude.ai/artifact/JBSgQBQpVLtMWto8QECZgb (version 18, ngày 2026-10-24)
-- **Nền tảng:** macOS 27 "Golden Gate", Liquid Glass, SwiftUI + AppKit (không dùng Xcode)
+- **Canvas (nguồn gốc):** https://claude.ai/artifact/JBSgQBQpVLtMWto8QECZgb (version 19, ngày 2026-10-24)
+- **Nền tảng:** thiết kế cho macOS 27 "Golden Gate" với Liquid Glass; chạy từ macOS 15 (xem §11). SwiftUI + AppKit, không dùng Xcode.
 - **Ngôn ngữ UI:** tiếng Anh (khoá gốc) và tiếng Việt
 - **Bàn giao kỹ thuật:** xem [HANDOFF.md](HANDOFF.md)
 
@@ -19,6 +19,7 @@ Tài liệu này mô tả thiết kế của Hexer theo bản vẽ trên Claude 
 | `Settings.dc.html` | Cửa sổ Settings 5 pane (bấm được) | `Views/SettingsWindowController.swift` |
 | `MenusVI.dc.html` | Bản đồ menu + phím tắt; các thành phần bằng tiếng Việt | `App/MainMenu.swift`, `Resources/Localization/vi.lproj` |
 | `Tools.dc.html` | Open Disk (+ cảnh báo mở để ghi), Clone Disk, Split, Concatenate (đang chạy), Wipe Securely | `Views/Tools/DiskViews.swift`, `FileToolViews.swift` |
+| `Compat.dc.html` | Find bar, hàng Replace và chip chế độ: kính (macOS 26 trở lên) đặt cạnh material (macOS 15), ở cả sáng và tối | `Views/GlassBarStyle.swift` |
 | `Import.dc.html` | Tài liệu import Intel Hex: sidebar Sections liệt kê vùng undefined, dòng gập (thường và có caret), quy tắc gập, mục View ▸ Fold Undefined Sections | `HexGrid/HexCanvasView.swift`, `HexEditorView.swift`, `HexerCore/Layout/RowMap.swift` |
 
 Bố cục canvas: hàng 1 cửa sổ chính (sáng/tối) · hàng 2 tìm kiếm và sheet · hàng 3 phân tích, so sánh, ổ đĩa · hàng 4 Settings, menu, tiếng Việt · hàng 5 công cụ tệp và ổ đĩa, dữ liệu import có vùng gập. Thứ tự và vị trí board nằm trong `project/canvas.json`.
@@ -336,3 +337,19 @@ Danh sách đầy đủ nằm trong `App/MainMenu.swift` và artboard `MenusVI`.
    - `data-props` là JSON đặt trong nháy đơn.
 3. Publish một lần với `url`, `root`, `file_path`, và `files` cho các file còn lại. Chỉ gửi `canvas.json` khi thêm, bớt hoặc đổi kích thước board; đọc lại `canvas.json` trước khi gửi.
 4. Không kiểm tra canvas bằng cách render hoặc chụp màn hình. Kiểm tra app thật bằng `-HexerSnapshot` (xem HANDOFF.md).
+
+## 11. Chạy trên macOS 15 (không có Liquid Glass)
+
+App chạy từ macOS 15 Sequoia. Liquid Glass chỉ có từ macOS 26, nên mọi control nổi đi qua các helper trong `Views/GlassBarStyle.swift`. Không gọi `glassEffect`, `glassEffectID` hay `GlassEffectContainer` trực tiếp.
+
+| Helper | macOS 26 trở lên | macOS 15 |
+|---|---|---|
+| `.barGlass()` | `glassEffect(.regular.interactive(), in: .capsule)` | `.regularMaterial` dạng capsule, viền `separator` 0,5 pt, bóng đen 12% (bán kính 6, lệch xuống 2) |
+| `.barGlass(tint:)` | kính có tint (nút prominent, chip chế độ) | nền màu tint đặc (accent cho Find All/Replace All, accent 18% cho chip) |
+| `.barGlass(interactive: false)` | kính không tương tác (checkbox "Prompt on replace") | như `.barGlass()` |
+| `.barGlassID(_:in:)` | `glassEffectID` (hàng Replace "mọc" từ hàng Find) | không làm gì |
+| `GlassGroup(spacing:)` | `GlassEffectContainer` | nội dung giữ nguyên |
+
+- Kích thước, khoảng cách và chiều cao 36 pt giống hệt trên hai hệ điều hành; chỉ khác chất liệu.
+- Kiểm giao diện macOS 15 ngay trên máy mới bằng cờ `-HexerNoGlass 1`. Cờ này chỉ đổi phần kính, không giả lập các khác biệt khác của macOS 15 (toolbar, sidebar, inspector do hệ thống vẽ).
+- Toolbar, sidebar, inspector, sheet và alert là của hệ thống nên tự theo giao diện của từng phiên bản macOS.

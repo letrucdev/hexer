@@ -117,7 +117,7 @@ struct CompareCapsule: View {
         }
         .padding(.horizontal, 6)
         .frame(height: GlassBar.height)
-        .glassEffect(.regular.interactive(), in: .capsule)
+        .barGlass()
     }
 }
 

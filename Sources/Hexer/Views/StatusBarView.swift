@@ -43,7 +43,7 @@ struct StatusBarView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(Color.accentColor)
-            .glassEffect(.regular.tint(.accentColor.opacity(0.18)).interactive(), in: .capsule)
+            .barGlass(tint: .accentColor.opacity(0.18))
             .help("Click to switch between Insert and Overwrite (⌘I)")
         }
         .font(.callout)

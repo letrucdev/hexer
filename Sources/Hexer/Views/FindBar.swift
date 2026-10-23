@@ -17,7 +17,7 @@ struct FindBar: View {
     }
 
     var body: some View {
-        GlassEffectContainer(spacing: 8) {
+        GlassGroup(spacing: 8) {
             VStack(alignment: .trailing, spacing: 8) {
                 HStack(spacing: 8) {
                     searchCapsule
@@ -27,13 +27,13 @@ struct FindBar: View {
                     }
                     .padding(.horizontal, 4)
                     .frame(height: GlassBar.height)
-                    .glassEffect(.regular.interactive(), in: .capsule)
-                    .glassEffectID("nav", in: glass)
+                    .barGlass()
+                    .barGlassID("nav", in: glass)
                     .demoAnchor("Find navigation")
                     Button("Find All", action: session.findAll)
                         .buttonStyle(.glassCapsuleProminent)
                         .disabled(find.query.pattern.isEmpty || find.isSearching)
-                        .glassEffectID("all", in: glass)
+                        .barGlassID("all", in: glass)
                         .demoAnchor("Find All")
                     HStack(spacing: 0) {
                         iconButton("arrow.left.arrow.right", find.showsReplace ? "Hide Replace" : "Show Replace") {
@@ -44,8 +44,8 @@ struct FindBar: View {
                     }
                     .padding(.horizontal, 4)
                     .frame(height: GlassBar.height)
-                    .glassEffect(.regular.interactive(), in: .capsule)
-                    .glassEffectID("tools", in: glass)
+                    .barGlass()
+                    .barGlassID("tools", in: glass)
                 }
                 if find.showsReplace {
                     replaceRow
@@ -113,11 +113,11 @@ struct FindBar: View {
         .padding(.leading, 12)
         .padding(.trailing, 8)
         .frame(height: GlassBar.height)
-        .glassEffect(.regular.interactive(), in: .capsule)
+        .barGlass()
         .overlay {
             if find.error != nil { Capsule().strokeBorder(.red, lineWidth: 1.5) }
         }
-        .glassEffectID("search", in: glass)
+        .barGlassID("search", in: glass)
     }
 
     private var replaceRow: some View {
@@ -128,8 +128,8 @@ struct FindBar: View {
                 .fixedSize()
                 .padding(.horizontal, 12)
                 .frame(height: GlassBar.height)
-                .glassEffect(.regular, in: .capsule)
-                .glassEffectID("prompt", in: glass)
+                .barGlass(interactive: false)
+                .barGlassID("prompt", in: glass)
             HStack(spacing: 6) {
                 Image(systemName: "arrow.left.arrow.right")
                     .foregroundStyle(.secondary)
@@ -142,8 +142,8 @@ struct FindBar: View {
             }
             .padding(.horizontal, 12)
             .frame(height: GlassBar.height)
-            .glassEffect(.regular.interactive(), in: .capsule)
-            .glassEffectID("replace", in: glass)
+            .barGlass()
+            .barGlassID("replace", in: glass)
             Button("Replace", action: session.replaceCurrent)
                 .buttonStyle(.glassCapsule)
             Button("Replace All", action: session.replaceAll)

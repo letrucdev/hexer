@@ -12,7 +12,7 @@ let testSettings: [SwiftSetting] = FileManager.default.fileExists(atPath: testin
 let package = Package(
     name: "Hexer",
     defaultLocalization: "en",
-    platforms: [.macOS(.v26)],
+    platforms: [.macOS(.v15)],
     products: [
         .executable(name: "Hexer", targets: ["Hexer"]),
         .executable(name: "hexer-cli", targets: ["HexerCLI"]),

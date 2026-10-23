@@ -8,6 +8,58 @@ enum GlassBar {
     static let iconSize: CGFloat = 28
 }
 
+/// Liquid Glass needs macOS 26. On macOS 15 the same floating controls sit on the standard material
+/// with a hairline border and a soft shadow; tinted ones (prominent buttons, the mode chip) get a
+/// solid fill. Layout and sizes are the same on both.
+enum GlassSupport {
+    /// `-HexerNoGlass 1` shows the macOS 15 look on newer systems, to check it without a VM.
+    static let isAvailable: Bool = {
+        guard #available(macOS 26, *) else { return false }
+        return !UserDefaults.standard.bool(forKey: "HexerNoGlass")
+    }()
+}
+
+extension View {
+    /// The capsule behind a floating control: glass, optionally tinted, on macOS 26 and later.
+    @ViewBuilder
+    func barGlass(tint: Color? = nil, interactive: Bool = true) -> some View {
+        if #available(macOS 26, *), GlassSupport.isAvailable {
+            let glass = tint.map { Glass.regular.tint($0) } ?? .regular
+            glassEffect(interactive ? glass.interactive() : glass, in: .capsule)
+        } else if let tint {
+            background(tint, in: .capsule)
+        } else {
+            background(.regularMaterial, in: .capsule)
+                .overlay(Capsule().strokeBorder(.separator, lineWidth: 0.5))
+                .shadow(color: .black.opacity(0.12), radius: 6, y: 2)
+        }
+    }
+
+    /// Lets the capsule morph with its neighbours in a `GlassGroup` (macOS 26 and later).
+    @ViewBuilder
+    func barGlassID(_ id: String, in namespace: Namespace.ID) -> some View {
+        if #available(macOS 26, *), GlassSupport.isAvailable {
+            glassEffectID(id, in: namespace)
+        } else {
+            self
+        }
+    }
+}
+
+/// `GlassEffectContainer` on macOS 26 and later, plain content before.
+struct GlassGroup<Content: View>: View {
+    var spacing: CGFloat
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        if #available(macOS 26, *), GlassSupport.isAvailable {
+            GlassEffectContainer(spacing: spacing, content: content)
+        } else {
+            content()
+        }
+    }
+}
+
 /// An SF Symbol button inside a glass bar.
 struct GlassBarIconButton: View {
     let symbol: String
@@ -47,7 +99,7 @@ struct GlassCapsuleButtonStyle: ButtonStyle {
             .padding(.horizontal, 16)
             .frame(height: GlassBar.height)
             .contentShape(Capsule())
-            .glassEffect(prominent ? .regular.tint(.accentColor).interactive() : .regular.interactive(), in: .capsule)
+            .barGlass(tint: prominent ? .accentColor : nil)
             .opacity(isEnabled ? (configuration.isPressed ? 0.85 : 1) : 0.45)
     }
 }
