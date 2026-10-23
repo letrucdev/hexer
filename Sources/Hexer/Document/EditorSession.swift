@@ -121,6 +121,11 @@ final class EditorSession {
         return out
     }
 
+    /// The window subtitle: size and mode ("9.6 MB · Overwrite").
+    var windowSubtitle: String {
+        "\(ByteCountFormatter.string(fromByteCount: Int64(clamping: length), countStyle: .file)) · \(mode.title)"
+    }
+
     /// The offset whose byte the caret is on (the start of the selection when there is one).
     var caretByte: UInt64 { selection.isEmpty ? selection.caret : selection.range.lowerBound }
 

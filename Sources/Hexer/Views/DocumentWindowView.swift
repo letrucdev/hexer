@@ -21,6 +21,7 @@ struct DocumentWindowView: View {
                 .inspectorColumnWidth(min: 260, ideal: 300, max: 420)
         }
         .toolbar { toolbar }
+        .navigationSubtitle(session.windowSubtitle)
         .sheet(item: $session.sheet) { $0.content }
         .onReceive(NotificationCenter.default.publisher(for: .toggleHexerSidebar)) { _ in
             withAnimation { session.columnVisibility = session.columnVisibility == .detailOnly ? .all : .detailOnly }

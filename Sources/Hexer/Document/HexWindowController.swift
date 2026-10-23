@@ -17,7 +17,13 @@ final class HexWindowController: NSWindowController, NSWindowDelegate, NSMenuIte
         window.toolbarStyle = .unified
         window.minSize = NSSize(width: 720, height: 420)
         let host = NSHostingController(rootView: DocumentWindowView(session: document.session))
-        host.sceneBridgingOptions = [.toolbars]
+        // Before macOS 26 the SwiftUI split view draws the title bar itself and drops
+        // NSWindow.subtitle; let it bridge the subtitle from DocumentWindowView instead.
+        if #available(macOS 26, *) {
+            host.sceneBridgingOptions = [.toolbars]
+        } else {
+            host.sceneBridgingOptions = [.toolbars, .title]
+        }
         host.sizingOptions = [.minSize]
         window.contentViewController = host
         window.setContentSize(NSSize(width: 1280, height: 820))
@@ -53,8 +59,7 @@ final class HexWindowController: NSWindowController, NSWindowDelegate, NSMenuIte
     }
 
     private func updateSubtitle() {
-        let size = ByteCountFormatter.string(fromByteCount: Int64(clamping: session.length), countStyle: .file)
-        window?.subtitle = "\(size) · \(session.mode.title)"
+        window?.subtitle = session.windowSubtitle
     }
 
     func windowDidBecomeKey(_ notification: Notification) {

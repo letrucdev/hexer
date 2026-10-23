@@ -93,6 +93,9 @@ final class HexDocument: NSDocument {
     private func bufferDidChange() {
         session.bufferDidChange()
         updateChangeCount(buffer.isModified ? .changeDone : .changeCleared)
+        // NSDocument doesn't pass this on to the window (the dot in the close button, "Edited")
+        // when isDocumentEdited is overridden, so do it here.
+        for controller in windowControllers { controller.setDocumentEdited(isDocumentEdited) }
     }
 
     /// Imported data exists only in memory until it is saved, so it counts as edited.

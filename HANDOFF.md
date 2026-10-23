@@ -32,6 +32,7 @@ Máy chỉ có **Command Line Tools**, không có Xcode: Swift 6.4, SDK MacOSX27
 | `Scripts/test.sh` | `swift test --disable-xctest` (swift-testing). Test platform có attach ảnh đĩa thật bằng `hdiutil`. |
 | `Scripts/crosscheck.sh` | So `hexer-cli` với xxd, grep, perl, md5, shasum, cksum, cmp… trên HxD64.exe và các tệp ngẫu nhiên |
 | `swift Scripts/record_demo.swift && swift Scripts/make_promo.swift` | Video giới thiệu `build/promo/hexer-tour.mp4` (1920×1080, H.264, khoảng 40 giây), **không commit**. `record_demo` chạy app với `-HexerDemo` (kịch bản `App/DemoScript.swift` tự thao tác qua API của app, không phát sự kiện chuột/phím ra hệ thống) và quay **chỉ cửa sổ Hexer** bằng ScreenCaptureKit. `make_promo` ghép bản quay với con trỏ, hiệu ứng click, nhãn phím, zoom và chú thích theo `timeline.json`, rồi vá chỉ báo chia sẻ màu tím trên đèn giao thông bằng ảnh sạch app chụp trước khi quay. Cần quyền Screen Recording; chạy `Scripts/bundle.sh` trước. |
+| `Scripts/vm_test.sh deploy` · `selftest` · `shot NAME [GIÂY] -- ARGS` · `ssh CMD` | Test trên máy ảo macOS trong UTM qua SSH: chép `Hexer.app`, `hexer-cli` và tệp mẫu (`$P/Hexer`, `$P/Hexer-b`, `$P/firmware.hex`), chạy selftest, mở app với các cờ `-Hexer…` rồi chụp **cửa sổ UTM** về `build/vm/shots/`. Cấu hình trong `build/vm/config` (`VM_HOST`, `VM_USER`, `VM_KEY`, `VM_NAME`; máy hiện tại: macOS 15.0, `letrucdev@192.168.64.2`). Một lần trong máy ảo: bật Remote Login và thêm public key vào `~/.ssh/authorized_keys`. |
 | `Scripts/fetch_capstone.sh` | Tải lại hoặc cập nhật Capstone 5.0.9 vào `Sources/CCapstone` (đã kiểm sha256) |
 | `swift build --product hexer-cli` | CLI: `dump`, `find`, `replace`, `checksum`, `stats`, `diff`, `export`, `import` (`ihex`/`srec`/`etl`), `disasm`, `edit`, `split`, `concat`, `disks` (`list`/`read`), `bench`, `selftest`, `help` |
 | `hexer-cli selftest` | Kiểm known-answer ngay trong binary (checksum, digest, bảng mã, piece tree, tìm kiếm, Intel Hex/S-Record, lưu tệp, Capstone). Dùng cho bản build không chạy được test suite, ví dụ lát x86_64 của bản universal: `arch -x86_64 hexer-cli selftest`. |
@@ -105,6 +106,8 @@ Resources/        Info.plist, entitlements (không sandbox), Icon, Licenses, Loc
   - Unmount trước khi ghi.
 - **EBCDIC dùng CP500**, đúng bảng trong HxD64.exe tại 0x57c8c4, không phải CP037.
 - **Compare** xếp hai cửa sổ không dùng animation, sau trễ 50 ms; animation từng gây vòng lặp Auto Layout. Capsule điều hướng khác biệt là overlay ở đáy lưới.
+- **Phụ đề cửa sổ ("9.6 MB · Overwrite"):** từ macOS 26, `HexWindowController` đặt `NSWindow.subtitle`. Trước macOS 26, split view của SwiftUI tự vẽ thanh tiêu đề và xoá `NSWindow.subtitle`, nên host bật `sceneBridgingOptions = [.toolbars, .title]` và `DocumentWindowView` đặt `.navigationSubtitle(session.windowSubtitle)`. Tiêu đề vẫn do NSDocument quản lý.
+- **Dấu "đã sửa" của cửa sổ:** vì `HexDocument` override `isDocumentEdited`, NSDocument không tự gọi `setDocumentEdited` cho window controller (chấm trong nút đóng không hiện, trên cả macOS 15 và 27). `bufferDidChange` gọi trực tiếp cho mọi window controller.
 - **Gập vùng undefined:** `HexEditorView.rowMap` (`RowMap`, HexerCore) quy đổi dòng hiển thị ↔ dòng dữ liệu. Mọi chỗ tính dòng (vẽ, caret, hit-test, cuộn, IME, ↑↓/Page, compare, sector navigator) đều đi qua nó; đừng dùng lại `offset / bytesPerRow` để ra dòng trên màn hình.
   - Canvas đọc byte theo từng đoạn dòng dữ liệu liền nhau, không bao giờ đọc xuyên qua vùng gập (có thể lớn hàng GB).
   - Khi bố cục dòng đổi (bytes per row, gập/mở), byte ở đầu màn hình được giữ nguyên.
@@ -144,7 +147,7 @@ Resources/        Info.plist, entitlements (không sandbox), Icon, Licenses, Loc
 ## 6. Cần cải thiện (ưu tiên từ trên xuống)
 
 1. **CI (tuỳ chọn).** Repo đã có trên GitHub. Có thể thêm workflow macOS chạy `Scripts/test.sh` và `Scripts/crosscheck.sh`. Crosscheck cần sửa đường dẫn cứng tới `HxD64.exe` (`HXD=` trong script; nếu không có tệp thì bỏ qua) và cần `hdiutil` cho phần ổ đĩa.
-2. **Chạy thử thật trên macOS 15 và macOS 26.** App mới chỉ được kiểm trên macOS 27, có thêm cờ `-HexerNoGlass 1` để xem giao diện không kính. Trình biên dịch đã đảm bảo không gọi API mới hơn macOS 15 khi chưa kiểm tra phiên bản, và các ký hiệu của kính đều được liên kết dạng weak. Nhưng toolbar, sidebar, inspector và bố cục SwiftUI trên 15 hoặc 26 có thể khác 27. Cách kiểm: máy ảo (UTM, VirtualBuddy hoặc Tart trên Apple silicon) hoặc một volume APFS cài macOS cũ, rồi chạy `hexer-cli selftest` và chụp các màn hình chính.
+2. **Chạy thử trên macOS 26.** macOS 15 đã kiểm trên máy ảo UTM (xem nhật ký phiên 3). macOS 26 chưa kiểm; có thể tạo thêm một máy ảo UTM rồi dùng `Scripts/vm_test.sh` với `VM_NAME`/`VM_HOST` tương ứng.
 3. **Kiểm thử ổ đĩa thật.**
    - Prompt của authopen trên ổ trong (cần mật khẩu admin) chưa được thử.
    - Đường ghi ổ đĩa mới chỉ có unit test trên ảnh đĩa attach. Cần thử trên USB thật: ghi, unmount, so `dd`. `hexer-cli disks read diskN` (với sudo) giúp so nhanh.
@@ -213,7 +216,13 @@ Resources/        Info.plist, entitlements (không sandbox), Icon, Licenses, Loc
     - Thử build bản sao với mức tối thiểu macOS 15: chỉ vướng 16 chỗ, toàn API kính trong 5 tệp. macOS 14 vướng thêm `Mutex` (Synchronization) ở HexerDisasm; macOS 13 trở xuống không khả thi vì `@Observable`.
     - Gom kính vào `barGlass`, `barGlassID`, `GlassGroup`. Trên macOS 15 dùng material chuẩn kèm viền mảnh; nút prominent và chip dùng nền accent.
     - Hạ deployment target và `LSMinimumSystemVersion` xuống 15.0.
-    - Kiểm: ký hiệu kính được liên kết dạng weak (`dyld_info -imports`), framework liên kết đều có trên macOS 15, chụp `-HexerNoGlass 1` ở sáng, tối, tiếng Việt, cửa sổ hẹp, compare và sector navigator. **Chưa chạy trên macOS 15 thật** (§6 mục 2).
+    - Kiểm: ký hiệu kính được liên kết dạng weak (`dyld_info -imports`), framework liên kết đều có trên macOS 15, chụp `-HexerNoGlass 1` ở sáng, tối, tiếng Việt, cửa sổ hẹp, compare và sector navigator.
+  - **Test trên macOS 15.0 thật (máy ảo UTM, người dùng cài):**
+    - `hexer-cli selftest` đạt; sửa và lưu tệp ra đúng từng byte như `hexer-cli replace`; `disks list/read` trên ảnh đĩa gắn tạm khớp `dd` (kể cả đoạn không thẳng hàng).
+    - Đã chụp: cửa sổ chính, find bar + Replace (sáng, tối, tiếng Việt, cửa sổ 1024), Find All, Checksums (ngăn và sheet), Go to (tiếng Việt), vùng gập sau khi import, so sánh hai cửa sổ, sector navigator, Statistics, 5 pane Settings, Open Disk (liệt kê ổ đĩa của máy ảo, ổ khởi động có khoá), alert mở ổ đĩa để ghi (Open Read-only mặc định, Open for Writing màu đỏ).
+    - Lỗi tìm thấy và đã sửa: phụ đề cửa sổ không hiện trên macOS 15; chấm "đã sửa" không hiện trong nút đóng (lỗi có từ trước, cả trên macOS 27).
+    - Khác biệt chấp nhận được: ở cửa sổ hẹp, sidebar và inspector của macOS 15 chiếm chỗ (không chảy sau nội dung như macOS 26+), lưới phải cuộn ngang và nhóm toolbar bên phải gập vào nút `»`.
+    - Thêm `Scripts/vm_test.sh` để lặp lại các bước trên.
   - **README:**
     - Thêm `README.md` (tiếng Anh): ảnh chính đổi theo giao diện sáng/tối (`<picture>`), tính năng, ảnh chụp, build, CLI, cấu trúc dự án.
     - Ảnh nằm trong `docs/images`, chụp từ app thật bằng `-HexerSnapshotShadow` trên dữ liệu của chính dự án (binary Hexer, Intel Hex dựng từ binary đó, ảnh đĩa FAT "HEXER").
