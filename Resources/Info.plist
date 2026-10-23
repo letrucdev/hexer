@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key><string>en</string>
+    <key>CFBundleExecutable</key><string>Hexer</string>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
+    <key>CFBundleIdentifier</key><string>com.nongdandev.hexer</string>
+    <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+    <key>CFBundleName</key><string>Hexer</string>
+    <key>CFBundleDisplayName</key><string>Hexer</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>0.1</string>
+    <key>CFBundleVersion</key><string>1</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+        <string>vi</string>
+    </array>
+    <key>LSMinimumSystemVersion</key><string>26.0</string>
+    <key>LSApplicationCategoryType</key><string>public.app-category.developer-tools</string>
+    <key>NSHighResolutionCapable</key><true/>
+    <key>NSPrincipalClass</key><string>NSApplication</string>
+    <key>NSHumanReadableCopyright</key><string>Hexer — a hex editor for macOS. Feature set modelled on HxD.</string>
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeName</key><string>Binary File</string>
+            <key>CFBundleTypeRole</key><string>Editor</string>
+            <key>LSHandlerRank</key><string>Alternate</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>public.data</string>
+            </array>
+            <key>NSDocumentClass</key><string>HexDocument</string>
+        </dict>
+    </array>
+    <key>NSDesktopFolderUsageDescription</key><string>Hexer opens the files you choose on the Desktop.</string>
+    <key>NSDocumentsFolderUsageDescription</key><string>Hexer opens the files you choose in Documents.</string>
+    <key>NSDownloadsFolderUsageDescription</key><string>Hexer opens the files you choose in Downloads.</string>
+    <key>NSRemovableVolumesUsageDescription</key><string>Hexer opens files and disk images on removable volumes.</string>
+    <key>NSNetworkVolumesUsageDescription</key><string>Hexer opens files on network volumes.</string>
+</dict>
+</plist>

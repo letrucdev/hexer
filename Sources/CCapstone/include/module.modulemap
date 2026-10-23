@@ -1,0 +1,4 @@
+module CCapstone {
+    header "capstone/capstone.h"
+    export *
+}

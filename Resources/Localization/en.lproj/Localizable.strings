@@ -1,0 +1,3 @@
+/* English is the development language: keys are the English text, so this table only lists
+   strings whose English wording differs from the key. */
+"Binary File" = "Binary File";
