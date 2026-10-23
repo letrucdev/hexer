@@ -28,7 +28,9 @@ import Testing
         // The physical disk at the top of the chain holds it too, and is a real device.
         let physical = try #require(disks.first { $0.holdsBootVolume && $0.isWhole && $0.parentBSDName == nil })
         #expect(physical.isOnBootDisk)
-        #expect(physical.busProtocol != nil)
+        // Real hardware reports its bus (PCI-Express, USB…); virtual disks in VMs and CI runners may
+        // only name the model or the media.
+        #expect(physical.busProtocol != nil || physical.model != nil || physical.mediaName != nil)
         #expect(physical.size >= boot.size)
         #expect(disks.contains { $0.mountPoint == "/System/Volumes/Data" && $0.isOnBootDisk })
         #expect(DiskEnumerator.disk(bsdName: physical.bsdName)?.bsdName == physical.bsdName)
