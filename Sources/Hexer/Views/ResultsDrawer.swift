@@ -15,6 +15,7 @@ struct ResultsDrawer: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 .fixedSize()
+                .demoAnchor("Drawer tabs")
                 Spacer()
                 if pane == .checksums { ChecksumsPaneAccessory(session: session) }
                 if pane == .searchResults { SearchResultsPaneAccessory(session: session) }

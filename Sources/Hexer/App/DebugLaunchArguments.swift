@@ -15,11 +15,35 @@ enum DebugLaunchArguments {
             return args[i + 1]
         }
         func flag(_ name: String) -> Bool { args.contains(name) }
+        // -HexerAppearance light|dark renders the app in one appearance whatever the system uses.
+        switch value("-HexerAppearance") {
+        case "light": NSApp.appearance = NSAppearance(named: .aqua)
+        case "dark": NSApp.appearance = NSAppearance(named: .darkAqua)
+        default: break
+        }
+        keepsShadow = flag("-HexerSnapshotShadow")
         // Positional file arguments when launched directly (not through Launch Services).
         let files = args.dropFirst().enumerated().filter { i, a in
             !a.hasPrefix("-") && (i == 0 || !args[i].hasPrefix("-Hexer") && !args[i].hasPrefix("-Apple"))
         }.map(\.element).filter { FileManager.default.fileExists(atPath: $0) }
         if let shot = value("-HexerAlertSnapshot") { captureNextAlert(to: URL(fileURLWithPath: shot)) }
+        if let dir = value("-HexerDemo") {
+            // The promotional tour: opens the file given on the command line, then runs DemoScript.
+            Task { @MainActor in
+                let controller = NSDocumentController.shared
+                for _ in 0..<40 where controller.documents.isEmpty { try? await Task.sleep(for: .milliseconds(100)) }
+                if controller.documents.isEmpty, let path = files.first {
+                    _ = try? await controller.openDocument(withContentsOf: URL(fileURLWithPath: path), display: true)
+                }
+                guard let document = controller.documents.first as? HexDocument else { return }
+                if let size = value("-HexerWindowSize")?.split(separator: "x").compactMap({ Double($0) }), size.count == 2 {
+                    document.windowControllers.first?.window?.setContentSize(NSSize(width: size[0], height: size[1]))
+                }
+                await DemoScript.run(dir: URL(fileURLWithPath: dir), document: document,
+                                     firmware: value("-HexerDemoFirmware").map { URL(fileURLWithPath: $0) })
+            }
+            return
+        }
         if let name = value("-HexerOpenDisk") {
             // Opens a raw disk read-only (e.g. an attached test image), then snapshots it.
             // -HexerOpenDiskWritable asks for write access, but only on disk images.
@@ -121,7 +145,10 @@ enum DebugLaunchArguments {
                 }
                 try? await Task.sleep(for: .milliseconds(200))
                 while s.jobs.isBusy { try? await Task.sleep(for: .milliseconds(100)) }
-                if flag("-HexerFindAll") { s.searchResultSelection = s.searchHits.dropFirst(2).first?.id }
+                if flag("-HexerFindAll") {
+                    let index = value("-HexerFindAllSelect").flatMap(Int.init) ?? 2
+                    s.searchResultSelection = s.searchHits.dropFirst(index).first?.id
+                }
             }
             if let tag = value("-HexerCopyAs").flatMap(Int.init).flatMap(ExportFormat.init(rawValue:)) {
                 s.copyAs(tag)
@@ -221,6 +248,9 @@ enum DebugLaunchArguments {
         RunLoop.main.add(timer, forMode: .common)
     }
 
+    /// -HexerSnapshotShadow keeps the window's shadow (on a transparent background) in snapshots.
+    private static var keepsShadow = false
+
     /// Captures the window as it appears on screen, glass included. Needs Screen Recording
     /// permission for the app or the terminal that launched it.
     static func snapshot(_ window: NSWindow, to url: URL) {
@@ -229,7 +259,7 @@ enum DebugLaunchArguments {
         // A sheet is a window of its own; capture it alone (never a screen area, which could
         // include other apps' windows).
         let target = window.attachedSheet ?? window
-        capture.arguments = ["-x", "-o", "-l", String(target.windowNumber), url.path]
+        capture.arguments = (keepsShadow ? ["-x"] : ["-x", "-o"]) + ["-l", String(target.windowNumber), url.path]
         do {
             try capture.run()
             capture.waitUntilExit()

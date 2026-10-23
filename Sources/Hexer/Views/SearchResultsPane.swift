@@ -18,12 +18,12 @@ struct SearchResultsPane: View {
                 Text(verbatim: excerpt(hit, snapshot).map { String(format: "%02X", $0) }.joined(separator: " "))
                     .font(.body.monospaced())
             }
-            .width(min: 150, ideal: 420)
+            .width(min: 150, ideal: 300)
             TableColumn("Excerpt (text)") { hit in
                 Text(verbatim: session.encoding.table.decode(excerpt(hit, snapshot)))
                     .font(.body.monospaced())
             }
-            .width(min: 100, ideal: 220)
+            .width(min: 100, ideal: 160)
         }
         .onChange(of: session.searchResultSelection) { _, id in
             guard let id, let hit = session.searchHits.first(where: { $0.id == id }) else { return }

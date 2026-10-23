@@ -120,13 +120,13 @@ Giá trị không hợp lệ trong inspector (`Invalid`) dùng phông thường,
   - Không dùng kính trong lưới.
 - **Drawer:** 3 tab segmented cỡ nhỏ (tab chọn nền accent). Bên phải có phần phụ:
   - Search Results: "159 matches" + Clear.
-  - Checksums: ô "Expected result" + Refresh.
+  - Checksums: ô "Expected result" (240 pt, hẹp thì 140 pt, hẹp nữa thì ẩn) + Refresh.
   - Nút đóng ở cuối.
   - Các bảng:
     - Results: Offset | Excerpt (hex) | Excerpt (text).
     - Checksums: # | Algorithm | Checksum | Usage.
     - Compare: danh sách khác biệt, hoặc "Not Comparing".
-- **Status bar:** `Offset:`, `Block:` (`—` khi không chọn), `Length:` dạng `C (12)`, tên bảng mã ngắn, hệ cơ số offset, chip chế độ (kính có tint accent, bấm được).
+- **Status bar:** `Offset:`, `Block:` (`—` khi không chọn), `Length:` dạng `C (12)`, tên bảng mã ngắn, hệ cơ số offset, chip chế độ (kính có tint accent, bấm được). Khi hẹp, giá trị các trường cắt giữa (Block co trước) chứ không làm cửa sổ rộng ra; bảng mã và hệ cơ số ẩn đi trước.
 - **Inspector:**
   - Header "Data Inspector" + menu ⋯ (Hex, Choose Types… mở Settings ▸ Inspector).
   - Segmented Little/Big endian + checkbox Hex.

@@ -31,6 +31,7 @@ Máy chỉ có **Command Line Tools**, không có Xcode: Swift 6.4, SDK MacOSX27
 | `SIGN_IDENTITY=… Scripts/bundle.sh` | Ký bằng identity thật. Ký ad-hoc làm macOS **mất quyền Screen Recording sau mỗi lần build**. |
 | `Scripts/test.sh` | `swift test --disable-xctest` (swift-testing). Test platform có attach ảnh đĩa thật bằng `hdiutil`. |
 | `Scripts/crosscheck.sh` | So `hexer-cli` với xxd, grep, perl, md5, shasum, cksum, cmp… trên HxD64.exe và các tệp ngẫu nhiên |
+| `swift Scripts/record_demo.swift && swift Scripts/make_promo.swift` | Video giới thiệu `build/promo/hexer-tour.mp4` (1920×1080, H.264, khoảng 40 giây), **không commit**. `record_demo` chạy app với `-HexerDemo` (kịch bản `App/DemoScript.swift` tự thao tác qua API của app, không phát sự kiện chuột/phím ra hệ thống) và quay **chỉ cửa sổ Hexer** bằng ScreenCaptureKit. `make_promo` ghép bản quay với con trỏ, hiệu ứng click, nhãn phím, zoom và chú thích theo `timeline.json`, rồi vá chỉ báo chia sẻ màu tím trên đèn giao thông bằng ảnh sạch app chụp trước khi quay. Cần quyền Screen Recording; chạy `Scripts/bundle.sh` trước. |
 | `Scripts/fetch_capstone.sh` | Tải lại hoặc cập nhật Capstone 5.0.9 vào `Sources/CCapstone` (đã kiểm sha256) |
 | `swift build --product hexer-cli` | CLI: `dump`, `find`, `replace`, `checksum`, `stats`, `diff`, `export`, `import` (`ihex`/`srec`/`etl`), `disasm`, `edit`, `split`, `concat`, `disks` (`list`/`read`), `bench`, `selftest`, `help` |
 | `hexer-cli selftest` | Kiểm known-answer ngay trong binary (checksum, digest, bảng mã, piece tree, tìm kiếm, Intel Hex/S-Record, lưu tệp, Capstone). Dùng cho bản build không chạy được test suite, ví dụ lát x86_64 của bản universal: `arch -x86_64 hexer-cli selftest`. |
@@ -51,7 +52,7 @@ Ví dụ:
 build/Hexer.app/Contents/MacOS/Hexer file.bin -HexerGoTo 0x100 -HexerAction goToOffset: -HexerSnapshot /path/shot.png -HexerQuit 1
 ```
 
-- Các cờ: `-HexerAction sel:`, `-HexerSnapshot path`, `-HexerAlertSnapshot path` (chụp alert modal kế tiếp, in nút nào nhận Return/Esc, rồi huỷ alert), `-HexerQuit 1`, `-HexerFind/-HexerFindType/-HexerFindAll`, `-HexerReplace/-HexerReplaceAll`, `-HexerSave`, `-HexerUndoAll`, `-HexerChecksums`, `-HexerExpected`, `-HexerCompare/-HexerCompareSteps/-HexerCompareList`, `-HexerCopyAs`, `-HexerImport path` (nhận thêm `-HexerWindowSize`, `-HexerGoTo`, `-HexerAction`), `-HexerOpenDisk diskN` (+ `-HexerOpenDiskWritable 1`, chỉ áp dụng cho ảnh đĩa), `-HexerPrintPDF`, `-HexerSectorSize`, `-HexerWindowSize WxH`, `-HexerGoTo`, `-HexerSelect a-b`, `-HexerMode`, `-HexerEncoding`, `-HexerBytesPerRow`, `-HexerDrawer`, `-HexerHideInspector`, `-HexerSettingsPane n`.
+- Các cờ: `-HexerAction sel:`, `-HexerSnapshot path`, `-HexerSnapshotShadow 1` (giữ bóng cửa sổ trên nền trong suốt, dùng cho ảnh README), `-HexerAppearance light|dark` (ép giao diện qua `NSApp.appearance`; đừng dùng `-NSRequiresAquaSystemAppearance`, cờ đó làm toolbar trong suốt), `-HexerFindAllSelect n` (chọn kết quả thứ n sau Find All, mặc định 2), `-HexerDemo DIR` + `-HexerDemoFirmware HEX` (kịch bản quay video, xem bảng lệnh), `-HexerAlertSnapshot path` (chụp alert modal kế tiếp, in nút nào nhận Return/Esc, rồi huỷ alert), `-HexerQuit 1`, `-HexerFind/-HexerFindType/-HexerFindAll`, `-HexerReplace/-HexerReplaceAll`, `-HexerSave`, `-HexerUndoAll`, `-HexerChecksums`, `-HexerExpected`, `-HexerCompare/-HexerCompareSteps/-HexerCompareList`, `-HexerCopyAs`, `-HexerImport path` (nhận thêm `-HexerWindowSize`, `-HexerGoTo`, `-HexerAction`), `-HexerOpenDisk diskN` (+ `-HexerOpenDiskWritable 1`, chỉ áp dụng cho ảnh đĩa), `-HexerPrintPDF`, `-HexerSectorSize`, `-HexerWindowSize WxH`, `-HexerGoTo`, `-HexerSelect a-b`, `-HexerMode`, `-HexerEncoding`, `-HexerBytesPerRow`, `-HexerDrawer`, `-HexerHideInspector`, `-HexerSettingsPane n`.
 - **Cờ nào cũng phải kèm giá trị** (ví dụ `1`). Nếu không, AppKit coi chữ đứng sau là tên tệp và mở nó.
 - Tiếng Việt: thêm `-AppleLanguages '(vi)'`.
 - Ảnh chụp dùng `screencapture -l <windowID>` (cần quyền Screen Recording). **Không bao giờ chụp theo vùng màn hình**, vì sẽ dính cửa sổ app khác.
@@ -150,11 +151,12 @@ Resources/        Info.plist, entitlements (không sandbox), Icon, Licenses, Loc
    - Đi qua dòng gập bằng ↑/↓ thì caret mất cột (về byte đầu của vùng).
    - Bản in (Print) không gập.
    - Chưa có cách gập lại riêng một vùng đã mở, ngoài việc tắt rồi bật lại View ▸ Fold Undefined Sections. Có thể thêm menu ngữ cảnh "Fold Section".
-5. **Cảnh báo NSTableView reentrancy.** Thấy một lần, chưa tái hiện được. Nghi ở drawer kết quả hoặc danh sách compare khi cập nhật trong lúc layout.
-6. **Role của segmented control (SDK 27).** SwiftUI chưa đặt được role `tabs` / `valueSelection` của `NSSegmentedControl`. Nếu cần đúng HIG, bọc AppKit cho tab drawer.
-7. **Ký app.** Dùng `SIGN_IDENTITY` (Developer ID hoặc chứng chỉ tự ký) để không mất quyền Screen Recording sau mỗi lần build.
-8. **Bản địa hoá còn sót:** phần mô tả errno (`strerror`) trong thông báo lỗi vẫn là tiếng Anh; số trong chuỗi dùng định dạng theo vùng của hệ thống (ví dụ "1,840" khi chỉ đổi ngôn ngữ sang tiếng Việt).
-9. **Hiệu năng:** chạy `hexer-cli bench` và mở tệp thưa 6 GB (`mkfile -n 6g`) sau các thay đổi lớn ở Storage hoặc HexGrid. Đã kiểm lại sau khi thêm gập vùng (2026-10-24): tệp 6 GB mở và nhảy tới cuối bình thường.
+5. **Chiều rộng tối thiểu khi mở ngăn Checksums:** khoảng 1270 pt (tiếng Anh) và 1300 pt (tiếng Việt), so với 1166 pt khi không mở ngăn. Thủ phạm còn lại có thể là bảng hoặc segmented tab của drawer; đo bằng cách so `-HexerWindowSize 1100x700` có và không có `-HexerDrawer checksums`.
+6. **Cảnh báo NSTableView reentrancy.** Thấy một lần, chưa tái hiện được. Nghi ở drawer kết quả hoặc danh sách compare khi cập nhật trong lúc layout.
+7. **Role của segmented control (SDK 27).** SwiftUI chưa đặt được role `tabs` / `valueSelection` của `NSSegmentedControl`. Nếu cần đúng HIG, bọc AppKit cho tab drawer.
+8. **Ký app.** Dùng `SIGN_IDENTITY` (Developer ID hoặc chứng chỉ tự ký) để không mất quyền Screen Recording sau mỗi lần build.
+9. **Bản địa hoá còn sót:** phần mô tả errno (`strerror`) trong thông báo lỗi vẫn là tiếng Anh; số trong chuỗi dùng định dạng theo vùng của hệ thống (ví dụ "1,840" khi chỉ đổi ngôn ngữ sang tiếng Việt).
+10. **Hiệu năng:** chạy `hexer-cli bench` và mở tệp thưa 6 GB (`mkfile -n 6g`) sau các thay đổi lớn ở Storage hoặc HexGrid. Đã kiểm lại sau khi thêm gập vùng (2026-10-24): tệp 6 GB mở và nhảy tới cuối bình thường.
 
 ## 7. Quy ước khi code tiếp
 
@@ -205,3 +207,18 @@ Resources/        Info.plist, entitlements (không sandbox), Icon, Licenses, Loc
       - Ô tìm và ô thay thế co xuống tối thiểu 90 pt.
       - Find bar cách hai mép lưới 16 pt.
   - Commit đầu tiên và push lên `letrucdev/hexer` (theo yêu cầu của người dùng).
+  - **README:**
+    - Thêm `README.md` (tiếng Anh): ảnh chính đổi theo giao diện sáng/tối (`<picture>`), tính năng, ảnh chụp, build, CLI, cấu trúc dự án.
+    - Ảnh nằm trong `docs/images`, chụp từ app thật bằng `-HexerSnapshotShadow` trên dữ liệu của chính dự án (binary Hexer, Intel Hex dựng từ binary đó, ảnh đĩa FAT "HEXER").
+    - Dựng lại ảnh: chạy lại các lệnh chụp (xem cờ ở §2), rồi thu ảnh về chiều dài nhất 1600 px bằng `sips -Z 1600`.
+    - Repo chưa có LICENSE nên README không ghi license.
+  - **Video giới thiệu quay thao tác thật** (người dùng yêu cầu: không dùng ảnh tĩnh, không đưa video lên GitHub):
+    - Kịch bản `App/DemoScript.swift` (cờ `-HexerDemo DIR`): bấm byte, gõ đè hex rồi ⌘Z, ⌘F + Find All + ▼, đổi Big/Little endian, mở Checksums, import Intel Hex vào tab mới, mở vùng gập rồi gập lại, đổi sáng/tối.
+    - Toạ độ nút SwiftUI lấy qua modifier `.demoAnchor(_:)` (chỉ ghi khi đang chạy demo). Cửa sổ demo đặt `ignoresMouseEvents` để con trỏ thật không gây hover/tooltip.
+    - Quay bằng `Scripts/record_demo.swift`, ghép bằng `Scripts/make_promo.swift`; mọi thứ nằm trong `build/promo/` (đã bị `.gitignore`).
+    - Bài học: `SCStream.startCapture` (async) treo nếu tiến trình không chạy `NSApplication` run loop; dùng bản completion handler trong `nsapp.run()`.
+  - **Sửa lỗi phát hiện khi quay:** chọn một khối lớn hoặc mở ngăn Checksums làm cửa sổ tự nở rộng (1280 → 1344/1396 pt), vì SwiftUI tính chiều rộng lý tưởng của các trường status bar, cột bảng và ô "Expected result" vào kích thước tối thiểu của cửa sổ.
+    - Trường status bar giờ co lại được (Block co trước) và cắt giữa.
+    - Chiều rộng lý tưởng của cột bảng Search Results/Checksums nhỏ lại.
+    - Ô "Expected result" dùng `ViewThatFits` (240 → 140 → ẩn).
+    - Kiểm: 1280 pt giữ nguyên 1280 ở mọi trạng thái. Ngăn Checksums vẫn nâng chiều rộng tối thiểu lên khoảng 1270 pt (tiếng Anh) và 1300 pt (tiếng Việt), so với 1166 pt khi không mở ngăn (xem §6).

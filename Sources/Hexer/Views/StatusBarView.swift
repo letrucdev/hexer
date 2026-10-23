@@ -7,14 +7,16 @@ struct StatusBarView: View {
 
     var body: some View {
         HStack(spacing: 18) {
-            field("Offset", session.formatOffset(session.caretByte))
+            // Fields shrink (Block first) instead of widening the window.
+            field("Offset", session.formatOffset(session.caretByte)).layoutPriority(3)
             if session.selection.isEmpty {
-                field("Block", "—")
-                field("Length", "0")
+                field("Block", "—").layoutPriority(1)
+                field("Length", "0").layoutPriority(2)
             } else {
                 let r = session.selection.range
-                field("Block", "\(session.formatOffset(r.lowerBound))–\(session.formatOffset(r.upperBound - 1))")
+                field("Block", "\(session.formatOffset(r.lowerBound))–\(session.formatOffset(r.upperBound - 1))").layoutPriority(1)
                 field("Length", "\(session.formatOffset(r.upperBound - r.lowerBound)) (\(r.upperBound - r.lowerBound))")
+                    .layoutPriority(2)
             }
             Spacer(minLength: 8)
             ForEach(session.jobs.jobs) { JobCapsule(job: $0) }
@@ -61,13 +63,14 @@ struct StatusBarView: View {
     private func field(_ title: String, _ value: String) -> some View {
         HStack(spacing: 4) {
             Text(verbatim: L(title) + ":")
+                .fixedSize()
             Text(verbatim: value)
                 .font(.callout.monospaced())
                 .foregroundStyle(.primary)
+                .truncationMode(.middle)
                 .textSelection(.enabled)
         }
         .lineLimit(1)
-        .fixedSize()
     }
 }
 

@@ -245,15 +245,15 @@ struct ChecksumsPane: View {
             TableColumn("") { entry in status(entry) }
                 .width(18)
             TableColumn("Algorithm") { entry in Text(verbatim: entry.name) }
-                .width(min: 90, ideal: 150)
+                .width(min: 90, ideal: 130)
             TableColumn("Checksum") { entry in
                 Text(verbatim: entry.result.hexString)
                     .font(.body.monospaced())
                     .textSelection(.enabled)
             }
-            .width(min: 120, ideal: 420)
+            .width(min: 120, ideal: 300)
             TableColumn("Usage") { entry in Text(verbatim: entry.scope).foregroundStyle(.secondary) }
-                .width(min: 80, ideal: 180)
+                .width(min: 80, ideal: 110)
         }
         .contextMenu(forSelectionType: ChecksumEntry.ID.self) { ids in
             Button("Copy") { session.copyChecksums(ids, detailed: false) }
@@ -294,14 +294,25 @@ struct ChecksumsPaneAccessory: View {
     @Bindable var session: EditorSession
 
     var body: some View {
-        HStack(spacing: 8) {
-            TextField("Expected result", text: $session.expectedChecksum)
-                .font(.callout.monospaced())
-                .textFieldStyle(.roundedBorder)
-                .frame(minWidth: 120, idealWidth: 260, maxWidth: 260)
-                .help("Compare every checksum with this value")
-            Button("Refresh", action: session.refreshChecksums)
-                .disabled(session.checksumResults.isEmpty || session.jobs.isBusy)
+        // A text field counts with its ideal width towards the window's minimum, so pick a
+        // width that fits rather than let the field widen the window.
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) { expected(width: 240); refresh }
+            HStack(spacing: 8) { expected(width: 140); refresh }
+            refresh
         }
+    }
+
+    private func expected(width: CGFloat) -> some View {
+        TextField("Expected result", text: $session.expectedChecksum)
+            .font(.callout.monospaced())
+            .textFieldStyle(.roundedBorder)
+            .frame(width: width)
+            .help("Compare every checksum with this value")
+    }
+
+    private var refresh: some View {
+        Button("Refresh", action: session.refreshChecksums)
+            .disabled(session.checksumResults.isEmpty || session.jobs.isBusy)
     }
 }

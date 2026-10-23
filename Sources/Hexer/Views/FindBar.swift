@@ -29,10 +29,12 @@ struct FindBar: View {
                     .frame(height: GlassBar.height)
                     .glassEffect(.regular.interactive(), in: .capsule)
                     .glassEffectID("nav", in: glass)
+                    .demoAnchor("Find navigation")
                     Button("Find All", action: session.findAll)
                         .buttonStyle(.glassCapsuleProminent)
                         .disabled(find.query.pattern.isEmpty || find.isSearching)
                         .glassEffectID("all", in: glass)
+                        .demoAnchor("Find All")
                     HStack(spacing: 0) {
                         iconButton("arrow.left.arrow.right", find.showsReplace ? "Hide Replace" : "Show Replace") {
                             withAnimation(.bouncy) { find.showsReplace.toggle() }
