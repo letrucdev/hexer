@@ -35,7 +35,7 @@ jobs:
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Disk image (universal)
-        run: Scripts/make_dmg.sh
+        run: Scripts/ci_run.sh Scripts/make_dmg.sh
 
       - name: Publish the release
         env:

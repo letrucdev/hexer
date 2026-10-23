@@ -38,13 +38,13 @@ jobs:
           swift --version
 
       - name: Unit tests
-        run: Scripts/test.sh
+        run: Scripts/ci_run.sh Scripts/test.sh
 
       - name: Cross-checks against system tools
-        run: Scripts/crosscheck.sh
+        run: Scripts/ci_run.sh Scripts/crosscheck.sh
 
       - name: App bundle
-        run: Scripts/bundle.sh
+        run: Scripts/ci_run.sh Scripts/bundle.sh
 
       - name: Upload the app
         uses: actions/upload-artifact@v7

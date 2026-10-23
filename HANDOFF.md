@@ -240,6 +240,9 @@ Resources/        Info.plist, entitlements (không sandbox), Icon, Licenses, Loc
     - Bản universal: phần x86_64 mở được qua Rosetta, `hexer-cli selftest` (x86_64) đạt.
     - Mô phỏng tải về trên máy này: app chép từ DMG có cờ quarantine mang theo cờ đó, Gatekeeper chặn (`spctl`: rejected); lệnh `xattr -dr` trong hướng dẫn gỡ được, chữ ký vẫn hợp lệ.
     - **Chưa** thử hộp thoại Gatekeeper và nút Open Anyway trên máy ảo macOS 15, vì máy ảo đang tắt.
+  - **GitHub Actions** (theo yêu cầu của người dùng): `ci.yml` và `release.yml` (xem §2 "CI và phát hành").
+    - Trước khi push, đã chạy lại các bước của CI trong một bản sao sạch của repo: test, crosscheck, bundle và DMG đều đạt.
+    - Người dùng đã chuyển repo sang **public**, nên đọc được trạng thái Actions qua API công khai. Log chi tiết vẫn phải đăng nhập mới xem được.
   - **README:**
     - Thêm `README.md` (tiếng Anh): ảnh chính đổi theo giao diện sáng/tối (`<picture>`), tính năng, ảnh chụp, build, CLI, cấu trúc dự án.
     - Ảnh nằm trong `docs/images`, chụp từ app thật bằng `-HexerSnapshotShadow` trên dữ liệu của chính dự án (binary Hexer, Intel Hex dựng từ binary đó, ảnh đĩa FAT "HEXER").
