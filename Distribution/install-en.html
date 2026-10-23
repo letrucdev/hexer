@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Install Hexer</title>
+<style>
+body { font-family: "Helvetica Neue", Helvetica, sans-serif; font-size: 13pt; line-height: 1.4; }
+h1 { font-size: 22pt; margin-bottom: 2pt; }
+h2 { font-size: 15pt; margin-top: 16pt; }
+code { font-family: Menlo, monospace; font-size: 11.5pt; }
+li { margin-bottom: 3pt; }
+.note { color: #555555; }
+</style>
+</head>
+<body>
+<h1>Hexer @VERSION@</h1>
+<p>A hex editor for macOS. Open files, disks and firmware images of any size, and inspect, search, compare and edit them byte by byte.</p>
+
+<h2>Requirements</h2>
+<ul>
+<li>macOS 15 Sequoia or later.</li>
+<li>A Mac with Apple silicon or an Intel processor.</li>
+</ul>
+
+<h2>Install</h2>
+<ol>
+<li>In the window of this disk image, drag <b>Hexer</b> onto the <b>Applications</b> folder.</li>
+<li>Eject the disk image: in the Finder sidebar, click the eject button next to <b>Hexer @VERSION@</b>.</li>
+</ol>
+
+<h2>Open Hexer for the first time</h2>
+<p>Hexer is not notarized by Apple, so macOS blocks it the first time you open it. You allow it once; after that it opens normally.</p>
+<ol>
+<li>Open the <b>Applications</b> folder and double-click <b>Hexer</b>. macOS shows <b>“Hexer” Not Opened</b>. Click <b>Done</b> (not Move to Trash).</li>
+<li>Open <b>System Settings ▸ Privacy &amp; Security</b>. Scroll down to <b>Security</b>. Next to <b>“Hexer” was blocked to protect your Mac</b>, click <b>Open Anyway</b>.</li>
+<li>In the dialog that follows, click <b>Open Anyway</b> again and confirm with your password or Touch ID.</li>
+</ol>
+<p class="note">If you are comfortable with Terminal, this command does the same in one step:<br>
+<code>xattr -dr com.apple.quarantine /Applications/Hexer.app</code></p>
+
+<h2>Getting started</h2>
+<ul>
+<li><b>Open a file:</b> File ▸ Open (⌘O), or drop the file onto Hexer in the Dock</li>
+<li><b>Edit bytes:</b> Type hex digits in the hex column; Tab switches to the text column. Changed bytes turn red until you save (⌘S).</li>
+<li><b>Insert or overwrite:</b> ⌘I, or the Insert / Overwrite / Read-only control in the toolbar</li>
+<li><b>Undo, redo:</b> ⌘Z, ⇧⌘Z (unlimited)</li>
+<li><b>Find, replace:</b> ⌘F, ⌥⌘F. Text, hex values, integers or floating point numbers. Find All lists every match.</li>
+<li><b>Go to an offset:</b> ⌘L</li>
+<li><b>Select a block:</b> ⇧⌘A</li>
+<li><b>Bookmarks:</b> ⌃⇧0–9 to set, ⌃0–9 to jump</li>
+<li><b>Data inspector:</b> ⌥⌘I. Shows the bytes at the caret as integers, floats, dates, GUIDs and disassembly; double-click a value to edit it.</li>
+<li><b>Checksums:</b> Analysis ▸ Checksums (⇧⌘K): CRC, MD5, SHA-1, SHA-256 and more</li>
+<li><b>Compare two files:</b> Analysis ▸ Compare (⌘K); F6 and ⇧F6 step through the differences</li>
+<li><b>Byte statistics:</b> Analysis ▸ Statistics</li>
+<li><b>Firmware files:</b> File ▸ Import: Intel Hex, Motorola S-Record, ETL Extended. File ▸ Export writes them, and source code or HTML.</li>
+<li><b>Settings:</b> Hexer ▸ Settings (⌘,): font, bytes per row, text encoding, inspector types</li>
+</ul>
+
+<h2>Disks</h2>
+<ul>
+<li>File ▸ Open Disk (⌥⌘O) opens physical disks and volumes; File ▸ Open Disk Image opens image files.</li>
+<li>Disks open read-only by default. Opening a disk may ask for an administrator password.</li>
+<li>Writing to a disk can destroy its data. Hexer asks before it opens a disk for writing, never writes until you save, and never writes to the startup disk.</li>
+</ul>
+
+<h2>Language</h2>
+<p>Hexer is in English and Vietnamese and follows the language of macOS. To choose its language on its own, open System Settings ▸ General ▸ Language &amp; Region, and under Applications add Hexer with the language you want.</p>
+
+<h2>Uninstall</h2>
+<p>Quit Hexer and drag it from Applications to the Trash. Its settings are in <code>~/Library/Preferences/com.nongdandev.hexer.plist</code>.</p>
+
+<h2>More</h2>
+<p>Help ▸ Hexer Help lists every command with its shortcut. Source code: github.com/letrucdev/hexer</p>
+</body>
+</html>

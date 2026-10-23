@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Hướng dẫn cài đặt Hexer</title>
+<style>
+body { font-family: "Helvetica Neue", Helvetica, sans-serif; font-size: 13pt; line-height: 1.4; }
+h1 { font-size: 22pt; margin-bottom: 2pt; }
+h2 { font-size: 15pt; margin-top: 16pt; }
+code { font-family: Menlo, monospace; font-size: 11.5pt; }
+li { margin-bottom: 3pt; }
+.note { color: #555555; }
+</style>
+</head>
+<body>
+<h1>Hexer @VERSION@</h1>
+<p>Trình sửa hex cho macOS. Mở tệp, ổ đĩa và ảnh firmware ở mọi kích thước để xem, tìm kiếm, so sánh và sửa từng byte.</p>
+
+<h2>Yêu cầu</h2>
+<ul>
+<li>macOS 15 Sequoia trở lên.</li>
+<li>Máy Mac dùng chip Apple hoặc chip Intel.</li>
+</ul>
+
+<h2>Cài đặt</h2>
+<ol>
+<li>Trong cửa sổ của ảnh đĩa này, kéo <b>Hexer</b> thả vào thư mục <b>Applications</b> (Ứng dụng).</li>
+<li>Tháo ảnh đĩa: trong thanh bên của Finder, bấm nút tháo (⏏) cạnh <b>Hexer @VERSION@</b>.</li>
+</ol>
+
+<h2>Mở Hexer lần đầu</h2>
+<p>Hexer chưa được Apple công chứng (notarize), nên macOS chặn ở lần mở đầu tiên. Bạn chỉ cần cho phép một lần, sau đó app mở bình thường.</p>
+<ol>
+<li>Mở thư mục <b>Ứng dụng</b> và bấm đúp <b>Hexer</b>. macOS hiện thông báo <b>“Hexer” chưa được mở</b>. Bấm <b>Xong</b> (không bấm Chuyển vào Thùng rác).</li>
+<li>Mở <b>Cài đặt hệ thống ▸ Quyền riêng tư &amp; Bảo mật</b> (System Settings ▸ Privacy &amp; Security). Cuộn xuống phần <b>Bảo mật</b>. Cạnh dòng <b>“Hexer” đã bị chặn để bảo vệ máy Mac của bạn</b>, bấm <b>Vẫn mở</b> (Open Anyway).</li>
+<li>Trong hộp thoại tiếp theo, bấm <b>Vẫn mở</b> một lần nữa và xác nhận bằng mật khẩu hoặc Touch ID.</li>
+</ol>
+<p class="note">Nếu quen dùng Terminal, lệnh sau làm việc tương tự chỉ trong một bước:<br>
+<code>xattr -dr com.apple.quarantine /Applications/Hexer.app</code></p>
+
+<h2>Bắt đầu sử dụng</h2>
+<ul>
+<li><b>Mở tệp:</b> Tệp ▸ Mở (⌘O), hoặc thả tệp vào biểu tượng Hexer trên Dock</li>
+<li><b>Sửa byte:</b> Gõ chữ số hex ở cột hex; Tab để chuyển sang cột văn bản. Byte đã sửa hiện màu đỏ cho tới khi lưu (⌘S).</li>
+<li><b>Chèn hoặc ghi đè:</b> ⌘I, hoặc nút Chèn / Ghi đè / Chỉ đọc trên thanh công cụ</li>
+<li><b>Hoàn tác, làm lại:</b> ⌘Z, ⇧⌘Z (không giới hạn)</li>
+<li><b>Tìm, thay thế:</b> ⌘F, ⌥⌘F. Tìm văn bản, giá trị hex, số nguyên hoặc số thực. Tìm tất cả liệt kê mọi kết quả.</li>
+<li><b>Đi tới vị trí:</b> ⌘L</li>
+<li><b>Chọn khối:</b> ⇧⌘A</li>
+<li><b>Dấu trang:</b> ⌃⇧0–9 để đặt, ⌃0–9 để nhảy tới</li>
+<li><b>Trình kiểm tra dữ liệu:</b> ⌥⌘I. Hiện các byte tại con trỏ dưới dạng số nguyên, số thực, ngày giờ, GUID và mã máy; bấm đúp một giá trị để sửa.</li>
+<li><b>Tổng kiểm tra:</b> Phân tích ▸ Tổng kiểm tra (⇧⌘K): CRC, MD5, SHA-1, SHA-256 và nhiều loại khác</li>
+<li><b>So sánh hai tệp:</b> Phân tích ▸ So sánh (⌘K); F6 và ⇧F6 để đi qua từng chỗ khác nhau</li>
+<li><b>Thống kê byte:</b> Phân tích ▸ Thống kê</li>
+<li><b>Tệp firmware:</b> Tệp ▸ Nhập: Intel Hex, Motorola S-Record, ETL Extended. Tệp ▸ Xuất ghi ra các định dạng này, cùng mã nguồn hoặc HTML.</li>
+<li><b>Cài đặt:</b> Hexer ▸ Cài đặt (⌘,): phông chữ, số byte mỗi hàng, bảng mã, các kiểu trong trình kiểm tra</li>
+</ul>
+
+<h2>Ổ đĩa</h2>
+<ul>
+<li>Tệp ▸ Mở ổ đĩa (⌥⌘O) mở ổ đĩa vật lý và ổ đĩa logic; Tệp ▸ Mở ảnh đĩa mở các tệp ảnh đĩa.</li>
+<li>Ổ đĩa mặc định được mở ở chế độ chỉ đọc. Khi mở ổ đĩa, macOS có thể hỏi mật khẩu quản trị viên.</li>
+<li>Ghi vào ổ đĩa có thể làm mất dữ liệu trên đó. Hexer hỏi trước khi mở ổ đĩa để ghi, chỉ ghi khi bạn lưu, và không bao giờ ghi vào ổ đĩa khởi động.</li>
+</ul>
+
+<h2>Ngôn ngữ</h2>
+<p>Hexer có tiếng Anh và tiếng Việt, theo ngôn ngữ của macOS. Để chọn ngôn ngữ riêng cho Hexer, mở Cài đặt hệ thống ▸ Cài đặt chung ▸ Ngôn ngữ &amp; Vùng (General ▸ Language &amp; Region), rồi trong phần Ứng dụng (Applications) thêm Hexer cùng ngôn ngữ bạn muốn.</p>
+
+<h2>Gỡ cài đặt</h2>
+<p>Thoát Hexer rồi kéo app từ thư mục Ứng dụng vào Thùng rác. Cài đặt của app nằm trong <code>~/Library/Preferences/com.nongdandev.hexer.plist</code>.</p>
+
+<h2>Thêm thông tin</h2>
+<p>Trợ giúp ▸ Trợ giúp Hexer liệt kê mọi lệnh kèm phím tắt. Mã nguồn: github.com/letrucdev/hexer</p>
+</body>
+</html>
