@@ -18,7 +18,7 @@ Hexer là trình sửa hex cho macOS 27 viết bằng SwiftUI + AppKit với Liq
   - `Scripts/crosscheck.sh`: 281/281 đạt.
   - `Scripts/bundle.sh`: build không có warning, ngoại trừ cảnh báo search path của linker.
   - Đã kiểm l10n: 605 khoá có tiếng Việt (audit giờ nhận thêm nhiều mẫu, xem §2).
-- **Git:** đã có repo (`git init` và `.gitignore`), nhánh `main`, nhưng **chưa commit lần nào**. Chỉ commit khi người dùng yêu cầu.
+- **Git:** nhánh `main`, remote `origin` = `git@github-letrucdev:letrucdev/hexer.git` (host SSH `github-letrucdev` là alias trong `~/.ssh/config` của máy). Commit đầu tiên đã push ngày 2026-10-24. Chỉ commit hoặc push khi người dùng yêu cầu.
 
 ## 2. Môi trường và lệnh
 
@@ -141,7 +141,7 @@ Resources/        Info.plist, entitlements (không sandbox), Icon, Licenses, Loc
 
 ## 6. Cần cải thiện (ưu tiên từ trên xuống)
 
-1. **Commit lần đầu.** Repo đã có (`git init`, `.gitignore` gồm `.build/`, `build/`), nhưng chưa commit. `fetch_capstone.sh` giả định Capstone đã được commit. Chỉ làm khi người dùng đồng ý.
+1. **CI (tuỳ chọn).** Repo đã có trên GitHub. Có thể thêm workflow macOS chạy `Scripts/test.sh` và `Scripts/crosscheck.sh`. Crosscheck cần sửa đường dẫn cứng tới `HxD64.exe` (`HXD=` trong script; nếu không có tệp thì bỏ qua) và cần `hdiutil` cho phần ổ đĩa.
 2. **Kiểm thử ổ đĩa thật.**
    - Prompt của authopen trên ổ trong (cần mật khẩu admin) chưa được thử.
    - Đường ghi ổ đĩa mới chỉ có unit test trên ảnh đĩa attach. Cần thử trên USB thật: ghi, unmount, so `dd`. `hexer-cli disks read diskN` (với sudo) giúp so nhanh.
@@ -204,3 +204,4 @@ Resources/        Info.plist, entitlements (không sandbox), Icon, Licenses, Loc
       - Nhãn capsule giờ luôn một dòng (`GlassCapsuleButtonStyle` và checkbox).
       - Ô tìm và ô thay thế co xuống tối thiểu 90 pt.
       - Find bar cách hai mép lưới 16 pt.
+  - Commit đầu tiên và push lên `letrucdev/hexer` (theo yêu cầu của người dùng).
