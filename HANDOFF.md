@@ -27,7 +27,7 @@ Máy chỉ có **Command Line Tools**, không có Xcode: Swift 6.4, SDK MacOSX27
 
 | Lệnh | Tác dụng |
 |---|---|
-| `Scripts/bundle.sh` | Build release → `build/Hexer.app`. Chạy `vtool` (SDK 27), l10n audit, `plutil -lint`, `iconutil`, codesign ad-hoc. Build **thất bại nếu có chuỗi UI chưa dịch**. |
+| `Scripts/bundle.sh` | Build release → `build/Hexer.app`. Chạy `vtool` (SDK 27), l10n audit, `plutil -lint`, `iconutil`, codesign ad-hoc. Build **thất bại nếu có chuỗi UI chưa dịch**. Phiên bản lấy từ `$VERSION` (workflow Release đặt theo tag), nếu không có thì từ tag `v*` gần nhất (`git describe --tags --abbrev=0`); chỉ khi không có tag (clone nông như CI thường) mới giữ `0.1` của `Resources/Info.plist`. |
 | `CONFIG=debug Scripts/bundle.sh` · `UNIVERSAL=1 Scripts/bundle.sh` · `Scripts/bundle.sh --run [args]` | Bản debug · bản arm64 + x86_64 · build rồi chạy luôn |
 | `SIGN_IDENTITY=… Scripts/bundle.sh` | Ký bằng identity thật. Ký ad-hoc làm macOS **mất quyền Screen Recording sau mỗi lần build**. |
 | `Scripts/test.sh` | `swift test --disable-xctest` (swift-testing). Test platform có attach ảnh đĩa thật bằng `hdiutil`. |
@@ -404,5 +404,5 @@ Resources/        Info.plist, entitlements (không sandbox), Icon, Licenses, Loc
     - Gắn DMG không kiểm checksum (`-noverify`, 2,3 s → 0,18 s), vì chữ ký Ed25519 đã phủ toàn bộ tệp.
     - Chụp kiểm: mọi trạng thái của cửa sổ ở tối, sáng và tiếng Việt; Settings ▸ General ở tối (tiếng Anh) và sáng (tiếng Việt). Cửa sổ rộng cố định 520 pt nên không có trường hợp cửa sổ hẹp. Trong ảnh chụp, cửa sổ không phải cửa sổ chính (app chạy từ terminal), nên nút mặc định chưa tô xanh.
     - Canvas version 22: board mới `Update.dc.html`, thêm phần Software Update vào `Settings.dc.html`, thêm Check for Updates… vào `MenusVI.dc.html`. DESIGN.md: §1, §6.6, §6.8, §6.10 mới, §7. README: thêm dòng "Updates itself". CLAUDE.md (mục Phát hành): secret, không đổi khoá công khai, kiểm thêm `.sig` trên trang release.
-    - Chưa commit (người dùng chưa yêu cầu).
+    - **Sửa phiên bản của bản build trên máy** (người dùng báo: "phiên bản ở trong app đang không đúng với phiên bản trên github releases"). `bundle.sh` trước đây giữ `0.1` của `Resources/Info.plist`, nên About và cửa sổ cập nhật ghi 0.1 dù code đã sau 0.2.0; trình cập nhật còn báo "0.1 là bản mới nhất" vì bỏ qua 0.2.0 (chưa có `.sig`). Giờ `bundle.sh` lấy `$VERSION`, nếu không có thì lấy tag gần nhất: bản build ở máy ghi 0.2.0, kiểm với GitHub thật báo "Phiên bản 0.2.0 là bản mới nhất hiện có". Đã thử `VERSION=9.9.9 Scripts/bundle.sh` (ra 9.9.9).
 

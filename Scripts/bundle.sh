@@ -30,6 +30,11 @@ vtool -set-build-version macos "$MINOS" "$(xcrun --show-sdk-version)" -replace -
 mv "$BIN.tmp" "$BIN"
 
 cp Resources/Info.plist "$APP/Contents/Info.plist"
+# The version: $VERSION when set (the release workflow sets the tag's), else the newest version
+# tag in the history, so a local build names the release it contains and the updater compares
+# it with GitHub's correctly; Info.plist's placeholder only without tags (a shallow clone).
+VERSION=${VERSION:-$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null | sed 's/^v//')}
+[ -n "$VERSION" ] && plutil -replace CFBundleShortVersionString -string "$VERSION" "$APP/Contents/Info.plist"
 BUILD_NUMBER=$(git rev-list --count HEAD 2>/dev/null || echo 1)
 plutil -replace CFBundleVersion -string "$BUILD_NUMBER" "$APP/Contents/Info.plist"
 printf 'APPL????' > "$APP/Contents/PkgInfo"

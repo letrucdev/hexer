@@ -36,7 +36,7 @@ Trình sửa hex cho macOS 27, viết bằng SwiftUI + AppKit với Liquid Glass
     - Thiếu mục thì workflow Release dừng ngay ở job `notes`, trước khi chạy test hay build.
   - Dùng tag annotated, nội dung `Hexer X.Y.Z`. Commit và push `CHANGELOG.md` lên `main` trước, rồi đặt tag trên commit đó: `git tag -a v0.1.1 -m "Hexer 0.1.1" <commit> && git push origin v0.1.1`.
     - CI của phần code phải đã đạt. Commit chỉ sửa tệp `.md` thì không chạy CI; workflow Release tự chạy lại toàn bộ CI.
-  - Không sửa `CFBundleShortVersionString` bằng tay, vì workflow lấy phiên bản từ tag.
+  - Không sửa `CFBundleShortVersionString` bằng tay, vì workflow lấy phiên bản từ tag. Bản build trên máy lấy theo tag `v*` gần nhất (`Scripts/bundle.sh`).
   - **Tự cập nhật:** workflow ký DMG bằng secret `HEXER_UPDATE_KEY` (khoá Ed25519, bản gốc trong Keychain của máy; xem HANDOFF.md, "Khoá ký bản cập nhật"); thiếu secret thì workflow dừng ở job `notes`. Không đổi `HexerUpdatePublicKey` trong `Resources/Info.plist`: các bản đã cài chỉ tin khoá đó, đổi là chúng không tự cập nhật được nữa.
   - Sau khi push tag, theo dõi workflow Release đến khi xong (khoảng 7 phút). Rồi kiểm tra trang release có `Hexer-X.Y.Z.dmg`, `Hexer-X.Y.Z.dmg.sha256`, `Hexer-X.Y.Z.dmg.sig` và phần thay đổi của phiên bản.
 - **Cuối mỗi phiên:** cập nhật HANDOFF.md (đã làm, chưa làm, nhật ký).
