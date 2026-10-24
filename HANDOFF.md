@@ -69,6 +69,7 @@ build/Hexer.app/Contents/MacOS/Hexer file.bin -HexerGoTo 0x100 -HexerAction goTo
 ```
 
 - Các cờ: `-HexerAction sel:`, `-HexerSnapshot path`, `-HexerSnapshotShadow 1` (giữ bóng cửa sổ trên nền trong suốt, dùng cho ảnh README), `-HexerAppearance light|dark` (ép giao diện qua `NSApp.appearance`; đừng dùng `-NSRequiresAquaSystemAppearance`, cờ đó làm toolbar trong suốt), `-HexerFindAllSelect n` (chọn kết quả thứ n sau Find All, mặc định 2), `-HexerDemo DIR` + `-HexerDemoFirmware HEX` (kịch bản quay video, xem bảng lệnh), `-HexerNoGlass 1` (giao diện macOS 15, không kính), `-HexerAlertSnapshot path` (chụp alert modal kế tiếp, in nút nào nhận Return/Esc, rồi huỷ alert), `-HexerQuit 1`, `-HexerFind/-HexerFindType/-HexerFindAll`, `-HexerReplace/-HexerReplaceAll`, `-HexerSave`, `-HexerUndoAll`, `-HexerChecksums`, `-HexerExpected`, `-HexerCompare/-HexerCompareSteps/-HexerCompareList`, `-HexerCopyAs`, `-HexerImport path` (nhận thêm `-HexerWindowSize`, `-HexerGoTo`, `-HexerAction`), `-HexerOpenDisk diskN` (+ `-HexerOpenDiskWritable 1`, chỉ áp dụng cho ảnh đĩa), `-HexerPrintPDF`, `-HexerSectorSize`, `-HexerWindowSize WxH`, `-HexerGoTo`, `-HexerSelect a-b`, `-HexerMode`, `-HexerEncoding`, `-HexerBytesPerRow`, `-HexerDrawer`, `-HexerHideInspector`, `-HexerSettingsPane n`.
+- Có bất kỳ cờ `-Hexer…` nào thì app không hiện bảng Open lúc khởi động (`DebugLaunchArguments.isScripted`).
 - **Cờ nào cũng phải kèm giá trị** (ví dụ `1`). Nếu không, AppKit coi chữ đứng sau là tên tệp và mở nó.
 - Tiếng Việt: thêm `-AppleLanguages '(vi)'`.
 - Ảnh chụp dùng `screencapture -l <windowID>` (cần quyền Screen Recording). **Không bao giờ chụp theo vùng màn hình**, vì sẽ dính cửa sổ app khác.
@@ -127,6 +128,7 @@ Resources/        Info.plist, entitlements (không sandbox), Icon, Licenses, Loc
   - Khi bố cục dòng đổi (bytes per row, gập/mở), byte ở đầu màn hình được giữ nguyên.
   - State: `EditorSession.foldsUndefinedSections`, `unfoldedSections` (theo byte đầu của vùng).
 - **Lỗi core sang tiếng Việt:** core giữ câu tiếng Anh (CLI in nguyên văn); app map từng case trong `App/ErrorMessages.swift`. Thêm case lỗi mới ở core thì thêm nhánh tương ứng ở đó và bản dịch trong `vi.py`.
+- **Bảng Open lúc khởi động:** `AppDelegate.applicationOpenUntitledFile` gọi `openDocument(nil)` (qua `DispatchQueue.main.async`, để sự kiện khởi động xử lý xong trước). AppKit gọi hàm này cả khi mở app không kèm tệp lẫn khi bấm Dock lúc không còn cửa sổ, nên không cần `applicationShouldHandleReopen`. Đã thử: bấm Dock trong lúc bảng đang mở không sinh bảng thứ hai, kể cả sau khi bấm Cancel.
 - **Settings:** mỗi pane dùng `NSHostingController.sizingOptions = .preferredContentSize` và gán `title` (cửa sổ lấy tên pane làm tiêu đề). Thiếu dòng này thì cửa sổ mặc định 500×500 và nội dung bị đặt giữa.
 
 ## 4. Đã làm (so với HxD)
@@ -261,3 +263,9 @@ Resources/        Info.plist, entitlements (không sandbox), Icon, Licenses, Loc
     - Chiều rộng lý tưởng của cột bảng Search Results/Checksums nhỏ lại.
     - Ô "Expected result" dùng `ViewThatFits` (240 → 140 → ẩn).
     - Kiểm: 1280 pt giữ nguyên 1280 ở mọi trạng thái. Ngăn Checksums vẫn nâng chiều rộng tối thiểu lên khoảng 1270 pt (tiếng Anh) và 1300 pt (tiếng Việt), so với 1166 pt khi không mở ngăn (xem §6).
+- **Phiên 4 (2026-10-24):**
+  - **Hiện bảng Open ngay khi mở app** (theo yêu cầu của người dùng). Trước đây `applicationShouldOpenUntitledFile` trả `false`, nên app mở lên không có cửa sổ nào, phải bấm Dock mới hiện bảng Open.
+    - Giờ mở app không kèm tệp thì bảng Open hiện ngay, app đứng trước. Bấm Dock lúc không còn cửa sổ vẫn hiện bảng như cũ (xem §3 "Các quyết định chính").
+    - Mở kèm tệp (`open -a Hexer file`) hoặc chạy có cờ `-Hexer…` thì không hiện bảng. Khi macOS khôi phục cửa sổ cũ, AppKit cũng không gọi tới bảng này (chưa thử trực tiếp).
+    - Kiểm: mở `build/Hexer.app` qua `open` (bảng "Open" hiện, Hexer là app đứng trước); mở kèm tệp; chạy `-HexerSnapshot` và `-HexerImport`. Kịch bản bấm Dock (lúc đang mở bảng, và sau khi Cancel) được thử trên một app mẫu cùng logic, có tự bấm Cancel, vì Terminal không có quyền Accessibility để gửi phím.
+    - Canvas không đổi, vì bảng Open là bảng của hệ thống. DESIGN.md §4 có thêm dòng mô tả lúc mở app.

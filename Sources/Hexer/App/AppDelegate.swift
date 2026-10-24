@@ -7,10 +7,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DebugLaunchArguments.apply()
     }
 
-    func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool { false }
+    /// Launching without a document, or clicking the Dock icon with no window open, shows the Open
+    /// panel instead of an untitled document. Scripted runs open their own documents, so they skip it.
+    func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool { !DebugLaunchArguments.isScripted }
 
-    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if !flag { NSDocumentController.shared.openDocument(nil) }
+    func applicationOpenUntitledFile(_ sender: NSApplication) -> Bool {
+        // Once the launch event is handled, so a file opened from Finder meanwhile isn't held behind the panel.
+        DispatchQueue.main.async { NSDocumentController.shared.openDocument(nil) }
         return true
     }
 

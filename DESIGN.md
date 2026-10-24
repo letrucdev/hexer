@@ -108,6 +108,7 @@ Giá trị không hợp lệ trong inspector (`Invalid`) dùng phông thường,
 └────────────────┴──────────────────────────────────────────────────┴──────────────────┘
 ```
 
+- **Khi mở app:** nếu không có tài liệu nào (không mở kèm tệp, không có cửa sổ được khôi phục), app hiện ngay bảng Open của hệ thống, giống TextEdit. Bấm icon Dock lúc không còn cửa sổ nào cũng hiện bảng này. App không tạo cửa sổ trống và không có màn chào.
 - **Toolbar (3 nhóm):** navigation = Open, Save, Undo, Redo · principal = segmented Insert/Overwrite/Read-only (ẩn khi đang so sánh) · primaryAction = Find, Go to Offset, Inspector. Tiêu đề là tên tệp, phụ đề là kích thước và chế độ.
 - **Sidebar:**
   - *Bookmarks:* chấm cam, offset, phím ⌃0–9. Khi trống, hiện dòng hướng dẫn (xuống dòng được).

@@ -8,6 +8,9 @@ import HexerPlatform
 /// AppKit reads `-Key value` pairs into the argument defaults domain and opens leftover words as
 /// files, so flags must be followed by a value (any, e.g. `1`) unless they come last.
 enum DebugLaunchArguments {
+    /// Whether any `-Hexer…` flag was given.
+    static var isScripted: Bool { ProcessInfo.processInfo.arguments.contains { $0.hasPrefix("-Hexer") } }
+
     static func apply() {
         let args = ProcessInfo.processInfo.arguments
         func value(_ name: String) -> String? {
