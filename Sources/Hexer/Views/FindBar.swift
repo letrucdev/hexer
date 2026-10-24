@@ -106,6 +106,7 @@ struct FindBar: View {
             .buttonStyle(.borderless)
             .fixedSize()
             .help("Data type and search options")
+            .demoAnchor("Find type")
             .popover(isPresented: $find.showsOptions, arrowEdge: .bottom) {
                 FindOptions(find: find, editorEncoding: session.encoding)
             }
@@ -113,6 +114,7 @@ struct FindBar: View {
         .padding(.leading, 12)
         .padding(.trailing, 8)
         .frame(height: GlassBar.height)
+        .demoAnchor("Find field")
         .barGlass()
         .overlay {
             if find.error != nil { Capsule().strokeBorder(.red, lineWidth: 1.5) }
@@ -189,6 +191,7 @@ struct FindOptions: View {
             .pickerStyle(.segmented)
             .labelsHidden()
             .fixedSize()
+            .demoAnchor("Find data type")
             Group {
                 switch find.query.dataType {
                 case .text: textOptions

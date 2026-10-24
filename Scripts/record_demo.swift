@@ -107,7 +107,10 @@ Task.detached {
         guard fm.fileExists(atPath: ready) else { print("the app did not get ready (see build/promo/app.log)"); exit(1) }
 
         let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: true)
-        guard let window = content.windows.first(where: { $0.owningApplication?.processID == app.processIdentifier && $0.frame.width > 400 }),
+        // The document window: the app's largest (it may also have small utility windows on screen).
+        let windows = content.windows.filter { $0.owningApplication?.processID == app.processIdentifier }
+        for w in windows { print("  window \(w.windowID): \(w.frame) \(w.title ?? "")") }
+        guard let window = windows.max(by: { $0.frame.width * $0.frame.height < $1.frame.width * $1.frame.height }),
               let hexer = content.applications.first(where: { $0.processID == app.processIdentifier }) else {
             print("Hexer's window is not on screen"); exit(1)
         }
@@ -122,7 +125,7 @@ Task.detached {
         config.height = Int(source.height * scale)
         config.pixelFormat = kCVPixelFormatType_32BGRA
         config.showsCursor = false
-        config.minimumFrameInterval = CMTime(value: 1, timescale: 30)
+        config.minimumFrameInterval = CMTime(value: 1, timescale: 60)
         config.queueDepth = 8
 
         let recorder = try Recorder(url: out.appendingPathComponent("recording.mov"), width: config.width, height: config.height)

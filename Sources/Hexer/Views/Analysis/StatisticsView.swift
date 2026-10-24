@@ -43,7 +43,7 @@ final class StatisticsModel {
 
 /// A window with the byte histogram of one document (Analysis ▸ Statistics).
 final class StatisticsWindowController: NSWindowController, NSWindowDelegate {
-    private let model: StatisticsModel
+    let model: StatisticsModel
 
     init(session: EditorSession) {
         model = StatisticsModel(session: session)
@@ -167,6 +167,14 @@ struct StatisticsView: View {
                         }
                     }
                     .onTapGesture { model.selected = model.hovered }
+                if let plot = proxy.plotFrame {
+                    let frame = geometry[plot]
+                    Color.clear
+                        .frame(width: frame.width, height: frame.height)
+                        .position(x: frame.midX, y: frame.midY)
+                        .allowsHitTesting(false)
+                        .demoAnchor("Statistics plot")
+                }
             }
         }
         .frame(minHeight: 220)
