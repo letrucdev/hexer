@@ -250,6 +250,24 @@ VI = {
     "Reloading discards your unsaved changes.": "Tải lại sẽ bỏ các thay đổi chưa lưu.",
     "Reload it to see the current contents.": "Hãy tải lại để xem nội dung hiện tại.", "Reload": "Tải lại",
     "Keep Current Version": "Giữ phiên bản hiện tại", "Reload “%@” from disk?": "Tải lại “%@” từ đĩa?",
+    # Welcome tour (Views/Welcome)
+    "Welcome to Hexer": "Chào mừng đến với Hexer",
+    "A fast hex editor for files and disks, modelled on HxD.": "Trình sửa hex nhanh cho tệp và ổ đĩa, theo mô hình HxD.",
+    "Edit any file, whatever its size": "Sửa mọi tệp, dù lớn đến đâu",
+    "Type over bytes or insert new ones, with unlimited undo.": "Gõ đè lên byte hoặc chèn byte mới, hoàn tác không giới hạn.",
+    "Files of many gigabytes open at once.": "Tệp nặng nhiều gigabyte vẫn mở ngay lập tức.",
+    "Import Intel Hex and S-Record, or export as C, Java, HTML and more.":
+        "Nhập Intel Hex và S-Record, hoặc xuất ra C, Java, HTML và nhiều định dạng khác.",
+    "Find, inspect and compare": "Tìm, kiểm tra và so sánh",
+    "Search for text, hex values, integers or floating-point numbers.": "Tìm văn bản, giá trị hex, số nguyên hoặc số thực.",
+    "The Data Inspector decodes the bytes at the caret in 30 formats.":
+        "Trình kiểm tra dữ liệu giải mã các byte tại con trỏ theo 30 kiểu.",
+    "Calculate checksums and statistics, or compare two files.": "Tính tổng kiểm tra và thống kê, hoặc so sánh hai tệp.",
+    "Disks, safely": "Ổ đĩa, an toàn là trên hết",
+    "Open physical disks, volumes and disk images.": "Mở ổ đĩa vật lý, ổ đĩa logic và ảnh đĩa.",
+    "Disks open read-only until you choose to write.": "Ổ đĩa mở ở chế độ chỉ đọc cho đến khi bạn chọn ghi.",
+    "Your startup disk is never written.": "Ổ đĩa khởi động không bao giờ bị ghi.",
+    "Back": "Quay lại", "Continue": "Tiếp tục", "Open a File…": "Mở tệp…", "Page %lld of %lld": "Trang %lld / %lld",
     # Folded undefined sections
     "Fold Undefined Sections": "Gập các vùng chưa xác định", "%@ undefined bytes": "%@ byte chưa xác định",
     "Click to show": "Bấm để hiện",

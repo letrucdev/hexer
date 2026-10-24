@@ -8,12 +8,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Launching without a document, or clicking the Dock icon with no window open, shows the Open
-    /// panel instead of an untitled document. Scripted runs open their own documents, so they skip it.
+    /// panel instead of an untitled document; the very first time, the welcome tour comes first.
+    /// Scripted runs open their own documents, so they skip both.
     func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool { !DebugLaunchArguments.isScripted }
 
     func applicationOpenUntitledFile(_ sender: NSApplication) -> Bool {
         // Once the launch event is handled, so a file opened from Finder meanwhile isn't held behind the panel.
-        DispatchQueue.main.async { NSDocumentController.shared.openDocument(nil) }
+        DispatchQueue.main.async {
+            guard !WelcomeWindowController.showIfFirstLaunch() else { return }
+            NSDocumentController.shared.openDocument(nil)
+        }
         return true
     }
 
@@ -29,6 +33,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func showAbout(_ sender: Any?) { AboutAndHelp.showAbout() }
     @objc func showAcknowledgements(_ sender: Any?) { AboutAndHelp.showAcknowledgements() }
     @objc func showHelp(_ sender: Any?) { AboutAndHelp.showHelp() }
+    @objc func showWelcome(_ sender: Any?) { WelcomeWindowController.show() }
 
     @objc func openDisk(_ sender: Any?) {
         let model = OpenDiskModel()

@@ -27,6 +27,7 @@
 "2048 bytes (CD, DVD)" = "2048 byte (CD, DVD)";
 "4096 bytes (Advanced Format)" = "4096 byte (Advanced Format)";
 "512 bytes (hard disks, USB drives)" = "512 byte (ổ cứng, ổ USB)";
+"A fast hex editor for files and disks, modelled on HxD." = "Trình sửa hex nhanh cho tệp và ổ đĩa, theo mô hình HxD.";
 "A hex editor for macOS, modelled on HxD." = "Trình sửa hex cho macOS, theo mô hình HxD.";
 "A record of type %@ must contain %lld data bytes, but %lld were found." = "Bản ghi loại %@ phải chứa %lld byte dữ liệu, nhưng có %lld byte.";
 "ASCII only (20–7E)" = "Chỉ ASCII (20–7E)";
@@ -44,6 +45,7 @@
 "Analysis" = "Phân tích";
 "AnsiChar" = "Ký tự ANSI";
 "Ask for each name" = "Hỏi tên từng phần";
+"Back" = "Quay lại";
 "Backward" = "Lùi";
 "Beginning of the file" = "Đầu tệp";
 "Big endian" = "Big-endian";
@@ -67,6 +69,7 @@
 "Bytes per row" = "Số byte mỗi hàng";
 "CRC" = "CRC";
 "Calculate" = "Tính";
+"Calculate checksums and statistics, or compare two files." = "Tính tổng kiểm tra và thống kê, hoặc so sánh hai tệp.";
 "Calculating checksums" = "Đang tính tổng kiểm tra";
 "Cancel" = "Huỷ";
 "Cannot open “%@”: %@." = "Không mở được “%@”: %@.";
@@ -121,6 +124,7 @@
 "Concatenate Files…" = "Ghép tệp…";
 "Concatenating" = "Đang ghép";
 "Confirm file size changes" = "Xác nhận khi đổi kích thước tệp";
+"Continue" = "Tiếp tục";
 "Control characters and bytes without a character in %@ cannot be copied as text. Copy from the hex column to keep every byte." = "Ký tự điều khiển và các byte không có ký tự trong %@ không thể sao chép dạng văn bản. Hãy sao chép từ cột hex để giữ nguyên mọi byte.";
 "Copy" = "Sao chép";
 "Copy As" = "Sao chép dưới dạng";
@@ -168,6 +172,8 @@
 "Disk image" = "Ảnh đĩa";
 "Disk image file" = "Tệp ảnh đĩa";
 "Disks and other fixed-size data can only be overwritten." = "Ổ đĩa và dữ liệu có kích thước cố định chỉ có thể ghi đè.";
+"Disks open read-only until you choose to write." = "Ổ đĩa mở ở chế độ chỉ đọc cho đến khi bạn chọn ghi.";
+"Disks, safely" = "Ổ đĩa, an toàn là trên hết";
 "DoD 5220.22-M (3 passes)" = "DoD 5220.22-M (3 lượt)";
 "DoD Sanitizing" = "Làm sạch DoD";
 "Document" = "Tài liệu";
@@ -180,6 +186,7 @@
 "Edit" = "Sửa";
 "Edit %@" = "Sửa %@";
 "Edit Mode" = "Chế độ sửa";
+"Edit any file, whatever its size" = "Sửa mọi tệp, dù lớn đến đâu";
 "Editor (%@)" = "Bảng mã trình soạn thảo (%@)";
 "Editor view" = "Dạng xem trình soạn thảo";
 "Either" = "Cả hai";
@@ -210,6 +217,7 @@
 "FILETIME" = "FILETIME";
 "File" = "Tệp";
 "File:" = "Tệp:";
+"Files of many gigabytes open at once." = "Tệp nặng nhiều gigabyte vẫn mở ngay lập tức.";
 "Fill" = "Điền";
 "Fill Selection" = "Điền vùng chọn";
 "Fill Selection…" = "Điền vùng chọn…";
@@ -227,6 +235,7 @@
 "Find an integer" = "Tìm số nguyên";
 "Find hex values, e.g. 4D 5A" = "Tìm giá trị hex, ví dụ 4D 5A";
 "Find text" = "Tìm văn bản";
+"Find, inspect and compare" = "Tìm, kiểm tra và so sánh";
 "Finding matches" = "Đang tìm các kết quả";
 "Find…" = "Tìm…";
 "First array item" = "Phần tử đầu tiên";
@@ -266,6 +275,7 @@
 "Hide results" = "Ẩn kết quả";
 "However this is necessary, since the chosen data stream has a fixed size." = "Hai mẫu phải dài bằng nhau vì luồng dữ liệu đang chọn có kích thước cố định.";
 "Import" = "Nhập";
+"Import Intel Hex and S-Record, or export as C, Java, HTML and more." = "Nhập Intel Hex và S-Record, hoặc xuất ra C, Java, HTML và nhiều định dạng khác.";
 "Initial value" = "Giá trị đầu";
 "Initial value:" = "Giá trị đầu:";
 "Input" = "Đầu vào";
@@ -358,10 +368,12 @@
 "Open File…" = "Mở tệp…";
 "Open Read-only" = "Mở chỉ đọc";
 "Open Recent" = "Mở gần đây";
+"Open a File…" = "Mở tệp…";
 "Open a file (⌘O)" = "Mở một tệp (⌘O)";
 "Open as read-only" = "Mở ở chế độ chỉ đọc";
 "Open disks as read-only" = "Mở ổ đĩa ở chế độ chỉ đọc";
 "Open for Writing" = "Mở để ghi";
+"Open physical disks, volumes and disk images." = "Mở ổ đĩa vật lý, ổ đĩa logic và ảnh đĩa.";
 "Opening %@ was cancelled." = "Đã huỷ việc mở %@.";
 "Open…" = "Mở…";
 "Other" = "Khác";
@@ -374,6 +386,7 @@
 "Overwrite %@ bytes of “%@” directly?" = "Ghi đè trực tiếp %@ byte của “%@”?";
 "Overwrite %@?" = "Ghi đè %@?";
 "Overwrite Mode" = "Chế độ ghi đè";
+"Page %lld of %lld" = "Trang %lld / %lld";
 "Page Setup…" = "Thiết lập trang…";
 "Parse error while importing “%@” in line %lld, column %lld:" = "Lỗi phân tích khi nhập “%@” ở dòng %lld, cột %lld:";
 "Part base name:" = "Tên gốc của các phần:";
@@ -448,6 +461,7 @@
 "Search" = "Tìm kiếm";
 "Search Results" = "Kết quả tìm kiếm";
 "Search commands" = "Tìm lệnh";
+"Search for text, hex values, integers or floating-point numbers." = "Tìm văn bản, giá trị hex, số nguyên hoặc số thực.";
 "Search wrapped" = "Đã quay lại đầu";
 "Searching" = "Đang tìm";
 "Second data source" = "Nguồn dữ liệu thứ hai";
@@ -506,6 +520,7 @@
 "Text Only" = "Chỉ văn bản";
 "Text and numbers" = "Văn bản và số";
 "Text encoding" = "Bảng mã văn bản";
+"The Data Inspector decodes the bytes at the caret in 30 formats." = "Trình kiểm tra dữ liệu giải mã các byte tại con trỏ theo 30 kiểu.";
 "The block is empty or outside the file." = "Khối rỗng hoặc nằm ngoài tệp.";
 "The byte count %lld is too small; at least %lld bytes are required for the address and checksum." = "Số byte %lld quá nhỏ; địa chỉ và tổng kiểm tra cần ít nhất %lld byte.";
 "The clipboard contains characters that %@ cannot represent." = "Bộ nhớ tạm chứa ký tự mà %@ không biểu diễn được.";
@@ -538,6 +553,7 @@
 "Two hexadecimal digits in the range of %@-%@ were expected, but found “%@”." = "Cần hai chữ số hex trong khoảng %@-%@, nhưng gặp “%@”.";
 "Type" = "Kiểu";
 "Type hex pairs, spaces optional: 54 46 6F 72 6D. ⌘E with bytes selected in the hex column fills this in." = "Nhập từng cặp hex, khoảng trắng tuỳ ý: 54 46 6F 72 6D. ⌘E khi đang chọn byte ở cột hex sẽ tự điền.";
+"Type over bytes or insert new ones, with unlimited undo." = "Gõ đè lên byte hoặc chèn byte mới, hoàn tác không giới hạn.";
 "Typeface" = "Kiểu chữ";
 "Types shown" = "Kiểu được hiển thị";
 "Typing" = "Gõ phím";
@@ -556,6 +572,7 @@
 "Value under the pointer" = "Giá trị dưới con trỏ";
 "View" = "Hiển thị";
 "Warn when opening a disk with write access" = "Cảnh báo khi mở ổ đĩa có quyền ghi";
+"Welcome to Hexer" = "Chào mừng đến với Hexer";
 "Whole file" = "Toàn bộ tệp";
 "Whole files" = "Toàn bộ tệp";
 "WideChar (UTF-16)" = "Ký tự UTF-16";
@@ -577,6 +594,7 @@
 "Writing directly changes the file on disk, so it must match what Hexer shows." = "Ghi trực tiếp sẽ thay đổi tệp trên đĩa, nên tệp phải khớp với nội dung Hexer đang hiển thị.";
 "Writing to disk" = "Đang ghi vào ổ đĩa";
 "You are not allowed to open %@. Opening a disk requires an administrator’s name and password." = "Bạn không được phép mở %@. Mở ổ đĩa cần tên và mật khẩu của quản trị viên.";
+"Your startup disk is never written." = "Ổ đĩa khởi động không bao giờ bị ghi.";
 "Zero Bytes" = "Byte 0";
 "Zero bytes (1 pass)" = "Byte 0 (1 lượt)";
 "Zoom" = "Thu/Phóng";

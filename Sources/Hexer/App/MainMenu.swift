@@ -188,6 +188,7 @@ enum MainMenu {
 
         let helpMenu = menu("Help", [
             item("Hexer Help", "showHelp:", "?"),
+            item("Welcome to Hexer", "showWelcome:"),
             item("Acknowledgements", "showAcknowledgements:"),
         ])
         NSApp.helpMenu = helpMenu.submenu

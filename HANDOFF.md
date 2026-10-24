@@ -17,7 +17,7 @@ Hexer là trình sửa hex thiết kế cho macOS 27, viết bằng SwiftUI + Ap
   - `Scripts/test.sh`: 166 test đều đạt (HexerCore 123, HexerDisasm 12, HexerPlatform 31).
   - `Scripts/crosscheck.sh`: 281/281 đạt.
   - `Scripts/bundle.sh`: build không có warning, ngoại trừ cảnh báo search path của linker.
-  - Đã kiểm l10n: 605 khoá có tiếng Việt (audit giờ nhận thêm nhiều mẫu, xem §2).
+  - Đã kiểm l10n: 622 khoá có tiếng Việt (audit giờ nhận thêm nhiều mẫu, xem §2).
 - **Git:** nhánh `main`, remote `origin` = `git@github-letrucdev:letrucdev/hexer.git` (host SSH `github-letrucdev` là alias trong `~/.ssh/config` của máy). Commit đầu tiên đã push ngày 2026-10-24. Chỉ commit hoặc push khi người dùng yêu cầu.
 
 ## 2. Môi trường và lệnh
@@ -70,7 +70,9 @@ build/Hexer.app/Contents/MacOS/Hexer file.bin -HexerGoTo 0x100 -HexerAction goTo
 ```
 
 - Các cờ: `-HexerAction sel:`, `-HexerSnapshot path`, `-HexerSnapshotShadow 1` (giữ bóng cửa sổ trên nền trong suốt, dùng cho ảnh README), `-HexerAppearance light|dark` (ép giao diện qua `NSApp.appearance`; đừng dùng `-NSRequiresAquaSystemAppearance`, cờ đó làm toolbar trong suốt), `-HexerFindAllSelect n` (chọn kết quả thứ n sau Find All, mặc định 2), `-HexerDemo DIR` + `-HexerDemoFirmware HEX` (kịch bản quay video, xem bảng lệnh), `-HexerNoGlass 1` (giao diện macOS 15, không kính), `-HexerAlertSnapshot path` (chụp alert modal kế tiếp, in nút nào nhận Return/Esc, rồi huỷ alert), `-HexerQuit 1`, `-HexerFind/-HexerFindType/-HexerFindAll`, `-HexerReplace/-HexerReplaceAll`, `-HexerSave`, `-HexerUndoAll`, `-HexerChecksums`, `-HexerExpected`, `-HexerCompare/-HexerCompareSteps/-HexerCompareList`, `-HexerCopyAs`, `-HexerImport path` (nhận thêm `-HexerWindowSize`, `-HexerGoTo`, `-HexerAction`), `-HexerOpenDisk diskN` (+ `-HexerOpenDiskWritable 1`, chỉ áp dụng cho ảnh đĩa), `-HexerPrintPDF`, `-HexerSectorSize`, `-HexerWindowSize WxH`, `-HexerGoTo`, `-HexerSelect a-b`, `-HexerMode`, `-HexerEncoding`, `-HexerBytesPerRow`, `-HexerDrawer`, `-HexerHideInspector`, `-HexerSettingsPane n`.
-- Có bất kỳ cờ `-Hexer…` nào thì app không hiện bảng Open lúc khởi động (`DebugLaunchArguments.isScripted`).
+- Có bất kỳ cờ `-Hexer…` nào thì app không hiện bảng Open hay màn hình chào lúc khởi động (`DebugLaunchArguments.isScripted`).
+- Màn hình chào: `-HexerWelcome n` mở ở trang n (0–3) mà không đánh dấu đã xem; `-HexerWelcomeTour s` lật trang mỗi s giây; `-HexerWelcomeEnd skip|open|close` kết thúc như khi bấm Skip, Open a File… hay nút đóng, coi như đang ở lúc mở app (để kiểm bảng Open hiện sau đó); `-HexerSnapshot path` chụp sau `-HexerSnapshotDelay` giây (mặc định 2,5).
+- Xem lại màn hình chào như lần đầu: `defaults delete com.nongdandev.hexer WelcomeShown` rồi `open build/Hexer.app`. **Xoá lại khoá này sau khi thử**, để người dùng vẫn thấy màn hình chào lần đầu.
 - **Cờ nào cũng phải kèm giá trị** (ví dụ `1`). Nếu không, AppKit coi chữ đứng sau là tên tệp và mở nó.
 - Tiếng Việt: thêm `-AppleLanguages '(vi)'`.
 - Ảnh chụp dùng `screencapture -l <windowID>` (cần quyền Screen Recording). **Không bao giờ chụp theo vùng màn hình**, vì sẽ dính cửa sổ app khác.
@@ -102,7 +104,8 @@ Sources/
                   CompareSession, ExportImport, Jobs (JobCenter: tác vụ nền huỷ được, có tiến độ), Print
     HexGrid/      HexCanvasView (vẽ bằng CoreText, nhập liệu, IME, VoiceOver), HexEditorView, HexTheme
     Views/        DocumentWindowView, SidebarView, InspectorView, FindBar, ResultsDrawer, StatusBarView,
-                  SectorNavigator, GlassBarStyle, SettingsWindowController, Sheets/, Analysis/, Tools/
+                  SectorNavigator, GlassBarStyle, SettingsWindowController, Sheets/, Analysis/, Tools/,
+                  Welcome/ (màn hình chào: controller + model, các trang, hình minh hoạ, nền Core Animation)
   HexerCLI/       hexer-cli
 Tests/            HexerCoreTests, HexerDisasmTests, HexerPlatformTests (swift-testing)
 Resources/        Info.plist, entitlements (không sandbox), Icon, Licenses, Localization/{en,vi}.lproj
@@ -129,6 +132,12 @@ Resources/        Info.plist, entitlements (không sandbox), Icon, Licenses, Loc
   - Khi bố cục dòng đổi (bytes per row, gập/mở), byte ở đầu màn hình được giữ nguyên.
   - State: `EditorSession.foldsUndefinedSections`, `unfoldedSections` (theo byte đầu của vùng).
 - **Lỗi core sang tiếng Việt:** core giữ câu tiếng Anh (CLI in nguyên văn); app map từng case trong `App/ErrorMessages.swift`. Thêm case lỗi mới ở core thì thêm nhánh tương ứng ở đó và bản dịch trong `vi.py`.
+- **Màn hình chào lần đầu (`Views/Welcome/`):** `AppDelegate.applicationOpenUntitledFile` gọi `WelcomeWindowController.showIfFirstLaunch()` trước; nếu khoá `WelcomeShown` chưa có thì hiện màn hình chào thay bảng Open. Thiết kế ở DESIGN.md §6.9.
+  - **Hiệu năng (đo bằng `ps -o time` trên 6 s):** SwiftUI trong cửa sổ này vẽ bằng CoreGraphics trên CPU (`CGDrawingLayer` / `RBInterpolatedDisplayListContents` trong `sample`), nên mỗi khung hình của một animation tốn khoảng 13 ms. Bản đầu dùng `TimelineView(.animation)` + `Canvas` cho nền và hình minh hoạ: 25–40% một nhân. Hiện tại: 0–2% (trang Edit khoảng 6%).
+  - Nền byte hex là Core Animation (`WelcomeHexFieldView`): byte vẽ một lần vào mask, các layer cuộn bằng `CABasicAnimation`, dải quét và vòng lan là `CAGradientLayer` làm mask; byte loé đỏ là layer nhỏ do timer 0,3 s thêm vào. View này nằm **dưới** `NSHostingView` trong một container, không phải `NSViewRepresentable`.
+  - Hình minh hoạ chạy theo `WelcomeSchedule` (chỉ cập nhật ở các mốc thay đổi) và **không** nội suy giữa các mốc. Đừng thêm `.animation`, `contentTransition` hay `symbolEffect` lặp lại trong đó.
+  - Lớp phủ (veil) dùng `windowBackgroundColor`, nên `WelcomeHexFieldView` tự tô nền bằng đúng màu đó; nền cửa sổ trên macOS 26+ khác màu một chút, làm lớp phủ lộ thành mảng.
+  - `blur` bán kính lớn bị vẽ sai trong đường vẽ CG; quầng sáng là `RadialGradient`.
 - **Bảng Open lúc khởi động:** `AppDelegate.applicationOpenUntitledFile` gọi `openDocument(nil)` (qua `DispatchQueue.main.async`, để sự kiện khởi động xử lý xong trước). AppKit gọi hàm này cả khi mở app không kèm tệp lẫn khi bấm Dock lúc không còn cửa sổ, nên không cần `applicationShouldHandleReopen`. Đã thử: bấm Dock trong lúc bảng đang mở không sinh bảng thứ hai, kể cả sau khi bấm Cancel.
 - **Settings:** mỗi pane dùng `NSHostingController.sizingOptions = .preferredContentSize` và gán `title` (cửa sổ lấy tên pane làm tiêu đề). Thiếu dòng này thì cửa sổ mặc định 500×500 và nội dung bị đặt giữa.
 
@@ -280,3 +289,13 @@ Resources/        Info.plist, entitlements (không sandbox), Icon, Licenses, Loc
   - **Ghi chú release có phần thay đổi** (theo yêu cầu của người dùng): thêm `CHANGELOG.md` (mục 0.1.1 và 0.1, tiếng Anh + tiếng Việt), `Scripts/release_notes.sh`, chỗ `@CHANGES@` trong `Distribution/release-notes.md`, và job `notes` trong `release.yml`. Quy tắc nằm trong CLAUDE.md (mục "Phát hành").
     - Đã thử script: có mục, bản đầu tiên (không có link so sánh), thiếu mục (dừng, exit 1, thông báo `error:` nên `ci_run.sh` đưa ra annotation), và `0.1` không khớp nhầm `0.1.1`. YAML đọc được bằng Ruby; workflow mới **chưa chạy thật** (chỉ chạy khi có tag mới).
     - Release `v0.1.1` đã đăng trước thay đổi này nên chưa có phần thay đổi. Sửa trên GitHub cần đăng nhập (máy này không có `gh`).
+  - **Màn hình chào lần đầu** (theo yêu cầu của người dùng: giới thiệu app, animation bắt mắt, chuyển cảnh mượt, chỉ hiện lần đầu). Mô tả ở DESIGN.md §6.9 và board `Welcome.dc.html` trên canvas (version 20). Có thêm mục Help ▸ Welcome to Hexer để xem lại.
+    - Lời giới thiệu viết theo nguyên tắc của skill `design:ux-copy` (mỗi trang một ý, nút bắt đầu bằng động từ và khớp kết quả: nút cuối là "Open a File…" vì nó mở bảng Open). Thêm 18 chuỗi tiếng Việt.
+    - Kiểm bằng ảnh chụp cửa sổ: 4 trang ở sáng, tối và tiếng Việt; chuỗi khung hình lúc đổi trang (vòng lan, trang trượt, phần tử nổi lần lượt).
+    - Kiểm luồng:
+      - `open build/Hexer.app` khi chưa có khoá thì hiện màn hình chào (app đứng trước) và đặt khoá; lần mở sau hiện bảng Open.
+      - `-HexerWelcomeEnd skip|open|close` lúc mở app đều dẫn tới bảng Open.
+      - ← → Return Esc thử bằng sự kiện phím gửi vào chính app (đoạn mã thử tạm, đã gỡ): ← → lật trang, Return đi tiếp rồi mở bảng Open ở trang cuối, Esc đóng.
+    - Đã xoá lại khoá `WelcomeShown` sau khi thử.
+    - **Chưa kiểm:** Reduce Motion, vì phải đổi cài đặt hệ thống của người dùng. Đường code đơn giản: không timeline, không animation CA, trang cross-fade.
+    - Hiệu năng: xem §3 "Màn hình chào lần đầu". Bản đầu tốn 25–40% CPU; sau khi chuyển nền sang Core Animation và bỏ nội suy ở hình minh hoạ còn 0–6%.

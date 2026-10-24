@@ -2,7 +2,7 @@
 
 Tài liệu này mô tả thiết kế của Hexer theo bản vẽ trên Claude Design và theo giao diện đang chạy trong app. Khi sửa UI, cập nhật **cả ba**: mã nguồn, canvas, và file này.
 
-- **Canvas (nguồn gốc):** https://claude.ai/artifact/JBSgQBQpVLtMWto8QECZgb (version 19, ngày 2026-10-24)
+- **Canvas (nguồn gốc):** https://claude.ai/artifact/JBSgQBQpVLtMWto8QECZgb (version 20, ngày 2026-10-24)
 - **Nền tảng:** thiết kế cho macOS 27 "Golden Gate" với Liquid Glass; chạy từ macOS 15 (xem §11). SwiftUI + AppKit, không dùng Xcode.
 - **Ngôn ngữ UI:** tiếng Anh (khoá gốc) và tiếng Việt
 - **Bàn giao kỹ thuật:** xem [HANDOFF.md](HANDOFF.md)
@@ -21,8 +21,9 @@ Tài liệu này mô tả thiết kế của Hexer theo bản vẽ trên Claude 
 | `Tools.dc.html` | Open Disk (+ cảnh báo mở để ghi), Clone Disk, Split, Concatenate (đang chạy), Wipe Securely | `Views/Tools/DiskViews.swift`, `FileToolViews.swift` |
 | `Compat.dc.html` | Find bar, hàng Replace và chip chế độ: kính (macOS 26 trở lên) đặt cạnh material (macOS 15), ở cả sáng và tối | `Views/GlassBarStyle.swift` |
 | `Import.dc.html` | Tài liệu import Intel Hex: sidebar Sections liệt kê vùng undefined, dòng gập (thường và có caret), quy tắc gập, mục View ▸ Fold Undefined Sections | `HexGrid/HexCanvasView.swift`, `HexEditorView.swift`, `HexerCore/Layout/RowMap.swift` |
+| `Welcome.dc.html` | Màn hình chào lần mở đầu: 4 trang (Welcome, Edit, Find, Disks), khi nào hiện, chuyển động, bàn phím và trợ năng | `Views/Welcome/*` |
 
-Bố cục canvas: hàng 1 cửa sổ chính (sáng/tối) · hàng 2 tìm kiếm và sheet · hàng 3 phân tích, so sánh, ổ đĩa · hàng 4 Settings, menu, tiếng Việt · hàng 5 công cụ tệp và ổ đĩa, dữ liệu import có vùng gập. Thứ tự và vị trí board nằm trong `project/canvas.json`.
+Bố cục canvas: hàng 1 cửa sổ chính (sáng/tối) · hàng 2 tìm kiếm và sheet · hàng 3 phân tích, so sánh, ổ đĩa · hàng 4 Settings, menu, tiếng Việt · hàng 5 công cụ tệp và ổ đĩa, dữ liệu import có vùng gập · hàng 6 macOS 15 · hàng 7 lần mở đầu (màn hình chào). Thứ tự và vị trí board nằm trong `project/canvas.json`.
 
 ## 2. Nguyên tắc (macOS 27 HIG, bản 6/2026)
 
@@ -108,7 +109,7 @@ Giá trị không hợp lệ trong inspector (`Invalid`) dùng phông thường,
 └────────────────┴──────────────────────────────────────────────────┴──────────────────┘
 ```
 
-- **Khi mở app:** nếu không có tài liệu nào (không mở kèm tệp, không có cửa sổ được khôi phục), app hiện ngay bảng Open của hệ thống, giống TextEdit. Bấm icon Dock lúc không còn cửa sổ nào cũng hiện bảng này. App không tạo cửa sổ trống và không có màn chào.
+- **Khi mở app:** nếu không có tài liệu nào (không mở kèm tệp, không có cửa sổ được khôi phục), app hiện ngay bảng Open của hệ thống, giống TextEdit. Bấm icon Dock lúc không còn cửa sổ nào cũng hiện bảng này. App không tạo cửa sổ trống. Riêng **lần đầu** mở app không kèm tệp thì màn hình chào (§6.9) hiện thay bảng Open.
 - **Toolbar (3 nhóm):** navigation = Open, Save, Undo, Redo · principal = segmented Insert/Overwrite/Read-only (ẩn khi đang so sánh) · primaryAction = Find, Go to Offset, Inspector. Tiêu đề là tên tệp, phụ đề là kích thước và chế độ.
 - **Sidebar:**
   - *Bookmarks:* chấm cam, offset, phím ⌃0–9. Khi trống, hiện dòng hướng dẫn (xuống dòng được).
@@ -287,10 +288,33 @@ Thứ tự menu: Hexer · File · Edit · Search · View · Analysis · Tools ·
 
 Danh sách đầy đủ nằm trong `App/MainMenu.swift` và artboard `MenusVI`.
 
+### 6.9 Màn hình chào (lần mở đầu)
+- **Khi nào hiện:**
+  - Lần đầu app mở mà không có tài liệu: hiện thay bảng Open. Khoá `WelcomeShown` trong UserDefaults được đặt ngay khi màn hình hiện, nên chỉ hiện một lần.
+  - Help ▸ Welcome to Hexer mở lại bất cứ lúc nào.
+  - Mở kèm tệp hoặc chạy có cờ `-Hexer…` thì không hiện (khoá vẫn chưa đặt, lần mở trống sau sẽ hiện).
+- **Cửa sổ:** 680 × 560 pt, cố định, chỉ có nút đóng; tiêu đề ẩn, thanh tiêu đề trong suốt, kéo được bằng nền.
+- **4 trang:**
+  1. *Welcome:* icon app, "Welcome to Hexer", câu giới thiệu, và một hàng hex trong thẻ: byte ngẫu nhiên lần lượt "chốt" thành `48 65 78 65 72`, caret chạy theo, chữ "Hexer" hiện dần ở cột văn bản.
+  2. *Edit:* lưới mini 3 dòng; gõ đè "hello" thành "HEXER" (từng nibble, đỏ đậm như byte đã sửa), chip Overwrite, rồi phím ⌘Z hiện và hoàn tác từng byte.
+  3. *Find:* lưới mini 4 dòng có 3 chỗ `FF D8 FF`, capsule tìm kiếm "1 of 3" và thẻ Data Inspector (Int8, UInt16, Int32); kết quả hiện tại chuyển lần lượt.
+  4. *Disks:* thẻ ổ đĩa "disk4 — HEXER" có khoá xanh và chip Read-only, 2 dòng hex của sector, capsule sector navigator đếm sector.
+  - Mỗi trang tính năng: hình minh hoạ 520 × 200, tiêu đề 26 pt đậm, 3 dòng mô tả 14 pt kèm SF Symbol màu của trang.
+- **Màu của trang:** accent (Welcome), đỏ `HexTheme.modified` (Edit), cam (Find), xanh lá (Disks). Dùng cho quầng sáng phía trên (radial gradient 20%), symbol, chấm trang và vòng lan khi đổi trang.
+- **Thanh dưới:** Skip (borderless, trái; Esc) · chấm trang ở giữa (chấm hiện tại dài 22 pt, bấm để nhảy trang) · Back + Continue (prominent, Return), cỡ large. Trang cuối: không có Skip, nút chính là "Open a File…".
+- **Kết thúc:** "Open a File…" luôn mở bảng Open. Khi màn hình hiện lúc mở app, Skip, Esc hay nút đóng cũng dẫn tới bảng Open (như lần mở không có màn chào); mở từ menu Help thì chỉ đóng.
+- **Chuyển động:**
+  - *Nền:* lưới byte hex trôi lên chậm (6 pt/s), mờ phía sau nội dung (lớp phủ màu nền cửa sổ hình elip và ở đáy), rõ hơn ở mép. Thỉnh thoảng một dải chọn chéo quét qua; vài byte loé đỏ như vừa bị ghi đè; khi đổi trang, một vòng màu của trang lan từ giữa ra.
+  - *Đổi trang:* trang cũ mờ, nhoè và trượt ra; trang mới trượt vào theo hướng đi (tiến từ phải, lùi từ trái). Các phần tử trong trang lần lượt nổi lên (mờ → rõ, dịch lên 18 pt, spring, trễ 0,08 s mỗi phần tử).
+  - *Hình minh hoạ:* đổi theo từng bước như editor khi gõ phím, không nội suy giữa các bước (xem HANDOFF §3 về hiệu năng).
+- **Reduce Motion:** trang cross-fade, nội dung hiện ngay, nền đứng yên, hình minh hoạ giữ một khoảnh khắc tiêu biểu.
+- **Bàn phím:** Return = Continue/Open a File…, Esc = Skip (trang cuối: đóng), ← → lật trang.
+- **Kính:** chỉ các capsule nhỏ trong hình minh hoạ (mô phỏng find bar, chip, sector navigator) dùng `barGlass`; nút là nút hệ thống.
+
 ## 7. Bản địa hoá
 
 - Khoá là chuỗi tiếng Anh trong `Text("…")`, `L("…")` và các API nhận `LocalizedStringKey`. Bản dịch nằm trong `Scripts/l10n/vi.py`, script này sinh ra `Resources/Localization/vi.lproj/Localizable.strings`.
-- `Scripts/l10n_audit.swift` chạy trong `bundle.sh` và làm build thất bại nếu có chuỗi chưa dịch. Audit nhận cả các helper `field(…)`, `fact(…)`, `group(…)`, `GlassBarIconButton(_, "…")`, tham số `placeholder:` và hai nhánh của `Text(điều kiện ? "A" : "B")`. Hiện có 605 khoá, đã dịch đủ.
+- `Scripts/l10n_audit.swift` chạy trong `bundle.sh` và làm build thất bại nếu có chuỗi chưa dịch. Audit nhận cả các helper `field(…)`, `fact(…)`, `group(…)`, `GlassBarIconButton(_, "…")`, tham số `placeholder:` và hai nhánh của `Text(điều kiện ? "A" : "B")`. Hiện có 622 khoá, đã dịch đủ.
 - Lỗi từ HexerCore/HexerPlatform (tiếng Anh, CLI dùng nguyên văn) được dịch ở tầng app trong `App/ErrorMessages.swift`; `AppDelegate.application(_:willPresentError:)` áp dụng cho mọi `presentError`, còn `NSAlert(error:)` và nhãn lỗi của find bar dùng `error.localizedForDisplay` / `error.displayMessage`. Phần mô tả errno (`strerror`) vẫn là tiếng Anh của hệ thống.
 - Không dịch tên kiểu kỹ thuật: Int32, UTF-8, GUID, FILETIME, x86-64, ARM64, Little-endian/Big-endian.
 - Một số bản dịch đã chốt:
@@ -312,6 +336,7 @@ Danh sách đầy đủ nằm trong `App/MainMenu.swift` và artboard `MenusVI`.
 - Lưới hex có hỗ trợ VoiceOver (`HexCanvasView+Accessibility.swift`): đọc offset, giá trị và vùng chọn.
 - Mọi nút chỉ có icon đều có `help` và nhãn accessibility. Trên canvas, các nút này dùng `aria-label`.
 - Mọi lệnh đều đi được bằng bàn phím: có trong menu, có phím tắt; sheet dùng Return/Esc.
+- Màn hình chào: nền và hình minh hoạ ẩn với VoiceOver; mỗi chấm trang đọc "Page 2 of 4"; tôn trọng Reduce Motion (§6.9).
 - Không dùng màu làm tín hiệu duy nhất:
   - Byte đã sửa vừa đỏ vừa đậm.
   - Lỗi pattern có thêm câu thông báo.

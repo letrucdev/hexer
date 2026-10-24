@@ -30,6 +30,38 @@ enum DebugLaunchArguments {
             !a.hasPrefix("-") && (i == 0 || !args[i].hasPrefix("-Hexer") && !args[i].hasPrefix("-Apple"))
         }.map(\.element).filter { FileManager.default.fileExists(atPath: $0) }
         if let shot = value("-HexerAlertSnapshot") { captureNextAlert(to: URL(fileURLWithPath: shot)) }
+        if let page = value("-HexerWelcome").flatMap(Int.init) {
+            // The welcome tour at page n (from 0), leaving the first-launch one to come. -HexerWelcomeTour s
+            // turns a page every s seconds; -HexerSnapshot captures it once the page has settled.
+            // -HexerWelcomeEnd skip|open|close ends it as the buttons or the close button would, as if
+            // it had been shown at launch.
+            Task { @MainActor in
+                let end = value("-HexerWelcomeEnd")
+                WelcomeWindowController.show(page: page, atLaunch: end != nil, marksShown: false)
+                if let step = value("-HexerWelcomeTour").flatMap(Double.init) {
+                    for next in (page + 1)..<WelcomeModel.pageCount {
+                        try? await Task.sleep(for: .seconds(step))
+                        WelcomeWindowController.show(page: next, marksShown: false)
+                    }
+                    try? await Task.sleep(for: .seconds(step))
+                }
+                if let shot = value("-HexerSnapshot"), let window = WelcomeWindowController.window {
+                    try? await Task.sleep(for: .seconds(value("-HexerSnapshotDelay").flatMap(Double.init) ?? 2.5))
+                    print("HexerWindowID \(window.windowNumber)")
+                    snapshot(window, to: URL(fileURLWithPath: shot))
+                }
+                if let end, let window = WelcomeWindowController.window {
+                    try? await Task.sleep(for: .seconds(1.5))
+                    switch end {
+                    case "skip": WelcomeWindowController.model?.onFinish(false)
+                    case "open": WelcomeWindowController.model?.onFinish(true)
+                    default: window.performClose(nil)
+                    }
+                }
+                if flag("-HexerQuit") { NSApp.terminate(nil) }
+            }
+            return
+        }
         if let dir = value("-HexerDemo") {
             // The promotional tour: opens the file given on the command line, then runs DemoScript.
             Task { @MainActor in
