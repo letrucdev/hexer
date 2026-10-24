@@ -44,28 +44,10 @@ public final class MountedDiskImage: Sendable {
     }
 
     private static func hdiutil(_ arguments: [String]) -> (status: Int32, output: Data, error: String) {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
-        process.arguments = arguments
-        let out = Pipe(), err = Pipe()
-        process.standardOutput = out
-        process.standardError = err
-        process.standardInput = FileHandle.nullDevice
-        do { try process.run() } catch { return (-1, Data(), error.localizedDescription) }
-        // Both pipes at once: a full stderr pipe would otherwise stall hdiutil before stdout ends.
-        nonisolated(unsafe) var errorData = Data()
-        let group = DispatchGroup()
-        group.enter()
-        DispatchQueue.global().async {
-            errorData = err.fileHandleForReading.readDataToEndOfFile()
-            group.leave()
-        }
-        let output = out.fileHandleForReading.readDataToEndOfFile()
-        group.wait()
-        process.waitUntilExit()
+        let result = Subprocess.run("/usr/bin/hdiutil", arguments)
         // Without the deprecation notice macOS 26 prints for `attach` (see above).
-        let message = String(decoding: errorData, as: UTF8.self).split(separator: "\n")
-            .filter { !$0.hasPrefix("hdiutil: WARNING:") }.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
-        return (process.terminationStatus, output, message)
+        var message = result.error.split(separator: "\n").filter { !$0.hasPrefix("hdiutil: WARNING:") }.joined(separator: "\n")
+        if result.timedOut { message = "hdiutil did not finish within two minutes." }
+        return (result.status, result.output, message)
     }
 }

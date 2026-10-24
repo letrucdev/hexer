@@ -21,13 +21,15 @@ import Testing
         let resources = url.appendingPathComponent("Contents/Resources")
         try FileManager.default.createDirectory(at: resources, withIntermediateDirectories: true)
         try Data("version \(version)".utf8).write(to: resources.appendingPathComponent("notes.txt"))
-        #expect(run("/usr/bin/codesign", ["--force", "--sign", "-", "--identifier", identifier, url.path]).status == 0)
+        let signed = Subprocess.run("/usr/bin/codesign", ["--force", "--sign", "-", "--identifier", identifier, url.path])
+        #expect(signed.status == 0, "codesign: \(signed.error)")
     }
 
     /// A compressed HFS+ disk image of `folder`, as make_dmg.sh creates.
     static func makeDiskImage(of folder: URL, at image: URL) throws {
-        #expect(run("/usr/bin/hdiutil", ["create", "-volname", "Hexer", "-srcfolder", folder.path, "-fs", "HFS+",
-                                         "-format", "UDZO", "-ov", "-quiet", image.path]).status == 0)
+        let created = Subprocess.run("/usr/bin/hdiutil", ["create", "-volname", "Hexer", "-srcfolder", folder.path, "-fs", "HFS+",
+                                                          "-format", "UDZO", "-ov", "-quiet", image.path])
+        #expect(created.status == 0, "hdiutil create: \(created.error)")
     }
 
     struct Fixture {

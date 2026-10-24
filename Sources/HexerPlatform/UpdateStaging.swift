@@ -23,12 +23,7 @@ public enum UpdateStaging {
 
         let staged = folder.appendingPathComponent(appName)
         try? FileManager.default.removeItem(at: staged)
-        let ditto = Process()
-        ditto.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
-        ditto.arguments = [app.path, staged.path]
-        try ditto.run()
-        ditto.waitUntilExit()
-        guard ditto.terminationStatus == 0 else {
+        guard Subprocess.run("/usr/bin/ditto", [app.path, staged.path]).status == 0 else {
             throw CocoaError(.fileWriteUnknown, userInfo: [NSFilePathErrorKey: staged.path])
         }
         try CodeSignature.verify(staged, requirement: requirement)
