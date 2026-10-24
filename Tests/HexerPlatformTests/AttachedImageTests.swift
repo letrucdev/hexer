@@ -30,7 +30,7 @@ struct AttachedImageTests {
 
         // Fill the device with a known pattern through a writable descriptor (no authorization).
         let pattern = randomBytes(Self.size, seed: 31)
-        let rw = try await RawDeviceOpener.open(bsdName: image.bsdName, writable: true, allowAuthorization: false)
+        let rw = try await image.openRaw(writable: true)
         defer { close(rw) }
         #expect(pattern.withUnsafeBytes { PosixIO.write(rw, $0.baseAddress!, count: Self.size, at: 0) } == 0)
         #expect(try DeviceGeometry.of(descriptor: rw)
@@ -40,7 +40,7 @@ struct AttachedImageTests {
         var odd = [UInt8](repeating: 0, count: 10)
         #expect(pread(rw, &odd, 10, 3) == -1)
 
-        let readFD = try await RawDeviceOpener.open(bsdName: image.bsdName, writable: false, allowAuthorization: false)
+        let readFD = try await image.openRaw(writable: false)
         let source = try DiskByteSource(descriptor: readFD, path: image.rawPath)
         #expect(source.isDevice && source.isFixedSize)
         #expect(source.length == UInt64(Self.size))
@@ -131,7 +131,7 @@ struct AttachedImageTests {
         try await session.unmount(bsdName: image.bsdName)
         #expect(DiskEnumerator.disk(bsdName: partition)?.isMounted == false)
         // With nothing mounted the whole disk opens for writing.
-        let fd = try await RawDeviceOpener.open(bsdName: image.bsdName, writable: true, allowAuthorization: false)
+        let fd = try await image.openRaw(writable: true)
         close(fd)
         // Unmounting again is harmless.
         try await session.unmount(bsdName: partition)

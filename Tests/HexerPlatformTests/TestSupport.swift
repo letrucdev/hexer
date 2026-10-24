@@ -115,6 +115,39 @@ final class AttachedImage: Sendable {
         return disk.isDiskImage && !disk.isOnBootDisk && access(rawPath, R_OK | W_OK) == 0
     }
 
+    /// Opens the raw device without authorization. On a CI runner the open once failed with EACCES
+    /// right after `isOurWritableImage()` saw the node writable, so permission errors are retried
+    /// for a few seconds; one that lasts is reported with the node's owner and mode.
+    func openRaw(writable: Bool) async throws -> Int32 {
+        let deadline = ContinuousClock.now + .seconds(5)
+        var retries = 0
+        while true {
+            do {
+                let fd = try await RawDeviceOpener.open(bsdName: bsdName, writable: writable, allowAuthorization: false)
+                if retries > 0 { print("AttachedImage: \(rawPath) opened after \(retries) permission retries") }
+                return fd
+            } catch RawDeviceError.openFailed(_, let code) where code == EACCES || code == EPERM {
+                guard ContinuousClock.now < deadline else { throw PermissionDenied(path: rawPath, code: code) }
+                retries += 1
+                try await Task.sleep(for: .milliseconds(100))
+            }
+        }
+    }
+
+    /// Describes the node when thrown: by the time the error is printed, the image is detached.
+    struct PermissionDenied: Error, CustomStringConvertible {
+        let description: String
+
+        init(path: String, code: Int32) {
+            var node = stat(), console = stat()
+            let owner = stat(path, &node) == 0
+                ? "uid \(node.st_uid), gid \(node.st_gid), mode \(String(node.st_mode & 0o777, radix: 8))" : "missing"
+            let consoleUID = stat("/dev/console", &console) == 0 ? "\(console.st_uid)" : "?"
+            description = "open(\(path)) kept failing with errno \(code) for 5 s; node: \(owner); "
+                + "tests run as uid \(getuid()), console user uid \(consoleUID)"
+        }
+    }
+
     func detach() {
         if run("/usr/bin/hdiutil", ["detach", "/dev/" + bsdName]).status != 0 {
             run("/usr/bin/hdiutil", ["detach", "/dev/" + bsdName, "-force"])
