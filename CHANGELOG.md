@@ -3,6 +3,18 @@
 Each version's section opens its release notes on GitHub, in English and Vietnamese. Write it for
 people who use Hexer, before tagging the release (see CLAUDE.md, "Phát hành").
 
+## 0.3.2 — 2026-10-25
+
+### What's new
+- The Tools windows (Open Disk, Clone Disk, Split File, Concatenate Files, Wipe Securely), Software Update and Settings open in the middle of the screen. Before, they opened off to the right and lower down. Statistics opens in the middle the first time too, then where you left it.
+- Help ▸ Hexer Help (⌘?) opens the list of every command and its keyboard shortcut. Before, it said help wasn't available.
+- The File menu has a single Open Recent, right after Open…, listing the files you opened recently. Before, a second Open Recent further down was always empty.
+
+### Có gì mới
+- Các cửa sổ công cụ (Mở ổ đĩa, Nhân bản ổ đĩa, Tách tệp, Ghép tệp, Xoá an toàn), Cập nhật phần mềm và Cài đặt giờ mở ở giữa màn hình. Trước đây chúng mở lệch sang phải và xuống dưới. Thống kê cũng mở ở giữa trong lần đầu, sau đó mở ở chỗ bạn để lại.
+- Trợ giúp ▸ Trợ giúp Hexer (⌘?) mở danh sách mọi lệnh kèm phím tắt. Trước đây app báo không có trợ giúp.
+- Menu Tệp chỉ còn một mục Mở mục gần đây, ngay sau Mở…, liệt kê các tệp bạn mở gần đây. Trước đây còn một mục Mở gần đây thứ hai ở bên dưới, lúc nào cũng trống.
+
 ## 0.3.1 — 2026-10-25
 
 ### What's new
