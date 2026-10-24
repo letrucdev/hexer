@@ -11,11 +11,11 @@ import Testing
     }
 
     /// A helper the tool leaves behind keeps the pipes open, as one serving an attached disk image
-    /// can: the run ends when the tool exits, not when its output does.
+    /// can: the run ends when the tool exits, not when its output does (here 30 s later).
     @Test func doesNotWaitForPipesAHelperKeepsOpen() {
         let start = Date.now
-        let r = Subprocess.run("/bin/sh", ["-c", "printf 'plist'; (sleep 5 &); exit 0"])
-        #expect(Date.now.timeIntervalSince(start) < 3)
+        let r = Subprocess.run("/bin/sh", ["-c", "printf 'plist'; (sleep 30 &); exit 0"])
+        #expect(Date.now.timeIntervalSince(start) < 10)
         #expect(r.status == 0 && String(decoding: r.output, as: UTF8.self) == "plist")
     }
 
