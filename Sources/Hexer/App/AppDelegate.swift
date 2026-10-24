@@ -41,7 +41,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
     @objc func showAbout(_ sender: Any?) { AboutAndHelp.showAbout() }
     @objc func showAcknowledgements(_ sender: Any?) { AboutAndHelp.showAcknowledgements() }
-    @objc func showHelp(_ sender: Any?) { AboutAndHelp.showHelp() }
+    /// Not `showHelp:`: NSApplication answers that itself ("Help isn't available") before its delegate.
+    @objc func showHexerHelp(_ sender: Any?) { AboutAndHelp.showHelp() }
     @objc func showWelcome(_ sender: Any?) { WelcomeWindowController.show() }
     @objc func checkForUpdates(_ sender: Any?) { SoftwareUpdate.shared.checkForUpdates() }
 
@@ -102,8 +103,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
     /// Shows Settings at pane `pane` (0 General … 3 Inspector, 4 Export).
     static func openSettings(pane: Int) {
-        SettingsWindowController.shared.showWindow(nil)
+        // Pane first, so a first opening is centered at that pane's size.
         (SettingsWindowController.shared.window?.contentViewController as? NSTabViewController)?.selectedTabViewItemIndex = pane
+        SettingsWindowController.shared.showWindow(nil)
     }
 
     @objc func showSettingsWindow(_ sender: Any?) {

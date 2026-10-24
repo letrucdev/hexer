@@ -30,10 +30,21 @@ final class SettingsWindowController: NSWindowController {
         let window = NSWindow(contentViewController: tabs)
         window.styleMask = [.titled, .closable]
         super.init(window: window)
-        window.center()
     }
 
     @available(*, unavailable) required init?(coder: NSCoder) { fatalError() }
+
+    private var hasBeenCentered = false
+
+    /// Centers the window the first time it opens. The tab view controller sizes the window to the
+    /// selected pane only as it comes on screen; centered before that, the window is centered at
+    /// the tab view's default 500 × 500 and then grows to the right and down.
+    override func showWindow(_ sender: Any?) {
+        super.showWindow(sender)
+        guard !hasBeenCentered else { return }
+        hasBeenCentered = true
+        window?.center()
+    }
 }
 
 struct GeneralSettingsView: View {

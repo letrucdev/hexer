@@ -22,7 +22,7 @@ final class ToolWindowController: NSWindowController, NSWindowDelegate {
         let host = NSHostingController(rootView: content(controller))
         host.sizingOptions = [.preferredContentSize]
         controller.window?.contentViewController = host
-        controller.window?.center()
+        controller.window?.centerAtContentSize()
         openWindows.append(controller)
         controller.showWindow(nil)
     }

@@ -14,10 +14,10 @@ Hexer là trình sửa hex thiết kế cho macOS 27, viết bằng SwiftUI + Ap
 
 - Phase 1–9 đã xong. Phase 10 (đối chiếu chi tiết với HxD bằng REA) đã áp dụng các phát hiện chính.
 - **Đã kiểm tra lại ngày 2026-10-25:**
-  - `Scripts/test.sh`: 188 test đều đạt (HexerCore 139, HexerDisasm 12, HexerPlatform 37).
+  - `Scripts/test.sh`: 193 test đều đạt (HexerCore 139, HexerDisasm 12, HexerPlatform 42).
   - `Scripts/crosscheck.sh`: 287/287 đạt.
   - `Scripts/bundle.sh`: build không có warning, ngoại trừ cảnh báo search path của linker.
-  - Đã kiểm l10n: 668 khoá có tiếng Việt (audit giờ nhận thêm nhiều mẫu, xem §2).
+  - Đã kiểm l10n: 666 khoá có tiếng Việt (audit giờ nhận thêm nhiều mẫu, xem §2).
 - **Bản mới nhất: v0.3.1** (2026-10-25). v0.3.0 là bản đầu tiên tự cập nhật được; người đã cài 0.3.0 sẽ được đề nghị lên 0.3.1. Secret `HEXER_UPDATE_KEY` đã có trên GitHub. Người đang dùng 0.2.0 trở xuống phải tải bằng tay một lần.
 - **Git:** nhánh `main`, remote `origin` = `git@github-letrucdev:letrucdev/hexer.git` (host SSH `github-letrucdev` là alias trong `~/.ssh/config` của máy). Commit đầu tiên đã push ngày 2026-10-24. Chỉ commit hoặc push khi người dùng yêu cầu.
 
@@ -69,6 +69,8 @@ Máy chỉ có **Command Line Tools**, không có Xcode: Swift 6.4, SDK MacOSX27
   - Closure đưa cho AppKit hay SwiftUI gọi lại cũng mặc định MainActor, và **trap lúc chạy** nếu bị gọi từ luồng khác. Ví dụ: dynamic provider của `NSColor` bị SwiftUI gọi trên luồng render khi animate. Hàm tạo ra closure loại này phải là `nonisolated` (xem `NSColor.dynamic` trong `HexTheme.swift`).
 - **Bundle cần thêm chuỗi tiếng Việt.** Mỗi chuỗi UI mới phải có bản dịch trong `Scripts/l10n/vi.py`. Chạy `python3 -I Scripts/l10n/vi.py` để sinh `Resources/Localization/vi.lproj/Localizable.strings`; nếu thiếu, `bundle.sh` dừng. Pattern mà audit nhận diện nằm trong `Scripts/l10n_audit.swift`: `Text`/`Button`/`L(…)`…, helper `item`/`menu`/`sub`/`pane`/`field`/`fact`/`group`, nút icon (`GlassBarIconButton`, `iconButton`…), `title:`/`placeholder:` và hai nhánh `Text(c ? "A" : "B")`. Helper mới nhận chuỗi UI thì thêm vào danh sách này.
 - **Khoá dịch không được chứa `\n`.** Câu nhiều dòng thì ghép từ nhiều `L(…)` (xem `App/ErrorMessages.swift`).
+- **Canh giữa cửa sổ có nội dung SwiftUI:** `NSHostingController` chỉ đưa cỡ cho cửa sổ sau một lượt layout (`layoutIfNeeded()` cũng không đủ), nên `center()` gọi ngay sau khi gán `contentViewController` sẽ canh theo cỡ 0, rồi cửa sổ phình sang phải và xuống dưới từ giữa màn hình. Dùng `NSWindow.centerAtContentSize()` (`App/NSWindow+Centering.swift`, đặt cỡ theo `fittingSize` rồi mới canh). `NSTabViewController` (Settings) chỉ đổi cỡ cửa sổ theo pane khi cửa sổ hiện lên, nên Settings canh giữa sau `showWindow` lần đầu. Đo vị trí cửa sổ không cần quyền Screen Recording: `CGWindowListCopyWindowInfo` trả về `kCGWindowBounds`.
+- **Selector trùng với NSApplication:** action không có target đi qua responder chain tới `NSApp` **trước** app delegate, nên delegate không được đặt action trùng tên method của `NSApplication`. `showHelp:` từng làm Help ▸ Hexer Help hiện "Help isn't available for Hexer"; giờ là `showHexerHelp:`.
 - **NSAlert trên macOS 27:** khi `runModal` chạy, Return được chuyển từ `keyEquivalent` của nút đầu sang `window.defaultButtonCell`. Muốn nút nào không nhận Return thì dùng `alert.addDestructiveButton(withTitle:)` (`App/Alerts.swift`), đừng tự gán `keyEquivalent`.
 
 ### Chạy app có kịch bản (`App/DebugLaunchArguments.swift`)
@@ -420,3 +422,17 @@ Resources/        Info.plist, entitlements (không sandbox), Icon, Licenses, Loc
   - **Release `v0.3.1`** (theo yêu cầu của người dùng): icon của volume DMG và việc quên bản ghi Launch Services. CI của `c6396ec` đạt, tag annotated "Hexer 0.3.1", workflow Release đạt (khoảng 8 phút). https://github.com/letrucdev/hexer/releases/tag/v0.3.1 có `Hexer-0.3.1.dmg` (6,1 MB), `.sha256`, `.sig`. Đã tải về kiểm: SHA-256 khớp, chữ ký hợp lệ, app 0.3.1 build 27, universal, `minos 15.0`, code signature hợp lệ, thư mục gốc của volume có cờ `C` và hiện icon Hexer.
     - Lúc hết hạn mức API thì kiểm CI bằng badge (`/actions/workflows/ci.yml/badge.svg?branch=main`, chỉ cho biết lần chạy xong gần nhất trên `main`) và chờ release bằng link tải `.sig` (404 cho tới khi đăng). Cả hai không tính vào hạn mức.
     - Lần cập nhật 0.3.0 → 0.3.1 do code của 0.3.0 chạy, nên vẫn để lại bản ghi Launch Services ở chỗ gắn DMG và thư mục tạm; từ 0.3.1 trở đi thì không. Chưa thử cập nhật thật 0.3.0 → 0.3.1 (người dùng đã bảo tạm dừng phần thử): dùng app trong `Hexer-0.3.0.dmg` của trang release, chép ra thư mục khác rồi chạy `-HexerUpdateCheck 1 -HexerUpdateInstall 1 -HexerUpdateRelaunch 1`.
+- **Phiên 8 (2026-10-25):**
+  - **Canh giữa các cửa sổ riêng** (người dùng báo: "các dialog trong mục tools khi mở lên không hiện chính giữa"). Đo bằng `CGWindowListCopyWindowInfo` trên màn hình 1512 × 982:
+    - Cả 5 cửa sổ Tools (Open Disk, Clone Disk, Split, Concatenate, Wipe) và Software Update có mép trái ở x = 756, đúng giữa màn hình: `center()` chạy khi cửa sổ còn cỡ 0, trước khi `NSHostingController` đưa cỡ nội dung. Sửa bằng `NSWindow.centerAtContentSize()` (mới, `App/NSWindow+Centering.swift`).
+    - Settings lệch 10 pt sang phải và thấp hơn: canh theo cỡ mặc định 500 × 500 của `NSTabViewController`. Giờ canh sau `showWindow` lần đầu; `openSettings(pane:)` chọn pane trước rồi mới hiện, để canh đúng theo pane đó.
+    - Statistics lần mở đầu nằm ở góc dưới trái (`contentRect` gốc 0,0, không `center()`). Giờ canh giữa trước `setFrameAutosaveName`, nên lần đầu ở giữa, các lần sau vẫn theo vị trí đã lưu. Đã thử bằng cách tạm xoá khoá `NSWindow Frame HexerStatisticsWindow` rồi ghi lại giá trị cũ.
+    - About, Acknowledgements và màn hình chào vốn đã ở giữa. Alert và bảng Open/Save do hệ thống đặt.
+  - **Help ▸ Hexer Help không mở được cửa sổ trợ giúp** (tìm thấy khi đo): action `showHelp:` được `NSApplication` xử lý trước app delegate, nên hiện "Help isn't available for Hexer". Đổi thành `showHexerHelp:`. Khi đã mở được, cửa sổ cao 2613 pt (vượt màn hình) vì hosting controller lấy chiều cao lý tưởng của bảng lệnh; giờ `sizingOptions = []`, cỡ 560 × 600, tối thiểu 420 × 320.
+  - Kiểm: mọi cửa sổ trên có tâm ngang x = 756 ở sáng, tối và tiếng Việt; chụp từng cửa sổ (`screencapture -l`), nội dung không bị cắt. Các cửa sổ này có cỡ cố định hoặc tự chọn, nên không có trường hợp cửa sổ hẹp. Canvas không đổi: board chỉ vẽ cửa sổ, không vẽ vị trí trên màn hình. DESIGN.md: §2 mục 9.
+  - `Scripts/test.sh`: 193 test đều đạt (HexerCore 139, HexerDisasm 12, HexerPlatform 42). `Scripts/crosscheck.sh`: 287/287. `Scripts/bundle.sh`: không có warning mới, 668 khoá đều có tiếng Việt.
+  - **Menu File có hai mục Open Recent** (thấy trong Hexer Help, người dùng bảo sửa luôn). AppKit tự chèn một Open Recent sau Open… ("Mở mục gần đây", bản dịch của hệ thống), ngoài mục tự dựng trong `MainMenu.swift` sau Open Disk Image… ("Mở gần đây"). Dump menu bằng code tạm: mục của AppKit có delegate `NSDocumentControllerSubMenuDelegate`, còn mục tự dựng không có delegate, chỉ có Clear Menu và chưa bao giờ hiện tệp nào. AppKit chỉ nhận ra mục có sẵn qua tên menu riêng (`_setMenuName:`, API private), nên bỏ hẳn mục tự dựng và hai khoá dịch "Open Recent", "Clear Menu" (còn 666 khoá).
+    - Kiểm trên máy ảo macOS 15: AppKit cũng chèn đúng một mục sau Open…; mở File ▸ Open Recent bằng AppleScript qua SSH (`osascript` + System Events, ăn theo quyền Accessibility của `sshd-keygen-wrapper`) đọc được `firmware.hex`, dấu phân cách, Clear Menu. Chạy app qua SSH phải dùng `open -n -W --stdout FILE …` (chạy thẳng binary thì treo, vì không ở trong phiên đồ hoạ). Máy ảo vẫn đang bật.
+    - Canvas version 23: `MenusVI` đặt Open Recent ngay sau Open…, thêm Welcome to Hexer vào menu Help (trước đây thiếu), số khoá 666. DESIGN.md §6.8, §7.
+    - Kiểm lại với code cuối: test 193/193, crosscheck 287/287, `bundle.sh` đạt (666 khoá). Đoạn dump menu tạm đã gỡ.
+  - Chưa commit.

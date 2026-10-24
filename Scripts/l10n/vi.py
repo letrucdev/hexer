@@ -9,7 +9,7 @@ VI = {
     "About %@": "Giới thiệu về %@", "Settings…": "Cài đặt…", "Hide %@": "Ẩn %@",
     "Hide Others": "Ẩn các ứng dụng khác", "Show All": "Hiện tất cả", "Quit %@": "Thoát %@",
     "New": "Mới", "Open…": "Mở…", "Open Disk…": "Mở ổ đĩa…", "Open Disk Image…": "Mở ảnh đĩa…",
-    "Open Recent": "Mở gần đây", "Clear Menu": "Xoá menu", "Close": "Đóng", "Close All": "Đóng tất cả",
+    "Close": "Đóng", "Close All": "Đóng tất cả",
     "Save": "Lưu", "Save As…": "Lưu thành…", "Save All": "Lưu tất cả", "Save Selection As…": "Lưu vùng chọn thành…",
     "Reload from Disk": "Tải lại từ đĩa", "Import": "Nhập", "Export": "Xuất", "Intel Hex…": "Intel Hex…",
     "Motorola S-Record…": "Motorola S-Record…", "ETL Extended…": "ETL Extended…",

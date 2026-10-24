@@ -13,7 +13,7 @@ final class SoftwareUpdateWindowController: NSWindowController, NSWindowDelegate
     static func show() {
         let controller = current ?? SoftwareUpdateWindowController()
         current = controller
-        if controller.window?.isVisible != true { controller.window?.center() }
+        if controller.window?.isVisible != true { controller.window?.centerAtContentSize() }
         controller.showWindow(nil)
     }
 

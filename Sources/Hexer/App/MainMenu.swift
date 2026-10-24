@@ -51,17 +51,12 @@ enum MainMenu {
             NSMenuItem(title: L("Quit %@", appName), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"),
         ])
 
-        let recent = item("Open Recent", nil)
-        let recentMenu = NSMenu(title: L("Open Recent"))
-        recentMenu.addItem(item("Clear Menu", "clearRecentDocuments:"))
-        recent.submenu = recentMenu
-
         let fileMenu = menu("File", [
             item("New", "newDocument:", "n"),
             item("Open…", "openDocument:", "o"),
+            // NSDocumentController inserts Open Recent here and fills it; a hand-built one is never filled.
             item("Open Disk…", "openDisk:", "o", [.command, .option]),
             item("Open Disk Image…", "openDiskImage:"),
-            recent,
             sep,
             item("Close", "performClose:", "w"),
             item("Close All", "closeAllDocuments:", "w", [.command, .option]),
@@ -188,7 +183,7 @@ enum MainMenu {
         NSApp.windowsMenu = windowMenu.submenu
 
         let helpMenu = menu("Help", [
-            item("Hexer Help", "showHelp:", "?"),
+            item("Hexer Help", "showHexerHelp:", "?"),
             item("Welcome to Hexer", "showWelcome:"),
             item("Acknowledgements", "showAcknowledgements:"),
         ])

@@ -54,6 +54,8 @@ final class StatisticsWindowController: NSWindowController, NSWindowDelegate {
         window.contentViewController = NSHostingController(rootView: StatisticsView(model: model))
         window.setContentSize(NSSize(width: 760, height: 460))
         window.minSize = NSSize(width: 520, height: 320)
+        // Centered the first time; afterwards the autosaved frame wins.
+        window.center()
         super.init(window: window)
         window.delegate = self
         window.setFrameAutosaveName("HexerStatisticsWindow")

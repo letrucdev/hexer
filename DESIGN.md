@@ -38,6 +38,7 @@ Apple đưa lại các Design Principles (Purpose, Agency, Responsibility, Famil
 6. **Sheet và alert dùng material chuẩn của hệ thống.** Nút mặc định ở bên phải; Return xác nhận, Esc huỷ.
 7. **Settings:** tiêu đề cửa sổ là tên pane đang mở; cửa sổ vừa khít nội dung pane.
 8. **An toàn trước:** ổ đĩa mở chỉ đọc theo mặc định; ổ khởi động có khoá; thao tác không hoàn tác được phải ghi rõ "(cannot be undone)".
+9. **Cửa sổ riêng mở ở giữa màn hình**, canh theo cỡ thật của nội dung: cửa sổ công cụ (Open Disk, Clone Disk, Split, Concatenate, Wipe), Software Update, Settings, Hexer Help, Acknowledgements, About, màn hình chào; Statistics thì lần đầu ở giữa, sau đó nhớ vị trí. Cửa sổ có nội dung SwiftUI gọi `NSWindow.centerAtContentSize()` thay cho `center()`.
 
 ## 3. Token
 
@@ -265,7 +266,7 @@ Tab trên toolbar, mỗi tab có icon và nhãn; tiêu đề cửa sổ là tên
 - **Wipe Securely:** File; Method DoD 5220.22-M (3 passes) / Zero / Random; cảnh báo về SSD/APFS; nút "Wipe and Delete" + alert xác nhận.
 
 ### 6.8 Menu và phím tắt
-Thứ tự menu: Hexer · File · Edit · Search · View · Analysis · Tools · Window · Help. Menu Hexer: About Hexer, Check for Updates…, Settings… (⌘,), Services, Hide/Show, Quit. Phím tắt chính:
+Thứ tự menu: Hexer · File · Edit · Search · View · Analysis · Tools · Window · Help. Menu Hexer: About Hexer, Check for Updates…, Settings… (⌘,), Services, Hide/Show, Quit. Open Recent ngay sau Open… là mục của AppKit (tự chèn và điền danh sách, chuỗi tiếng Việt của hệ thống); không tự dựng mục này trong `MainMenu.swift`. Phím tắt chính:
 
 | Lệnh | Phím |
 |---|---|
@@ -335,7 +336,7 @@ Danh sách đầy đủ nằm trong `App/MainMenu.swift` và artboard `MenusVI`.
 ## 7. Bản địa hoá
 
 - Khoá là chuỗi tiếng Anh trong `Text("…")`, `L("…")` và các API nhận `LocalizedStringKey`. Bản dịch nằm trong `Scripts/l10n/vi.py`, script này sinh ra `Resources/Localization/vi.lproj/Localizable.strings`.
-- `Scripts/l10n_audit.swift` chạy trong `bundle.sh` và làm build thất bại nếu có chuỗi chưa dịch. Audit nhận cả các helper `field(…)`, `fact(…)`, `group(…)`, `GlassBarIconButton(_, "…")`, tham số `placeholder:` và hai nhánh của `Text(điều kiện ? "A" : "B")`. Hiện có 668 khoá, đã dịch đủ.
+- `Scripts/l10n_audit.swift` chạy trong `bundle.sh` và làm build thất bại nếu có chuỗi chưa dịch. Audit nhận cả các helper `field(…)`, `fact(…)`, `group(…)`, `GlassBarIconButton(_, "…")`, tham số `placeholder:` và hai nhánh của `Text(điều kiện ? "A" : "B")`. Hiện có 666 khoá, đã dịch đủ.
 - Lỗi từ HexerCore/HexerPlatform (tiếng Anh, CLI dùng nguyên văn) được dịch ở tầng app trong `App/ErrorMessages.swift`; `AppDelegate.application(_:willPresentError:)` áp dụng cho mọi `presentError`, còn `NSAlert(error:)` và nhãn lỗi của find bar dùng `error.localizedForDisplay` / `error.displayMessage`. Phần mô tả errno (`strerror`) vẫn là tiếng Anh của hệ thống.
 - Không dịch tên kiểu kỹ thuật: Int32, UTF-8, GUID, FILETIME, x86-64, ARM64, Little-endian/Big-endian.
 - Một số bản dịch đã chốt:
