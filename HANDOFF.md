@@ -329,3 +329,10 @@ Resources/        Info.plist, entitlements (không sandbox), Icon, Licenses, Loc
       - Dễ vấp khi viết script: `screencapture` không ghi được vào tên tệp bắt đầu bằng dấu chấm. `/bin/sh` (bash 3.2) hiểu dấu `'` trong `"${x:+…}"` là mở chuỗi.
     - Đã trả máy ảo về như cũ: xoá `com.apple.universalaccess reduceMotion` và `WelcomeShown` (cả hai đều chưa có từ trước). Máy ảo vẫn đang chạy.
   - Kiểm: `Scripts/test.sh` 166 test đạt, `Scripts/crosscheck.sh` 281/281, `Scripts/bundle.sh` không có warning. Canvas và DESIGN.md không đổi, vì giao diện không đổi.
+  - **Commit và push** (theo yêu cầu của người dùng), gồm 4 commit trên `main`: `4a1fb12` màn hình chào (phần làm từ phiên 4, lúc đó chưa commit; HANDOFF.md của commit này chỉ có ghi chú về màn hình chào), `55d233e` sửa crash, `5d1dd69` công cụ máy ảo kèm nhật ký phiên này, `7d26647` CHANGELOG 0.2.0.
+  - **Release `v0.2.0`** (theo yêu cầu của người dùng: "tạo releases mới nếu cần"). Bản này có tính năng mới, nên tăng số giữa.
+    - Mục `## 0.2.0` trong CHANGELOG.md chỉ ghi màn hình chào. Bản sửa crash không được ghi: crash chỉ gặp ở màn hình chào, vốn mới có trong bản này, nên người dùng 0.1.1 không thấy gì khác.
+    - CI của `5d1dd69` đạt (run 40090906595), rồi mới đặt tag annotated "Hexer 0.2.0" trên `7d26647`.
+    - Workflow Release đạt ở cả ba job notes, test, release (run 40091189598). Đây là lần đầu job `notes` chạy thật.
+    - Kết quả: https://github.com/letrucdev/hexer/releases/tag/v0.2.0, gồm `Hexer-0.2.0.dmg` (6,8 MB) và `Hexer-0.2.0.dmg.sha256`. Đã tải DMG về kiểm, SHA-256 khớp.
+    - Ghi chú release mở đầu bằng phần thay đổi (tiếng Anh và tiếng Việt), có link so sánh với v0.1.1 và dòng SHA-256.
