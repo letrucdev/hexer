@@ -224,6 +224,10 @@ final class SoftwareUpdate {
         guard let staged else { return }
         do {
             try AppBundleInstaller.replace(bundleURL, with: staged)
+            // So Launch Services knows the new version (and its icon) at this path, and not at the
+            // staging folder it saw the copy in, which is deleted next.
+            LaunchServicesRecords.forget(staged)
+            LSRegisterURL(bundleURL as CFURL, true)
         } catch {
             NSLog("Hexer: installing the update failed: %@", String(describing: error))
         }
@@ -249,6 +253,8 @@ final class SoftwareUpdate {
 
     private func removeStagingFolder() {
         guard let path = defaults.string(forKey: Keys.stagingFolder) else { return }
+        let copy = URL(fileURLWithPath: path).appendingPathComponent(UpdateStaging.appName)
+        if FileManager.default.fileExists(atPath: copy.path) { LaunchServicesRecords.forget(copy) }
         try? FileManager.default.removeItem(atPath: path)
         defaults.removeObject(forKey: Keys.stagingFolder)
     }

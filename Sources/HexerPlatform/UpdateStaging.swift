@@ -15,8 +15,11 @@ public enum UpdateStaging {
                              in folder: URL) throws -> URL {
         try UpdateSignature.verify(fileAt: diskImage, version: version, signature: signature, publicKey: publicKey)
         let mounted = try MountedDiskImage.attach(diskImage, inside: folder)
-        defer { mounted.detach() }
         let app = mounted.mountPoint.appendingPathComponent(appName)
+        defer {
+            LaunchServicesRecords.forget(app)
+            mounted.detach()
+        }
         try AppBundleInstaller.validate(app, bundleIdentifier: bundleIdentifier, version: version, system: system)
         let requirement = CodeSignature.updateRequirement(for: running)
         try CodeSignature.verify(app, requirement: requirement)
