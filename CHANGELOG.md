@@ -3,6 +3,16 @@
 Each version's section opens its release notes on GitHub, in English and Vietnamese. Write it for
 people who use Hexer, before tagging the release (see CLAUDE.md, "Phát hành").
 
+## 0.3.1 — 2026-10-25
+
+### What's new
+- When you open the Hexer disk image, its volume shows Hexer's icon instead of a plain disk.
+- Updating Hexer no longer leaves macOS pointing at the temporary copy it installed from, which could make Hexer's icon appear blank in the Dock, Spotlight or Open With.
+
+### Có gì mới
+- Khi mở ảnh đĩa cài đặt Hexer, volume của nó hiện icon Hexer thay vì icon ổ đĩa thông thường.
+- Sau khi Hexer tự cập nhật, macOS không còn trỏ tới bản sao tạm dùng để cài, vốn có thể làm icon Hexer hiện trống trên Dock, Spotlight hay trong menu Mở bằng.
+
 ## 0.3.0 — 2026-10-25
 
 ### What's new
