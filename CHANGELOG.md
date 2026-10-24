@@ -3,6 +3,16 @@
 Each version's section opens its release notes on GitHub, in English and Vietnamese. Write it for
 people who use Hexer, before tagging the release (see CLAUDE.md, "Phát hành").
 
+## 0.3.0 — 2026-10-25
+
+### What's new
+- Hexer updates itself. Once a day it looks for a new version; when there is one, it shows what's new and installs it when you agree, after checking that the update is signed by Hexer's developer and hasn't been changed. Choose Hexer ▸ Check for Updates… to look now. In Settings ▸ General you can turn off the daily check or include beta versions.
+- This is the first version that can update itself. If you use Hexer 0.2.0 or earlier, install this one by hand; later versions then come to you.
+
+### Có gì mới
+- Hexer tự cập nhật. Mỗi ngày một lần, app tìm phiên bản mới; khi có, app cho biết có gì mới và cài khi bạn đồng ý, sau khi kiểm tra bản cập nhật có chữ ký của nhà phát triển Hexer và không bị sửa đổi. Chọn Hexer ▸ Kiểm tra cập nhật… để tìm ngay. Trong Cài đặt ▸ Chung, bạn có thể tắt việc kiểm tra hằng ngày hoặc nhận cả bản thử nghiệm.
+- Đây là phiên bản đầu tiên tự cập nhật được. Nếu bạn đang dùng Hexer 0.2.0 trở xuống, hãy cài bản này bằng tay; các phiên bản sau sẽ tự đến.
+
 ## 0.2.0 — 2026-10-24
 
 ### What's new
