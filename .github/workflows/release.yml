@@ -1,5 +1,6 @@
 # Pushing a version tag (vX.Y.Z, e.g. v0.1.1; v0.2.0-beta.1 makes a pre-release) runs the tests,
 # builds the universal disk image and publishes it with its SHA-256 on the repository's Releases page.
+# The notes open with the version's section of CHANGELOG.md; without one, nothing else runs.
 #
 #   git tag -a v0.1.1 -m "Hexer 0.1.1" && git push origin v0.1.1
 name: Release
@@ -12,7 +13,19 @@ permissions:
   contents: read
 
 jobs:
+  notes:
+    runs-on: xcode-27
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Changes from CHANGELOG.md
+        run: Scripts/ci_run.sh Scripts/release_notes.sh "${GITHUB_REF_NAME#v}"
+
   test:
+    needs: notes
     uses: ./.github/workflows/ci.yml
 
   release:
@@ -43,7 +56,8 @@ jobs:
         run: |
           DMG="build/Hexer-$VERSION.dmg"
           (cd build && shasum -a 256 "Hexer-$VERSION.dmg") > "$DMG.sha256"
-          sed "s/@VERSION@/$VERSION/g" Distribution/release-notes.md > build/release-notes.md
+          PREVIOUS=$(git describe --tags --abbrev=0 "$GITHUB_REF_NAME^" 2>/dev/null || true)
+          Scripts/release_notes.sh "$VERSION" "$PREVIOUS" > build/release-notes.md
           echo "SHA-256: \`$(cut -d' ' -f1 "$DMG.sha256")\`" >> build/release-notes.md
           PRERELEASE=""
           case "$VERSION" in *-*) PRERELEASE="--prerelease" ;; esac

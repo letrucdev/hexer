@@ -1,5 +1,7 @@
 A hex editor for macOS 15 Sequoia or later, on Apple silicon and Intel Macs.
 
+@CHANGES@
+
 ## Install
 
 1. Download **Hexer-@VERSION@.dmg**, open it and drag **Hexer** onto **Applications**.

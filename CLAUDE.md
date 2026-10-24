@@ -30,7 +30,12 @@ Trình sửa hex cho macOS 27, viết bằng SwiftUI + AppKit với Liquid Glass
 - **Phát hành:** push lên `main` không tạo release; chỉ push tag phiên bản mới tạo release (`.github/workflows/release.yml`).
   - Tên tag dạng `vX.Y.Z`, ví dụ `v0.1.1`. Sửa lỗi hoặc thay đổi nhỏ thì tăng Z. Có tính năng mới thì tăng Y và đặt Z về 0. Thay đổi lớn thì tăng X.
   - Bản thử nghiệm thêm hậu tố `-beta.N`, ví dụ `v0.2.0-beta.1`; workflow sẽ đánh dấu là pre-release.
-  - Dùng tag annotated, nội dung `Hexer X.Y.Z`. Đặt tag trên commit đã push lên `main` và CI đã đạt: `git tag -a v0.1.1 -m "Hexer 0.1.1" <commit> && git push origin v0.1.1`.
+  - **Mỗi release phải ghi những gì thay đổi.** Trước khi tạo tag, thêm mục `## X.Y.Z — YYYY-MM-DD` lên đầu `CHANGELOG.md`, gồm `### What's new` (tiếng Anh) và `### Có gì mới` (tiếng Việt).
+    - Viết cho người dùng: dùng app thì thấy gì khác. Không chép tiêu đề commit; bỏ qua thay đổi chỉ ở test, CI hay tài liệu.
+    - Mục này mở đầu ghi chú release trên GitHub. Xem trước bằng `Scripts/release_notes.sh X.Y.Z vTRƯỚC`.
+    - Thiếu mục thì workflow Release dừng ngay ở job `notes`, trước khi chạy test hay build.
+  - Dùng tag annotated, nội dung `Hexer X.Y.Z`. Commit và push `CHANGELOG.md` lên `main` trước, rồi đặt tag trên commit đó: `git tag -a v0.1.1 -m "Hexer 0.1.1" <commit> && git push origin v0.1.1`.
+    - CI của phần code phải đã đạt. Commit chỉ sửa tệp `.md` thì không chạy CI; workflow Release tự chạy lại toàn bộ CI.
   - Không sửa `CFBundleShortVersionString` bằng tay, vì workflow lấy phiên bản từ tag.
-  - Sau khi push tag, theo dõi workflow Release đến khi xong (khoảng 7 phút). Rồi kiểm tra trang release có `Hexer-X.Y.Z.dmg` và `Hexer-X.Y.Z.dmg.sha256`.
+  - Sau khi push tag, theo dõi workflow Release đến khi xong (khoảng 7 phút). Rồi kiểm tra trang release có `Hexer-X.Y.Z.dmg`, `Hexer-X.Y.Z.dmg.sha256` và phần thay đổi của phiên bản.
 - **Cuối mỗi phiên:** cập nhật HANDOFF.md (đã làm, chưa làm, nhật ký).
