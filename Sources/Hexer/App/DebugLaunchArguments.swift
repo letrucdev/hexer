@@ -11,6 +11,16 @@ enum DebugLaunchArguments {
     /// Whether any `-Hexer…` flag was given.
     static var isScripted: Bool { ProcessInfo.processInfo.arguments.contains { $0.hasPrefix("-Hexer") } }
 
+    /// `-HexerUpdateFeed URL`: the release list to check for updates instead of GitHub's (HTTPS, or
+    /// a file whose releases may point at local files). Updates are still verified with the key in
+    /// Info.plist.
+    static var updateFeed: URL? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-HexerUpdateFeed"), i + 1 < args.count,
+              let url = URL(string: args[i + 1]), ["https", "file"].contains(url.scheme?.lowercased()) else { return nil }
+        return url
+    }
+
     static func apply() {
         let args = ProcessInfo.processInfo.arguments
         func value(_ name: String) -> String? {
@@ -30,6 +40,46 @@ enum DebugLaunchArguments {
             !a.hasPrefix("-") && (i == 0 || !args[i].hasPrefix("-Hexer") && !args[i].hasPrefix("-Apple"))
         }.map(\.element).filter { FileManager.default.fileExists(atPath: $0) }
         if let shot = value("-HexerAlertSnapshot") { captureNextAlert(to: URL(fileURLWithPath: shot)) }
+        if value("-HexerUpdatePreview") != nil || flag("-HexerUpdateCheck") {
+            // The Software Update window. -HexerUpdatePreview checking|upToDate|available|downloading|
+            // verifying|ready|failed shows that phase with a sample release. -HexerUpdateCheck 1 checks
+            // the feed (-HexerUpdateFeed), -HexerUpdateInstall 1 installs what it finds and
+            // -HexerUpdateRelaunch 1 relaunches once it's ready. Phases are printed as they change.
+            Task { @MainActor in
+                let update = SoftwareUpdate.shared
+                Task { @MainActor in
+                    var last = ""
+                    while true {
+                        let now = String(describing: update.phase)
+                        if now != last { print("HexerUpdatePhase \(now)") }
+                        last = now
+                        try? await Task.sleep(for: .milliseconds(100))
+                    }
+                }
+                @MainActor func wait(until done: @MainActor () -> Bool) async {
+                    for _ in 0..<600 where !done() { try? await Task.sleep(for: .milliseconds(100)) }
+                }
+                if let name = value("-HexerUpdatePreview") {
+                    update.preview(previewPhase(name))
+                    SoftwareUpdateWindowController.show()
+                } else {
+                    update.checkForUpdates()
+                    if flag("-HexerUpdateInstall") {
+                        await wait { if case .available = update.phase { true } else { false } }
+                        update.install()
+                        await wait { if case .ready = update.phase { true } else if case .failed = update.phase { true } else { false } }
+                        if flag("-HexerUpdateRelaunch"), case .ready = update.phase { update.relaunch() }
+                    }
+                }
+                if let shot = value("-HexerSnapshot"), let window = SoftwareUpdateWindowController.window {
+                    try? await Task.sleep(for: .seconds(value("-HexerSnapshotDelay").flatMap(Double.init) ?? 1.5))
+                    print("HexerWindowID \(window.windowNumber)")
+                    snapshot(window, to: URL(fileURLWithPath: shot))
+                }
+                if flag("-HexerQuit") { NSApp.terminate(nil) }
+            }
+            return
+        }
         if let page = value("-HexerWelcome").flatMap(Int.init) {
             // The welcome tour at page n (from 0), leaving the first-launch one to come. -HexerWelcomeTour s
             // turns a page every s seconds; -HexerSnapshot captures it once the page has settled.
@@ -253,6 +303,34 @@ enum DebugLaunchArguments {
                 }
                 NSApp.terminate(nil)
             }
+        }
+    }
+
+    /// A phase of the Software Update window with a sample release (version 0.3.0).
+    private static func previewPhase(_ name: String) -> SoftwareUpdate.Phase {
+        let notes = """
+            ## What's new
+            - Hexer looks for a new version once a day and installs it when you agree. Choose Hexer ▸ Check for Updates… to look now.
+            - The General pane of Settings has a Software Update section: turn off the daily check, or include beta versions.
+
+            ## Có gì mới
+            - Hexer tìm phiên bản mới mỗi ngày một lần và cài khi bạn đồng ý. Chọn Hexer ▸ Kiểm tra cập nhật… để tìm ngay.
+            - Mục Cài đặt ▸ Chung có thêm phần Cập nhật phần mềm: tắt việc kiểm tra hằng ngày, hoặc nhận cả bản thử nghiệm.
+            """
+        let base = URL(string: "https://github.com/letrucdev/hexer/releases/download/v0.3.0/Hexer-0.3.0.dmg")!
+        let release = UpdateRelease(version: AppVersion("0.3.0")!, notes: notes,
+                                    pageURL: URL(string: "https://github.com/letrucdev/hexer/releases/tag/v0.3.0")!,
+                                    diskImageURL: base, diskImageSize: 6_900_000,
+                                    signatureURL: base.appendingPathExtension("sig"), isPrerelease: false)
+        switch name {
+        case "checking": return .checking
+        case "upToDate": return .upToDate
+        case "downloading": return .downloading(release, received: 2_480_000, expected: 6_900_000)
+        case "verifying": return .verifying(release)
+        case "ready": return .ready(release)
+        case "failed": return .failed(UpdateError.badSignature.displayMessage, release: release)
+        case "failedCheck": return .failed(UpdateError.rateLimited.displayMessage, release: nil)
+        default: return .available(release)
         }
     }
 

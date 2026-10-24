@@ -23,6 +23,8 @@
 #   disks                  names, sizes, sector sizes, whole/partition vs diskutil list/info
 #   disks read             a raw image of random bytes attached with hdiutil (never mounted, never
 #                          written) vs the image file and dd of /dev/rdiskN, aligned and unaligned
+#   update sign / verify   Ed25519 update signatures vs OpenSSL's, both ways (skipped without an
+#                          openssl that has Ed25519 and -rawin, such as Homebrew's)
 #   selftest               passes
 set -u
 cd "$(dirname "$0")/.." || exit 1
@@ -366,6 +368,42 @@ disk_read() {
     "$@" >"$REF" 2>/dev/null
 }
 
+# update_message FILE VERSION: what an update signature signs (UpdateSignature in HexerCore).
+update_message() {
+    printf 'hexer-update-v1\n%s\n%s\n' "$2" "$(shasum -a 256 "$1" | cut -d' ' -f1)"
+}
+
+# update_openssl_signs FILE VERSION: OpenSSL's signature verifies with hexer-cli; as another version it doesn't.
+update_openssl_signs() {
+    update_message "$1" "$2" >"$TMP/msg" &&
+        "$OPENSSL" pkeyutl -sign -inkey "$TMP/ed.pem" -rawin -in "$TMP/msg" -out "$TMP/sig.bin" &&
+        base64 -i "$TMP/sig.bin" >"$TMP/sig" &&
+        pub=$("$OPENSSL" pkey -in "$TMP/ed.pem" -pubout -outform DER | tail -c 32 | base64) || return 1
+    {
+        "$CLI" update verify --public-key "$pub" "$1" "$2" "$TMP/sig"
+        "$CLI" update verify --public-key "$pub" "$1" "$2.1" "$TMP/sig" 2>/dev/null || echo rejected
+    } >"$OURS"
+    printf 'valid\nrejected\n' >"$REF"
+}
+
+# update_cli_signs FILE VERSION: hexer-cli's key and signature work with OpenSSL; as another version they don't.
+update_cli_signs() {
+    rm -f "$TMP/update.key"
+    pub=$("$CLI" update keygen "$TMP/update.key") &&
+        "$CLI" update sign --key-file "$TMP/update.key" "$1" "$2" | base64 -d >"$TMP/sig.bin" &&
+        { printf '302e020100300506032b657004220420' | xxd -r -p; base64 -d <"$TMP/update.key"; } >"$TMP/key.der" &&
+        "$OPENSSL" pkey -inform DER -in "$TMP/key.der" -pubout -out "$TMP/pub.pem" || return 1
+    {
+        "$OPENSSL" pkey -pubin -in "$TMP/pub.pem" -outform DER | tail -c 32 | base64
+        update_message "$1" "$2" >"$TMP/msg"
+        "$OPENSSL" pkeyutl -verify -pubin -inkey "$TMP/pub.pem" -rawin -in "$TMP/msg" -sigfile "$TMP/sig.bin" >/dev/null && echo valid
+        update_message "$1" "$2.1" >"$TMP/msg"
+        "$OPENSSL" pkeyutl -verify -pubin -inkey "$TMP/pub.pem" -rawin -in "$TMP/msg" -sigfile "$TMP/sig.bin" >/dev/null 2>&1 ||
+            echo rejected
+    } >"$OURS"
+    printf '%s\nvalid\nrejected\n' "$pub" >"$REF"
+}
+
 # Inputs: a copy of HxD64.exe and random files.
 FILES=""
 if [ -f "$HXD" ]; then
@@ -510,6 +548,25 @@ if [ -n "$DEV" ]; then
         dd if="$TMP/raw.img" bs=1 skip=513 count=1000
 else
     echo "note: hdiutil could not attach a raw image, skipping disks read"
+fi
+
+# Update signatures, with the first openssl that has Ed25519 and -rawin (macOS's LibreSSL 3.3 lacks them).
+OPENSSL=""
+for candidate in openssl /opt/homebrew/bin/openssl /usr/local/bin/openssl; do
+    command -v "$candidate" >/dev/null 2>&1 || continue
+    if "$candidate" genpkey -algorithm ed25519 -out "$TMP/ed.pem" >/dev/null 2>&1 &&
+        printf x >"$TMP/msg" && "$candidate" pkeyutl -sign -inkey "$TMP/ed.pem" -rawin -in "$TMP/msg" >/dev/null 2>&1; then
+        OPENSSL=$candidate
+        break
+    fi
+done
+if [ -n "$OPENSSL" ]; then
+    for f in rand0 rand65537 rand5242880; do
+        check "update verify of an OpenSSL Ed25519 signature [$f]" update_openssl_signs "$TMP/$f" 0.3.0-beta.1
+        check "update keygen/sign vs OpenSSL Ed25519 [$f]" update_cli_signs "$TMP/$f" 1.0.0
+    done
+else
+    echo "note: no openssl with Ed25519 and -rawin, skipping update signatures"
 fi
 
 check "selftest passes" selftest_passes

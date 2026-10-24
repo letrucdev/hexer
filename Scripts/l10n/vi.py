@@ -268,10 +268,51 @@ VI = {
     "Disks open read-only until you choose to write.": "Ổ đĩa mở ở chế độ chỉ đọc cho đến khi bạn chọn ghi.",
     "Your startup disk is never written.": "Ổ đĩa khởi động không bao giờ bị ghi.",
     "Back": "Quay lại", "Continue": "Tiếp tục", "Open a File…": "Mở tệp…", "Page %lld of %lld": "Trang %lld / %lld",
+    # Software update (App/SoftwareUpdate.swift, Views/SoftwareUpdateView.swift, Settings ▸ General)
+    "Check for Updates…": "Kiểm tra cập nhật…", "Software Update": "Cập nhật phần mềm",
+    "Checking for updates…": "Đang kiểm tra cập nhật…", "Hexer is up to date": "Hexer đã là bản mới nhất",
+    "Version %@ is the newest version available.": "Phiên bản %@ là bản mới nhất hiện có.",
+    "Hexer %@ is available": "Đã có Hexer %@",
+    "You have version %@. Hexer downloads the update, checks it and installs it when it relaunches.":
+        "Bạn đang dùng phiên bản %@. Hexer sẽ tải bản cập nhật, kiểm tra rồi cài khi mở lại.",
+    "What’s New": "Có gì mới", "Release Notes on GitHub": "Ghi chú phát hành trên GitHub",
+    "Skip This Version": "Bỏ qua phiên bản này", "Remind Me Later": "Nhắc tôi sau", "Install Update": "Cài bản cập nhật",
+    "Open Download Page": "Mở trang tải về", "Download…": "Tải về…",
+    "Opens the release’s page on GitHub": "Mở trang của phiên bản này trên GitHub", "Downloading Hexer %@…": "Đang tải Hexer %@…", "%@ of %@": "%@ / %@",
+    "Verifying Hexer %@…": "Đang xác minh Hexer %@…",
+    "Hexer checks the update’s signature and the app inside it before installing it.":
+        "Hexer kiểm tra chữ ký của bản cập nhật và app bên trong trước khi cài.",
+    "Hexer %@ is ready to install": "Hexer %@ đã sẵn sàng để cài",
+    "Relaunch Hexer to start using it. If you keep working, the update installs when you quit Hexer.":
+        "Mở lại Hexer để bắt đầu dùng bản mới. Nếu bạn tiếp tục làm việc, bản cập nhật sẽ được cài khi bạn thoát Hexer.",
+    "Before quitting, Hexer asks whether to save your changes.": "Trước khi thoát, Hexer sẽ hỏi bạn có lưu các thay đổi không.",
+    "Install on Quit": "Cài khi thoát", "Relaunch": "Mở lại",
+    "Couldn’t check for updates": "Không kiểm tra được bản cập nhật", "Couldn’t install the update": "Không cài được bản cập nhật",
+    "Check for updates automatically": "Tự động kiểm tra cập nhật", "Include beta versions": "Nhận cả bản thử nghiệm (beta)",
+    "Last checked": "Lần kiểm tra gần nhất", "Never": "Chưa bao giờ", "Check Now": "Kiểm tra ngay",
     # Folded undefined sections
     "Fold Undefined Sections": "Gập các vùng chưa xác định", "%@ undefined bytes": "%@ byte chưa xác định",
     "Click to show": "Bấm để hiện",
     # Errors from HexerCore and HexerPlatform (App/ErrorMessages.swift)
+    "The update server answered with status %lld.": "Máy chủ cập nhật trả về mã %lld.",
+    "GitHub has had too many requests from this network. Try again in an hour.":
+        "GitHub đã nhận quá nhiều yêu cầu từ mạng này. Hãy thử lại sau một giờ.",
+    "The list of releases could not be read.": "Không đọc được danh sách phiên bản.",
+    "The download is larger than an update of Hexer can be.": "Tệp tải về lớn hơn mức một bản cập nhật Hexer có thể có.",
+    "This copy of Hexer has no valid key to check updates with.": "Bản Hexer này không có khoá hợp lệ để kiểm tra bản cập nhật.",
+    "The signing key must be 32 bytes, Base64-encoded.": "Khoá ký phải dài 32 byte, mã hoá Base64.",
+    "The update’s signature is not valid, so it was not installed.":
+        "Chữ ký của bản cập nhật không hợp lệ nên bản cập nhật không được cài.",
+    "The downloaded disk image doesn’t contain Hexer.": "Ảnh đĩa tải về không chứa Hexer.",
+    "The downloaded app is version %@, not %@.": "App tải về là phiên bản %@, không phải %@.",
+    "This version of Hexer requires macOS %@ or later.": "Phiên bản Hexer này cần macOS %@ trở lên.",
+    "macOS runs Hexer from a temporary location because it wasn’t moved after downloading. Move Hexer to the Applications folder, open it from there and try again.":
+        "macOS đang chạy Hexer từ một vị trí tạm vì app chưa được di chuyển sau khi tải về. Hãy chuyển Hexer vào thư mục Applications (Ứng dụng), mở từ đó rồi thử lại.",
+    "Hexer can’t replace itself in “%@” because you don’t have permission to change it.":
+        "Hexer không tự thay thế được trong “%@” vì bạn không có quyền thay đổi thư mục này.",
+    "Replacing “%@” failed: %@.": "Không thay thế được “%@”: %@.",
+    "The disk image could not be opened: %@": "Không mở được ảnh đĩa: %@",
+    "The code signature of “%@” is not valid (%lld).": "Chữ ký mã của “%@” không hợp lệ (%lld).",
     "Enter a value to search for.": "Nhập giá trị cần tìm.",
     "The pattern has to contain at least one hex-value.": "Mẫu tìm phải có ít nhất một giá trị hex.",
     "The pattern '%@' contains invalid hex-values.": "Mẫu '%@' chứa giá trị hex không hợp lệ.",

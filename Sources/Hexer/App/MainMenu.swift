@@ -38,6 +38,7 @@ enum MainMenu {
         NSApp.servicesMenu = services
         let appMenu = menu(appName, [
             NSMenuItem(title: L("About %@", appName), action: #selector(AppDelegate.showAbout(_:)), keyEquivalent: ""),
+            item("Check for Updates…", "checkForUpdates:"),
             sep,
             item("Settings…", "showSettingsWindow:", ","),
             sep,

@@ -1,10 +1,19 @@
 import AppKit
 import HexerCore
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.activate()
         DebugLaunchArguments.apply()
+        SoftwareUpdate.shared.start()
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        SoftwareUpdate.shared.applicationWillTerminate()
+    }
+
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        menuItem.action != #selector(checkForUpdates(_:)) || SoftwareUpdate.shared.canUpdate
     }
 
     /// Launching without a document, or clicking the Dock icon with no window open, shows the Open
@@ -34,6 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func showAcknowledgements(_ sender: Any?) { AboutAndHelp.showAcknowledgements() }
     @objc func showHelp(_ sender: Any?) { AboutAndHelp.showHelp() }
     @objc func showWelcome(_ sender: Any?) { WelcomeWindowController.show() }
+    @objc func checkForUpdates(_ sender: Any?) { SoftwareUpdate.shared.checkForUpdates() }
 
     @objc func openDisk(_ sender: Any?) {
         let model = OpenDiskModel()

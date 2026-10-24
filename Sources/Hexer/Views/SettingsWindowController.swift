@@ -38,6 +38,7 @@ final class SettingsWindowController: NSWindowController {
 
 struct GeneralSettingsView: View {
     @Bindable var settings = AppSettings.shared
+    @Bindable var update = SoftwareUpdate.shared
 
     var body: some View {
         Form {
@@ -52,6 +53,18 @@ struct GeneralSettingsView: View {
                 Toggle("Keep a backup (.bak) when saving", isOn: $settings.makeBackups)
                 Picker("New documents open in", selection: $settings.defaultMode) {
                     ForEach(EditMode.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+            }
+            if update.canUpdate {
+                Section("Software Update") {
+                    Toggle("Check for updates automatically", isOn: $update.checksAutomatically)
+                    Toggle("Include beta versions", isOn: $update.includesBetas)
+                    LabeledContent("Last checked") {
+                        HStack {
+                            Text(verbatim: update.lastCheck?.formatted(date: .abbreviated, time: .shortened) ?? L("Never"))
+                            Button("Check Now") { update.checkForUpdates() }
+                        }
+                    }
                 }
             }
         }

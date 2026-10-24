@@ -2,7 +2,7 @@
 
 Tài liệu này mô tả thiết kế của Hexer theo bản vẽ trên Claude Design và theo giao diện đang chạy trong app. Khi sửa UI, cập nhật **cả ba**: mã nguồn, canvas, và file này.
 
-- **Canvas (nguồn gốc):** https://claude.ai/artifact/JBSgQBQpVLtMWto8QECZgb (version 20, ngày 2026-10-24)
+- **Canvas (nguồn gốc):** https://claude.ai/artifact/JBSgQBQpVLtMWto8QECZgb (version 22, ngày 2026-10-25)
 - **Nền tảng:** thiết kế cho macOS 27 "Golden Gate" với Liquid Glass; chạy từ macOS 15 (xem §11). SwiftUI + AppKit, không dùng Xcode.
 - **Ngôn ngữ UI:** tiếng Anh (khoá gốc) và tiếng Việt
 - **Bàn giao kỹ thuật:** xem [HANDOFF.md](HANDOFF.md)
@@ -22,8 +22,9 @@ Tài liệu này mô tả thiết kế của Hexer theo bản vẽ trên Claude 
 | `Compat.dc.html` | Find bar, hàng Replace và chip chế độ: kính (macOS 26 trở lên) đặt cạnh material (macOS 15), ở cả sáng và tối | `Views/GlassBarStyle.swift` |
 | `Import.dc.html` | Tài liệu import Intel Hex: sidebar Sections liệt kê vùng undefined, dòng gập (thường và có caret), quy tắc gập, mục View ▸ Fold Undefined Sections | `HexGrid/HexCanvasView.swift`, `HexEditorView.swift`, `HexerCore/Layout/RowMap.swift` |
 | `Welcome.dc.html` | Màn hình chào lần mở đầu: 4 trang (Welcome, Edit, Find, Disks), khi nào hiện, chuyển động, bàn phím và trợ năng | `Views/Welcome/*` |
+| `Update.dc.html` | Cửa sổ Software Update: có bản mới, đang tải, đang xác minh, sẵn sàng cài, đã mới nhất, lỗi, không tự thay được (tối, tiếng Việt) | `Views/SoftwareUpdateView.swift`, `App/SoftwareUpdate.swift` |
 
-Bố cục canvas: hàng 1 cửa sổ chính (sáng/tối) · hàng 2 tìm kiếm và sheet · hàng 3 phân tích, so sánh, ổ đĩa · hàng 4 Settings, menu, tiếng Việt · hàng 5 công cụ tệp và ổ đĩa, dữ liệu import có vùng gập · hàng 6 macOS 15 · hàng 7 lần mở đầu (màn hình chào). Thứ tự và vị trí board nằm trong `project/canvas.json`.
+Bố cục canvas: hàng 1 cửa sổ chính (sáng/tối) · hàng 2 tìm kiếm và sheet · hàng 3 phân tích, so sánh, ổ đĩa · hàng 4 Settings, menu, tiếng Việt · hàng 5 công cụ tệp và ổ đĩa, dữ liệu import có vùng gập · hàng 6 macOS 15 · hàng 7 lần mở đầu (màn hình chào) và cập nhật phần mềm. Thứ tự và vị trí board nằm trong `project/canvas.json`.
 
 ## 2. Nguyên tắc (macOS 27 HIG, bản 6/2026)
 
@@ -239,6 +240,7 @@ Tab trên toolbar, mỗi tab có icon và nhãn; tiêu đề cửa sổ là tên
 - **General:**
   - Notifications: Warn when opening a disk with write access ✓; Confirm file size changes ✓; Tell me when copied text was filtered ✓; Tell me when selected characters were filtered ✗.
   - Safety: Open disks as read-only ✓; Keep a backup (.bak) when saving ✗; New documents open in = Overwrite.
+  - Software Update: Check for updates automatically ✓; Include beta versions ✗; Last checked (ngày giờ, hoặc "Never") + nút Check Now (mở cửa sổ Software Update). Bản không cập nhật được (chạy `swift run`, thiếu khoá) thì ẩn cả phần này.
 - **Format:** Size (13 pt, stepper), Typeface (SF Mono).
 - **View:**
   - Layout: Bytes per row 16, Fit to window width, Byte group size 1, Columns = Hex and Text.
@@ -263,7 +265,7 @@ Tab trên toolbar, mỗi tab có icon và nhãn; tiêu đề cửa sổ là tên
 - **Wipe Securely:** File; Method DoD 5220.22-M (3 passes) / Zero / Random; cảnh báo về SSD/APFS; nút "Wipe and Delete" + alert xác nhận.
 
 ### 6.8 Menu và phím tắt
-Thứ tự menu: Hexer · File · Edit · Search · View · Analysis · Tools · Window · Help. Phím tắt chính:
+Thứ tự menu: Hexer · File · Edit · Search · View · Analysis · Tools · Window · Help. Menu Hexer: About Hexer, Check for Updates…, Settings… (⌘,), Services, Hide/Show, Quit. Phím tắt chính:
 
 | Lệnh | Phím |
 |---|---|
@@ -311,10 +313,29 @@ Danh sách đầy đủ nằm trong `App/MainMenu.swift` và artboard `MenusVI`.
 - **Bàn phím:** Return = Continue/Open a File…, Esc = Skip (trang cuối: đóng), ← → lật trang.
 - **Kính:** chỉ các capsule nhỏ trong hình minh hoạ (mô phỏng find bar, chip, sector navigator) dùng `barGlass`; nút là nút hệ thống.
 
+### 6.10 Cập nhật phần mềm (Hexer ▸ Check for Updates…)
+- **Cửa sổ:** một cửa sổ thường (titled, closable, không resize), rộng 520 pt, tiêu đề "Software Update". Bố cục như alert: icon app 64 pt bên trái; bên phải là thông báo đậm (`.headline`), chi tiết màu secondary, rồi hàng nút ở mép phải, nút mặc định đứng cuối (Return), nút huỷ nhận Esc. Không dùng kính (đây là cửa sổ, không phải control nổi). Chiều cao theo nội dung của từng trạng thái.
+- **Trạng thái:**
+
+| Trạng thái | Thông báo | Nút |
+|---|---|---|
+| Đang kiểm tra (chỉ khi người dùng bấm) | Checking for updates… + thanh tiến độ không xác định | Cancel |
+| Có bản mới | Hexer X is available · You have version Y… · khung What's New (danh sách từ CHANGELOG, tối đa 150 pt rồi cuộn) + link Release Notes on GitHub | Skip This Version (trái) · Remind Me Later · **Install Update** |
+| Không tự thay được (app bị translocate, hoặc không có quyền ghi thư mục) | như trên + dòng cảnh báo có biểu tượng tam giác vàng, chỉ ghi tên thư mục | Skip This Version · Remind Me Later · **Download…** (mở trang release) |
+| Đang tải | Downloading Hexer X… + thanh tiến độ + "2.5 MB of 6.9 MB" | Cancel (quay về "Có bản mới") |
+| Đang xác minh | Verifying Hexer X… + câu giải thích + thanh không xác định | Cancel |
+| Sẵn sàng | Hexer X is ready to install · Relaunch… hoặc cài khi thoát; nếu có tài liệu chưa lưu thì thêm dòng "Before quitting, Hexer asks whether to save your changes." | Install on Quit · **Relaunch** |
+| Đã mới nhất | Hexer is up to date · Version X is the newest version available. | **OK** |
+| Lỗi | Couldn't check for updates / Couldn't install the update + thông báo lỗi (chọn được chữ) | Open Download Page (khi lỗi lúc cài) · **OK** |
+
+- **Đóng cửa sổ** = Remind Me Later; lúc đang tải hay xác minh thì huỷ; khi đã sẵn sàng thì bản cập nhật vẫn được cài lúc thoát.
+- **Khi nào hiện:** kiểm tra tự động không bao giờ hiện gì trừ khi có bản mới; nếu lúc đó bảng Open (modal) đang mở thì đợi bảng đóng rồi mới hiện. Check for Updates… và Check Now hiện mọi kết quả, kể cả bản đã bỏ qua.
+- **What's New** lấy mục "What's new" / "Có gì mới" trong ghi chú release (tức mục của phiên bản trong CHANGELOG.md), theo ngôn ngữ giao diện; markdown inline (đậm, code, link) được hiển thị.
+
 ## 7. Bản địa hoá
 
 - Khoá là chuỗi tiếng Anh trong `Text("…")`, `L("…")` và các API nhận `LocalizedStringKey`. Bản dịch nằm trong `Scripts/l10n/vi.py`, script này sinh ra `Resources/Localization/vi.lproj/Localizable.strings`.
-- `Scripts/l10n_audit.swift` chạy trong `bundle.sh` và làm build thất bại nếu có chuỗi chưa dịch. Audit nhận cả các helper `field(…)`, `fact(…)`, `group(…)`, `GlassBarIconButton(_, "…")`, tham số `placeholder:` và hai nhánh của `Text(điều kiện ? "A" : "B")`. Hiện có 622 khoá, đã dịch đủ.
+- `Scripts/l10n_audit.swift` chạy trong `bundle.sh` và làm build thất bại nếu có chuỗi chưa dịch. Audit nhận cả các helper `field(…)`, `fact(…)`, `group(…)`, `GlassBarIconButton(_, "…")`, tham số `placeholder:` và hai nhánh của `Text(điều kiện ? "A" : "B")`. Hiện có 668 khoá, đã dịch đủ.
 - Lỗi từ HexerCore/HexerPlatform (tiếng Anh, CLI dùng nguyên văn) được dịch ở tầng app trong `App/ErrorMessages.swift`; `AppDelegate.application(_:willPresentError:)` áp dụng cho mọi `presentError`, còn `NSAlert(error:)` và nhãn lỗi của find bar dùng `error.localizedForDisplay` / `error.displayMessage`. Phần mô tả errno (`strerror`) vẫn là tiếng Anh của hệ thống.
 - Không dịch tên kiểu kỹ thuật: Int32, UTF-8, GUID, FILETIME, x86-64, ARM64, Little-endian/Big-endian.
 - Một số bản dịch đã chốt:
@@ -328,6 +349,9 @@ Danh sách đầy đủ nằm trong `App/MainMenu.swift` và artboard `MenusVI`.
 | Data Inspector | Trình kiểm tra dữ liệu |
 | Offset: / Block: / Length: | Vị trí: / Khối: / Độ dài: |
 | Invalid | Không hợp lệ |
+| Software Update / Check for Updates… | Cập nhật phần mềm / Kiểm tra cập nhật… |
+| Install Update / Remind Me Later / Skip This Version | Cài bản cập nhật / Nhắc tôi sau / Bỏ qua phiên bản này |
+| Relaunch / Install on Quit | Mở lại / Cài khi thoát |
 
 - Chuỗi tiếng Việt dài hơn tiếng Anh khoảng 20–40%. Kiểm tra cắt chữ bằng `-AppleLanguages '(vi)'`, nhất là ở toolbar, find bar, tab drawer và tab Settings.
 

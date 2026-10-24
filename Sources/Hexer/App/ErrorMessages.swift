@@ -32,6 +32,9 @@ import Security
         case let e as RawDeviceError: UIErrorMessage(e.localizedText)
         case let e as DiskArbitrationError: UIErrorMessage(e.localizedText)
         case let e as DiskIOError: UIErrorMessage(e.localizedText)
+        case let e as UpdateError: UIErrorMessage(e.localizedText)
+        case let e as MountedDiskImage.Failure: UIErrorMessage(e.localizedText)
+        case let e as CodeSignature.Failure: UIErrorMessage(e.localizedText)
         default: nil
         }
     }
@@ -164,6 +167,46 @@ private func hexOffset(_ offset: UInt64) -> String { "0x" + String(offset, radix
         case .invalidSectorSize(let size): L("%lld is not a valid sector size.", size)
         case .cannotCreate(let path, let code): L("Could not create %@: %@.", path, systemError(code))
         case .queryFailed(let code): L("Could not determine the size of the disk: %@.", systemError(code))
+        }
+    }
+}
+
+@MainActor extension UpdateError {
+    fileprivate var localizedText: String {
+        switch self {
+        case .serverStatus(let status): L("The update server answered with status %lld.", status)
+        case .rateLimited: L("GitHub has had too many requests from this network. Try again in an hour.")
+        case .invalidFeed: L("The list of releases could not be read.")
+        case .tooLarge: L("The download is larger than an update of Hexer can be.")
+        case .invalidPublicKey: L("This copy of Hexer has no valid key to check updates with.")
+        case .invalidPrivateKey: L("The signing key must be 32 bytes, Base64-encoded.")
+        case .badSignature: L("The update’s signature is not valid, so it was not installed.")
+        case .notHexer: L("The downloaded disk image doesn’t contain Hexer.")
+        case .versionMismatch(let expected, let found): L("The downloaded app is version %@, not %@.", found, expected)
+        case .requiresNewerSystem(let version): L("This version of Hexer requires macOS %@ or later.", version)
+        case .translocated:
+            L("macOS runs Hexer from a temporary location because it wasn’t moved after downloading. Move Hexer to the Applications folder, open it from there and try again.")
+        case .notWritable(let path):
+            L("Hexer can’t replace itself in “%@” because you don’t have permission to change it.",
+              FileManager.default.displayName(atPath: path))
+        case .replaceFailed(let path, let code): L("Replacing “%@” failed: %@.", path, systemError(code))
+        }
+    }
+}
+
+@MainActor extension MountedDiskImage.Failure {
+    fileprivate var localizedText: String {
+        switch self {
+        case .attachFailed(let message): L("The disk image could not be opened: %@", message)
+        }
+    }
+}
+
+@MainActor extension CodeSignature.Failure {
+    fileprivate var localizedText: String {
+        switch self {
+        case .invalid(let path, let status):
+            L("The code signature of “%@” is not valid (%lld).", (path as NSString).lastPathComponent, Int64(status))
         }
     }
 }

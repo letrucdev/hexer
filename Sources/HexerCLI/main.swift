@@ -51,6 +51,17 @@ let usage = """
       disks read NAME|IMAGE [--range RANGE] [--sector-size N] [-o OUT]
           Raw bytes of a disk (disk4, disk4s1) read in whole sectors, or of a disk image file
           (sector size N, default 512). No administrator prompt: use sudo for protected disks.
+      update keygen PRIVATE_KEY_FILE
+          Makes an Ed25519 key pair for signing updates: the private key (Base64) goes into the
+          new file, readable by its owner only; prints the public key (Info.plist's
+          HexerUpdatePublicKey).
+      update public-key [--key-file FILE]
+          The public key of a private key.
+      update sign [--key-file FILE] DMG VERSION
+          The Base64 signature of the disk image as VERSION (what the app checks before
+          installing it). The private key comes from FILE or $HEXER_UPDATE_KEY.
+      update verify (--public-key KEY | --app APP) DMG VERSION SIGNATURE_FILE
+          Prints "valid", or fails, for a signature; --app takes the key from APP's Info.plist.
       bench [--runs N] FILE
           Best-of-N timings: sequential read, CRC-32, SHA-256, find of DE AD BE EF.
       selftest
@@ -85,6 +96,7 @@ case "edit": edit(rest)
 case "split": splitFile(rest)
 case "concat": concatFiles(rest)
 case "disks": disks(rest)
+case "update": update(rest)
 case "bench": bench(rest)
 case "selftest": selftest(rest)
 case "help", "-h", "--help": print(usage, terminator: "")

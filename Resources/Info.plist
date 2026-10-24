@@ -44,6 +44,10 @@
 	<string>0.1</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>HexerUpdateFeedURL</key>
+	<string>https://api.github.com/repos/letrucdev/hexer/releases?per_page=30</string>
+	<key>HexerUpdatePublicKey</key>
+	<string>qQH58WYIAJxTACG1jnB/eweAvWnoo3oMkTYQWfKo+MI=</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.developer-tools</string>
 	<key>LSMinimumSystemVersion</key>

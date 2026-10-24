@@ -9,6 +9,7 @@
 "%@ is in use by another application." = "%@ đang được một ứng dụng khác sử dụng.";
 "%@ is in use. Unmount its volumes before writing to it." = "%@ đang được dùng. Hãy tháo các ổ đĩa logic của nó trước khi ghi.";
 "%@ is on the startup disk, which cannot be unmounted for writing." = "%@ nằm trên ổ đĩa khởi động, không thể tháo ra để ghi.";
+"%@ of %@" = "%@ / %@";
 "%@ undefined bytes" = "%@ byte chưa xác định";
 "%@ will open read-only." = "%@ sẽ được mở ở chế độ chỉ đọc.";
 "%@ · %lld bytes" = "%@ · %lld byte";
@@ -47,6 +48,7 @@
 "Ask for each name" = "Hỏi tên từng phần";
 "Back" = "Quay lại";
 "Backward" = "Lùi";
+"Before quitting, Hexer asks whether to save your changes." = "Trước khi thoát, Hexer sẽ hỏi bạn có lưu các thay đổi không.";
 "Beginning of the file" = "Đầu tệp";
 "Big endian" = "Big-endian";
 "Binary (8 bit)" = "Nhị phân (8 bit)";
@@ -80,6 +82,10 @@
 "Character" = "Ký tự";
 "Characters" = "Ký tự";
 "Characters per line" = "Số ký tự mỗi dòng";
+"Check Now" = "Kiểm tra ngay";
+"Check for Updates…" = "Kiểm tra cập nhật…";
+"Check for updates automatically" = "Tự động kiểm tra cập nhật";
+"Checking for updates…" = "Đang kiểm tra cập nhật…";
 "Checksum" = "Tổng kiểm tra";
 "Checksum %@ expected, but found %@." = "Cần tổng kiểm tra %@, nhưng gặp %@.";
 "Checksums" = "Tổng kiểm tra";
@@ -134,6 +140,8 @@
 "Could not determine the size of the disk: %@." = "Không xác định được kích thước ổ đĩa: %@.";
 "Could not get authorization to open %@: %@." = "Không xin được quyền mở %@: %@.";
 "Could not open %@: %@." = "Không mở được %@: %@.";
+"Couldn’t check for updates" = "Không kiểm tra được bản cập nhật";
+"Couldn’t install the update" = "Không cài được bản cập nhật";
 "Count" = "Số lần";
 "Counting bytes" = "Đang đếm byte";
 "Creates %lld parts." = "Tạo %lld phần.";
@@ -180,6 +188,8 @@
 "Don't ask again" = "Không hỏi lại";
 "Double (float64)" = "Số thực kép (float64)";
 "Double-click to edit" = "Bấm đúp để sửa";
+"Downloading Hexer %@…" = "Đang tải Hexer %@…";
+"Download…" = "Tải về…";
 "Drag to reorder" = "Kéo để sắp xếp lại";
 "ETL Extended…" = "ETL Extended…";
 "Each pass is written to the disk immediately. This cannot be undone." = "Mỗi lượt được ghi xuống đĩa ngay lập tức. Thao tác này không thể hoàn tác.";
@@ -251,6 +261,7 @@
 "From" = "Từ";
 "General" = "Chung";
 "Generate Checksums" = "Tạo tổng kiểm tra";
+"GitHub has had too many requests from this network. Try again in an hour." = "GitHub đã nhận quá nhiều yêu cầu từ mạng này. Hãy thử lại sau một giờ.";
 "Go" = "Đi";
 "Go to Bookmark" = "Tới dấu trang";
 "Go to Offset" = "Đi tới vị trí";
@@ -267,7 +278,12 @@
 "Hex values: %@" = "Giá trị hex: %@";
 "Hexadecimal" = "Thập lục phân";
 "Hexadecimal Values" = "Giá trị thập lục phân";
+"Hexer %@ is available" = "Đã có Hexer %@";
+"Hexer %@ is ready to install" = "Hexer %@ đã sẵn sàng để cài";
 "Hexer Help" = "Trợ giúp Hexer";
+"Hexer can’t replace itself in “%@” because you don’t have permission to change it." = "Hexer không tự thay thế được trong “%@” vì bạn không có quyền thay đổi thư mục này.";
+"Hexer checks the update’s signature and the app inside it before installing it." = "Hexer kiểm tra chữ ký của bản cập nhật và app bên trong trước khi cài.";
+"Hexer is up to date" = "Hexer đã là bản mới nhất";
 "Hide %@" = "Ẩn %@";
 "Hide Inspector" = "Ẩn trình kiểm tra";
 "Hide Others" = "Ẩn các ứng dụng khác";
@@ -276,6 +292,7 @@
 "However this is necessary, since the chosen data stream has a fixed size." = "Hai mẫu phải dài bằng nhau vì luồng dữ liệu đang chọn có kích thước cố định.";
 "Import" = "Nhập";
 "Import Intel Hex and S-Record, or export as C, Java, HTML and more." = "Nhập Intel Hex và S-Record, hoặc xuất ra C, Java, HTML và nhiều định dạng khác.";
+"Include beta versions" = "Nhận cả bản thử nghiệm (beta)";
 "Initial value" = "Giá trị đầu";
 "Initial value:" = "Giá trị đầu:";
 "Input" = "Đầu vào";
@@ -286,6 +303,8 @@
 "Insert inserts typed bytes; Overwrite replaces them; Read-only prevents changes" = "Chèn thêm byte khi gõ; Ghi đè thay byte hiện có; Chỉ đọc chặn mọi thay đổi";
 "Inspector" = "Trình kiểm tra";
 "Inspector options" = "Tuỳ chọn trình kiểm tra";
+"Install Update" = "Cài bản cập nhật";
+"Install on Quit" = "Cài khi thoát";
 "Integer" = "Số nguyên";
 "Integers" = "Số nguyên";
 "Intel Hex" = "Intel Hex";
@@ -300,6 +319,7 @@
 "Keep Current Version" = "Giữ phiên bản hiện tại";
 "Keep a backup (.bak) when saving" = "Giữ bản sao lưu (.bak) khi lưu";
 "Last array item" = "Phần tử cuối cùng";
+"Last checked" = "Lần kiểm tra gần nhất";
 "Last sector" = "Sector cuối cùng";
 "Layout" = "Bố cục";
 "Leave out the most frequent byte so the other bars are readable" = "Bỏ byte xuất hiện nhiều nhất để dễ đọc các cột khác";
@@ -328,6 +348,7 @@
 "Name of part %lld of %lld" = "Tên của phần %lld / %lld";
 "Naming" = "Đặt tên";
 "Naming:" = "Đặt tên:";
+"Never" = "Chưa bao giờ";
 "New" = "Mới";
 "New documents open in" = "Tài liệu mới mở ở chế độ";
 "Next Difference" = "Khác biệt tiếp theo";
@@ -365,6 +386,7 @@
 "Open Disk" = "Mở ổ đĩa";
 "Open Disk Image…" = "Mở ảnh đĩa…";
 "Open Disk…" = "Mở ổ đĩa…";
+"Open Download Page" = "Mở trang tải về";
 "Open File…" = "Mở tệp…";
 "Open Read-only" = "Mở chỉ đọc";
 "Open Recent" = "Mở gần đây";
@@ -375,6 +397,7 @@
 "Open for Writing" = "Mở để ghi";
 "Open physical disks, volumes and disk images." = "Mở ổ đĩa vật lý, ổ đĩa logic và ảnh đĩa.";
 "Opening %@ was cancelled." = "Đã huỷ việc mở %@.";
+"Opens the release’s page on GitHub" = "Mở trang của phiên bản này trên GitHub";
 "Open…" = "Mở…";
 "Other" = "Khác";
 "Other bytes show as a dot in the text column. Searching and copying are not affected." = "Các byte khác hiện thành dấu chấm ở cột văn bản. Không ảnh hưởng tới tìm kiếm và sao chép.";
@@ -428,11 +451,15 @@
 "Refresh" = "Làm mới";
 "Relative to" = "Tính từ";
 "Relative to:" = "Tính từ:";
+"Relaunch" = "Mở lại";
+"Relaunch Hexer to start using it. If you keep working, the update installs when you quit Hexer." = "Mở lại Hexer để bắt đầu dùng bản mới. Nếu bạn tiếp tục làm việc, bản cập nhật sẽ được cài khi bạn thoát Hexer.";
+"Release Notes on GitHub" = "Ghi chú phát hành trên GitHub";
 "Reload" = "Tải lại";
 "Reload from Disk" = "Tải lại từ đĩa";
 "Reload it to see the current contents." = "Hãy tải lại để xem nội dung hiện tại.";
 "Reload “%@” from disk?" = "Tải lại “%@” từ đĩa?";
 "Reloading discards your unsaved changes." = "Tải lại sẽ bỏ các thay đổi chưa lưu.";
+"Remind Me Later" = "Nhắc tôi sau";
 "Remove" = "Bớt";
 "Remove Bookmark" = "Xoá dấu trang";
 "Replace" = "Thay thế";
@@ -441,6 +468,7 @@
 "Replace with" = "Thay bằng";
 "Replaced %lld occurrences" = "Đã thay thế %lld chỗ";
 "Replace…" = "Thay thế…";
+"Replacing “%@” failed: %@." = "Không thay thế được “%@”: %@.";
 "Reset" = "Đặt lại";
 "Result width:" = "Độ rộng kết quả:";
 "Results" = "Kết quả";
@@ -495,6 +523,8 @@
 "Single (float32)" = "Số thực đơn (float32)";
 "Size" = "Kích thước";
 "Skip" = "Bỏ qua";
+"Skip This Version" = "Bỏ qua phiên bản này";
+"Software Update" = "Cập nhật phần mềm";
 "Some characters were replaced by dots." = "Một số ký tự đã được thay bằng dấu chấm.";
 "Source code" = "Mã nguồn";
 "Source:" = "Nguồn:";
@@ -525,12 +555,18 @@
 "The byte count %lld is too small; at least %lld bytes are required for the address and checksum." = "Số byte %lld quá nhỏ; địa chỉ và tổng kiểm tra cần ít nhất %lld byte.";
 "The clipboard contains characters that %@ cannot represent." = "Bộ nhớ tạm chứa ký tự mà %@ không biểu diễn được.";
 "The clipboard does not contain valid hex values." = "Bộ nhớ tạm không chứa giá trị hex hợp lệ.";
+"The code signature of “%@” is not valid (%lld)." = "Chữ ký mã của “%@” không hợp lệ (%lld).";
 "The compared data is identical." = "Dữ liệu được so sánh giống hệt nhau.";
 "The data (%lld bytes) does not fit on the destination (%lld bytes)." = "Dữ liệu (%lld byte) không vừa với đích (%lld byte).";
 "The data is too large to print." = "Dữ liệu quá lớn để in.";
 "The data type whose size the arrows step by" = "Kiểu dữ liệu quyết định bước nhảy của các mũi tên";
 "The disk %@ was not found. It may have been ejected." = "Không tìm thấy ổ đĩa %@. Có thể ổ đã bị đẩy ra.";
+"The disk image could not be opened: %@" = "Không mở được ảnh đĩa: %@";
+"The download is larger than an update of Hexer can be." = "Tệp tải về lớn hơn mức một bản cập nhật Hexer có thể có.";
+"The downloaded app is version %@, not %@." = "App tải về là phiên bản %@, không phải %@.";
+"The downloaded disk image doesn’t contain Hexer." = "Ảnh đĩa tải về không chứa Hexer.";
 "The file is overwritten and deleted. It cannot be recovered." = "Tệp sẽ bị ghi đè rồi xoá, không thể khôi phục.";
+"The list of releases could not be read." = "Không đọc được danh sách phiên bản.";
 "The maximum supported file size (%@) of the “%@” file format was exceeded." = "Dữ liệu vượt quá kích thước tối đa (%@) mà định dạng “%@” hỗ trợ.";
 "The operation was cancelled." = "Thao tác đã bị huỷ.";
 "The part size must be at least one byte." = "Kích thước mỗi phần phải từ một byte trở lên.";
@@ -539,11 +575,16 @@
 "The search- or replace-pattern contains characters that the selected text encoding (%@) cannot represent." = "Mẫu tìm hoặc mẫu thay thế chứa ký tự mà bảng mã đang chọn (%@) không biểu diễn được.";
 "The selection is too large to copy as text." = "Vùng chọn quá lớn để sao chép dưới dạng văn bản.";
 "The selection is too large to copy." = "Vùng chọn quá lớn để sao chép.";
+"The signing key must be 32 bytes, Base64-encoded." = "Khoá ký phải dài 32 byte, mã hoá Base64.";
 "The size of the search- and the replace-pattern do not match (%lld <> %lld)." = "Kích thước của mẫu tìm và mẫu thay thế không khớp nhau (%lld <> %lld).";
 "The size of this data cannot change." = "Không thể thay đổi kích thước dữ liệu này.";
 "The startup disk can't be written." = "Không thể ghi vào ổ đĩa khởi động.";
+"The update server answered with status %lld." = "Máy chủ cập nhật trả về mã %lld.";
+"The update’s signature is not valid, so it was not installed." = "Chữ ký của bản cập nhật không hợp lệ nên bản cập nhật không được cài.";
 "These defaults apply to newly opened documents. The View menu changes the current window." = "Các giá trị mặc định này áp dụng cho tài liệu mở sau. Menu Hiển thị thay đổi cửa sổ hiện tại.";
+"This copy of Hexer has no valid key to check updates with." = "Bản Hexer này không có khoá hợp lệ để kiểm tra bản cập nhật.";
 "This edit inserts or removes bytes, so everything after it moves to a different offset." = "Thao tác này chèn hoặc xoá byte, nên mọi dữ liệu phía sau sẽ dời sang vị trí khác.";
+"This version of Hexer requires macOS %@ or later." = "Phiên bản Hexer này cần macOS %@ trở lên.";
 "Tile Horizontally" = "Xếp ngang";
 "Tile Vertically" = "Xếp dọc";
 "To" = "Đến";
@@ -570,9 +611,12 @@
 "Use Selection for Find" = "Dùng vùng chọn để tìm";
 "Value" = "Giá trị";
 "Value under the pointer" = "Giá trị dưới con trỏ";
+"Verifying Hexer %@…" = "Đang xác minh Hexer %@…";
+"Version %@ is the newest version available." = "Phiên bản %@ là bản mới nhất hiện có.";
 "View" = "Hiển thị";
 "Warn when opening a disk with write access" = "Cảnh báo khi mở ổ đĩa có quyền ghi";
 "Welcome to Hexer" = "Chào mừng đến với Hexer";
+"What’s New" = "Có gì mới";
 "Whole file" = "Toàn bộ tệp";
 "Whole files" = "Toàn bộ tệp";
 "WideChar (UTF-16)" = "Ký tự UTF-16";
@@ -594,6 +638,7 @@
 "Writing directly changes the file on disk, so it must match what Hexer shows." = "Ghi trực tiếp sẽ thay đổi tệp trên đĩa, nên tệp phải khớp với nội dung Hexer đang hiển thị.";
 "Writing to disk" = "Đang ghi vào ổ đĩa";
 "You are not allowed to open %@. Opening a disk requires an administrator’s name and password." = "Bạn không được phép mở %@. Mở ổ đĩa cần tên và mật khẩu của quản trị viên.";
+"You have version %@. Hexer downloads the update, checks it and installs it when it relaunches." = "Bạn đang dùng phiên bản %@. Hexer sẽ tải bản cập nhật, kiểm tra rồi cài khi mở lại.";
 "Your startup disk is never written." = "Ổ đĩa khởi động không bao giờ bị ghi.";
 "Zero Bytes" = "Byte 0";
 "Zero bytes (1 pass)" = "Byte 0 (1 lượt)";
@@ -606,6 +651,7 @@
 "error %lld" = "lỗi %lld";
 "hex" = "hex";
 "hex editor" = "trình sửa hex";
+"macOS runs Hexer from a temporary location because it wasn’t moved after downloading. Move Hexer to the Applications folder, open it from there and try again." = "macOS đang chạy Hexer từ một vị trí tạm vì app chưa được di chuyển sau khi tải về. Hãy chuyển Hexer vào thư mục Applications (Ứng dụng), mở từ đó rồi thử lại.";
 "oct" = "oct";
 "of %@" = "trên %@";
 "readable" = "đọc được";

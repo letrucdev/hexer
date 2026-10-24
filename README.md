@@ -35,6 +35,7 @@ Hexer opens files, disks and firmware images of any size and lets you inspect, s
 - **Disks.** Open physical disks, volumes and disk images with a sector navigator, and clone disks to images or other disks. Disks open read-only by default, and the startup disk can never be written.
 - **File tools.** Split, concatenate and securely wipe files.
 - **Native on macOS.** Liquid Glass controls, light and dark appearance, VoiceOver support, a menu command and shortcut for every action, and a complete Vietnamese translation.
+- **Updates itself.** Hexer looks for a new release once a day and installs it when you agree, after checking its Ed25519 signature and code signature (Hexer ▸ Check for Updates…; turn it off in Settings ▸ General).
 
 ## Screenshots
 
