@@ -2,8 +2,9 @@ import AppKit
 import CoreText
 
 extension NSColor {
-    /// A color with separate light and dark variants.
-    static func dynamic(light: NSColor, dark: NSColor) -> NSColor {
+    /// A color with separate light and dark variants. Nonisolated: SwiftUI resolves colors on its
+    /// render thread while animating, and a main-actor provider traps there.
+    nonisolated static func dynamic(light: NSColor, dark: NSColor) -> NSColor {
         NSColor(name: nil) { appearance in
             appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
         }
