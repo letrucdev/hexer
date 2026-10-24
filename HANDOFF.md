@@ -43,7 +43,7 @@ Máy chỉ có **Command Line Tools**, không có Xcode: Swift 6.4, SDK MacOSX27
   - Chạy khi push lên `main` hoặc mở pull request (bỏ qua thay đổi chỉ ở `*.md`, `docs/`, `Distribution/`), hoặc chạy tay.
   - Chạy `Scripts/test.sh`, `Scripts/crosscheck.sh` (HxD64.exe không có trên runner nên bị bỏ qua) và `Scripts/bundle.sh`; tải `Hexer.app` lên làm artifact, giữ 7 ngày.
 - **`.github/workflows/release.yml`:**
-  - Chạy khi push tag `v*`, ví dụ `git tag v0.2 && git push origin v0.2`.
+  - Chạy khi push tag `v*`. Quy tắc đặt tên và lệnh tạo tag nằm trong CLAUDE.md (mục "Phát hành"), ví dụ `git tag -a v0.1.1 -m "Hexer 0.1.1" && git push origin v0.1.1`.
   - Gọi lại `ci.yml`; nếu đạt thì lấy phiên bản từ tag, ghi vào `CFBundleShortVersionString`, chạy `Scripts/make_dmg.sh`.
   - Tạo release bằng `gh release create`, kèm DMG, tệp `.sha256` và ghi chú từ `Distribution/release-notes.md`. Tag có dấu `-` (ví dụ `v1.0-beta`) thành pre-release.
 - **Runner:** `xcode-27` (macOS 27, Xcode 27.0, SDK 27; nhãn còn ở dạng preview), chọn qua `DEVELOPER_DIR`. Khi `DEVELOPER_DIR` trỏ tới một Xcode, Package.swift không thêm `-plugin-path` của CLT.
@@ -273,3 +273,4 @@ Resources/        Info.plist, entitlements (không sandbox), Icon, Licenses, Loc
     - Không tái hiện được trên máy này: 40 vòng gắn/gỡ nhanh (luôn dùng lại `rdisk4`) và 8 lần chạy suite đều đạt; quyền node là uid 501, 0640 ngay từ lúc gắn. Chưa rõ nguyên nhân trên runner. Log đầy đủ cần đăng nhập, annotation không có thêm thông tin.
     - Test giờ mở thiết bị qua `AttachedImage.openRaw(writable:)` (`TestSupport.swift`): EACCES/EPERM được thử lại trong 5 s, mở được sau khi thử lại thì in `AttachedImage: … opened after N permission retries`. Lỗi kéo dài thì báo uid/gid/mode của node, uid của test và uid của console. **Nếu lỗi lặp lại, đọc các số đó trong annotation trước khi đoán tiếp.** Code sản phẩm không đổi, vì app gặp EACCES thì đã hỏi quyền qua `authopen`.
     - Đã thử cả hai nhánh bằng test tạm (`chmod 000` lên node của chính mình): khôi phục quyền sau 1 s thì mở được sau 10 lần thử; để nguyên thì báo `node: uid 501, gid 20, mode 0`.
+  - **Release `v0.1.1`** (theo yêu cầu của người dùng): tag annotated "Hexer 0.1.1" trên `138b70a` (CI đạt), đã push và workflow Release đã chạy. Quy tắc đặt tên tag và cách phát hành đã được thêm vào CLAUDE.md (mục "Phát hành"); ví dụ trong §2 và trong chú thích của `release.yml` đã sửa cho khớp.

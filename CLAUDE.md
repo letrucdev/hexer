@@ -26,5 +26,11 @@ Trình sửa hex cho macOS 27, viết bằng SwiftUI + AppKit với Liquid Glass
   - Kiểm cả giao diện sáng, tối, tiếng Việt (`-AppleLanguages '(vi)'`) và cửa sổ hẹp.
   - Chỉ chụp theo cửa sổ (`screencapture -l`), không bao giờ chụp vùng màn hình.
 - **Ổ đĩa:** mặc định chỉ đọc; không ghi vào ổ khởi động; không dùng `authopen -w`.
-- **Git:** thư mục chưa có repo. Chỉ `git init` hoặc commit khi người dùng yêu cầu.
+- **Git:** repo `letrucdev/hexer`, nhánh `main`. Chỉ commit, push hoặc tạo tag khi người dùng yêu cầu.
+- **Phát hành:** push lên `main` không tạo release; chỉ push tag phiên bản mới tạo release (`.github/workflows/release.yml`).
+  - Tên tag dạng `vX.Y.Z`, ví dụ `v0.1.1`. Sửa lỗi hoặc thay đổi nhỏ thì tăng Z. Có tính năng mới thì tăng Y và đặt Z về 0. Thay đổi lớn thì tăng X.
+  - Bản thử nghiệm thêm hậu tố `-beta.N`, ví dụ `v0.2.0-beta.1`; workflow sẽ đánh dấu là pre-release.
+  - Dùng tag annotated, nội dung `Hexer X.Y.Z`. Đặt tag trên commit đã push lên `main` và CI đã đạt: `git tag -a v0.1.1 -m "Hexer 0.1.1" <commit> && git push origin v0.1.1`.
+  - Không sửa `CFBundleShortVersionString` bằng tay, vì workflow lấy phiên bản từ tag.
+  - Sau khi push tag, theo dõi workflow Release đến khi xong (khoảng 7 phút). Rồi kiểm tra trang release có `Hexer-X.Y.Z.dmg` và `Hexer-X.Y.Z.dmg.sha256`.
 - **Cuối mỗi phiên:** cập nhật HANDOFF.md (đã làm, chưa làm, nhật ký).

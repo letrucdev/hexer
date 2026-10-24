@@ -1,7 +1,7 @@
-# Pushing a version tag (v0.1, v1.0.2, …) runs the tests, builds the universal disk image and
-# publishes it with its SHA-256 on the repository's Releases page.
+# Pushing a version tag (vX.Y.Z, e.g. v0.1.1; v0.2.0-beta.1 makes a pre-release) runs the tests,
+# builds the universal disk image and publishes it with its SHA-256 on the repository's Releases page.
 #
-#   git tag v0.2 && git push origin v0.2
+#   git tag -a v0.1.1 -m "Hexer 0.1.1" && git push origin v0.1.1
 name: Release
 
 on:
