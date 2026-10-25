@@ -12,6 +12,12 @@ extension HexCanvasView: NSTextInputClient, NSMenuItemValidation {
         session?.activeColumn == .text ? super.inputContext : nil
     }
 
+    /// Without an input context, `interpretKeyEvents` sends typed text here (the responder method),
+    /// not to the text input client's `insertText(_:replacementRange:)`.
+    override func insertText(_ insertString: Any) {
+        insertText(insertString, replacementRange: NSRange(location: NSNotFound, length: 0))
+    }
+
     override func doCommand(by selector: Selector) {
         if responds(to: selector) { perform(selector, with: nil) } else { super.doCommand(by: selector) }
     }
