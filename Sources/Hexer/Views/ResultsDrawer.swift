@@ -9,12 +9,8 @@ struct ResultsDrawer: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
-                Picker("Results", selection: paneBinding) {
-                    ForEach(DrawerPane.allCases) { p in Text(p.title).tag(p) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .fixedSize()
+                SegmentedTabs(titles: DrawerPane.allCases.map(\.title), tags: DrawerPane.allCases, selection: paneBinding)
+                    .accessibilityLabel("Results")
                 Spacer()
                 if pane == .checksums { ChecksumsPaneAccessory(session: session) }
                 if pane == .searchResults { SearchResultsPaneAccessory(session: session) }
@@ -26,6 +22,9 @@ struct ResultsDrawer: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
+            // The row takes the width it is given: SwiftUI counts the tabs about twice into
+            // the window's minimum width otherwise. The grid keeps the window wide enough.
+            .frame(minWidth: 0, maxWidth: .infinity)
             Divider()
             Group {
                 switch pane {

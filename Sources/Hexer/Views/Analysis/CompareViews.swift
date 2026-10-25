@@ -152,7 +152,8 @@ struct ComparePane: View {
                 }
                 .onChange(of: session.compareSelection) { _, id in
                     guard let id, let run = runs.first(where: { $0.lowerBound == id }) else { return }
-                    compare.select(run)
+                    // After the table's selection delegate has finished (see SearchResultsPane).
+                    Task { @MainActor in compare.select(run) }
                 }
                 .overlay {
                     if runs.isEmpty {

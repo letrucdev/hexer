@@ -27,8 +27,12 @@ struct SearchResultsPane: View {
         }
         .onChange(of: session.searchResultSelection) { _, id in
             guard let id, let hit = session.searchHits.first(where: { $0.id == id }) else { return }
-            session.setSelection(Selection(anchor: hit.range.lowerBound, caret: hit.range.upperBound))
-            session.editorView?.canvas.needsDisplay = true
+            // The table is still inside its selection delegate; selecting in the grid updates
+            // the window's views, which must not happen before the table has finished.
+            Task { @MainActor in
+                session.setSelection(Selection(anchor: hit.range.lowerBound, caret: hit.range.upperBound))
+                session.editorView?.canvas.needsDisplay = true
+            }
         }
         .overlay {
             if session.searchHits.isEmpty {
