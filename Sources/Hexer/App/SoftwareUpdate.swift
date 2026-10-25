@@ -155,8 +155,9 @@ final class SoftwareUpdate {
 
     // MARK: Installing
 
-    /// Why the app can't replace itself where it is (translocated, or no permission), if it can't.
+    /// Why the app can't replace itself where it is (translocated), if it can't.
     var installProblem: String? {
+        guard !needsAdministrator else { return nil }
         do {
             try AppBundleInstaller.checkReplaceable(bundleURL)
             return nil
@@ -164,6 +165,10 @@ final class SoftwareUpdate {
             return error.displayMessage
         }
     }
+
+    /// Replacing the app takes an administrator's name and password (it is in a folder the
+    /// user can't write to, such as an administrator's Applications folder).
+    var needsAdministrator: Bool { AppBundleInstaller.needsPrivileges(bundleURL) }
 
     /// Downloads the update, checks it and stages it for installing.
     func install() {
@@ -241,22 +246,35 @@ final class SoftwareUpdate {
     }
 
     /// Quits, installs and opens the new version. Documents with changes are reviewed first, as
-    /// when quitting; cancelling that keeps Hexer running with the update still staged.
+    /// when quitting; cancelling that keeps Hexer running with the update still staged (and
+    /// `quitCancelled` forgets the relaunch).
     func relaunch() {
         relaunchesAfterInstall = true
         NSApp.terminate(nil)
     }
 
-    /// Swaps the staged update in once Hexer is quitting (`applicationWillTerminate`), then
-    /// reopens Hexer if Relaunch was chosen. A failure leaves the old version in place.
+    /// Quitting was cancelled in the review of unsaved documents (`AppDelegate`).
+    func quitCancelled() {
+        relaunchesAfterInstall = false
+    }
+
+    /// Swaps the staged update in once Hexer is quitting (`applicationWillTerminate`), asking
+    /// for an administrator's password where the user can't write, then reopens Hexer if
+    /// Relaunch was chosen. A failure leaves the old version in place.
     func applicationWillTerminate() {
         guard let staged else { return }
         do {
-            try AppBundleInstaller.replace(bundleURL, with: staged)
+            if needsAdministrator {
+                try PrivilegedShell.run(AppBundleInstaller.replaceScript(bundleURL, with: staged))
+            } else {
+                try AppBundleInstaller.replace(bundleURL, with: staged)
+            }
             // So Launch Services knows the new version (and its icon) at this path, and not at the
             // staging folder it saw the copy in, which is deleted next.
             LaunchServicesRecords.forget(staged)
             LSRegisterURL(bundleURL as CFURL, true)
+        } catch PrivilegedShell.Failure.cancelled {
+            NSLog("Hexer: installing the update was cancelled at the password prompt")
         } catch {
             NSLog("Hexer: installing the update failed: %@", String(describing: error))
         }

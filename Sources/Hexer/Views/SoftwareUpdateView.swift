@@ -94,6 +94,13 @@ struct SoftwareUpdateView: View {
         case .ready(let release):
             message(L("Hexer %@ is ready to install", release.version.description),
                     detail: L("Relaunch Hexer to start using it. If you keep working, the update installs when you quit Hexer."))
+            if model.needsAdministrator {
+                Label("Installing in this folder needs an administrator’s name and password, which Hexer asks for when it quits.",
+                      systemImage: "lock.fill")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if NSDocumentController.shared.hasEditedDocuments {
                 Text("Before quitting, Hexer asks whether to save your changes.")
                     .font(.callout)
@@ -153,6 +160,11 @@ struct SoftwareUpdateView: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .symbolRenderingMode(.multicolor)
+                .fixedSize(horizontal: false, vertical: true)
+        } else if model.needsAdministrator {
+            Label("Installing in this folder needs an administrator’s name and password.", systemImage: "lock.fill")
+                .font(.callout)
+                .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         HStack {

@@ -8,6 +8,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         SoftwareUpdate.shared.start()
     }
 
+    /// Documents with changes are reviewed as AppKit would by itself; doing it here lets the
+    /// updater know when quitting is cancelled, so a cancelled Relaunch doesn't reopen Hexer
+    /// at the next quit.
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        let documents = NSDocumentController.shared
+        guard documents.hasEditedDocuments else { return .terminateNow }
+        documents.reviewUnsavedDocuments(withAlertTitle: nil, cancellable: true, delegate: self,
+                                         didReviewAllSelector: #selector(documentController(_:didReviewAll:contextInfo:)),
+                                         contextInfo: nil)
+        return .terminateLater
+    }
+
+    @objc func documentController(_ controller: NSDocumentController, didReviewAll: Bool, contextInfo: UnsafeMutableRawPointer?) {
+        if !didReviewAll { SoftwareUpdate.shared.quitCancelled() }
+        NSApp.reply(toApplicationShouldTerminate: didReviewAll)
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         SoftwareUpdate.shared.applicationWillTerminate()
     }

@@ -211,6 +211,33 @@ import Testing
         #expect(try String(contentsOf: installed.appendingPathComponent("Contents/MacOS/marker"), encoding: .utf8) == "old")
     }
 
+    @Test func replaceScriptSwapsTheBundlesAndPutsTheOldOneBackOnFailure() throws {
+        // Run as the user on writable folders; with administrator rights the script does the same.
+        let dir = try tempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let installed = dir.appendingPathComponent("Admin's Apps/Hexer.app")
+        let staged = dir.appendingPathComponent("Staging/Hexer.app")
+        try makeBundle(at: installed, marker: "old")
+        try makeBundle(at: staged, marker: "new")
+        #expect(AppBundleInstaller.needsPrivileges(installed) == false)
+        func sh(_ script: String) -> Int32 {
+            let p = Process()
+            p.executableURL = URL(fileURLWithPath: "/bin/sh")
+            p.arguments = ["-c", script]
+            try? p.run()
+            p.waitUntilExit()
+            return p.terminationStatus
+        }
+        #expect(sh(AppBundleInstaller.replaceScript(installed, with: staged)) == 0)
+        #expect(try String(contentsOf: installed.appendingPathComponent("Contents/MacOS/marker"), encoding: .utf8) == "new")
+        #expect(try FileManager.default.contentsOfDirectory(atPath: dir.appendingPathComponent("Staging").path).isEmpty)
+
+        // The new bundle is missing: the old one is back in place and nothing is left aside.
+        #expect(sh(AppBundleInstaller.replaceScript(installed, with: staged)) != 0)
+        #expect(try String(contentsOf: installed.appendingPathComponent("Contents/MacOS/marker"), encoding: .utf8) == "new")
+        #expect(try FileManager.default.contentsOfDirectory(atPath: dir.appendingPathComponent("Staging").path).isEmpty)
+    }
+
     @Test func refusesTranslocatedAndReadOnlyLocations() throws {
         #expect(throws: UpdateError.translocated) {
             try AppBundleInstaller.checkReplaceable(URL(fileURLWithPath: "/private/var/folders/x/AppTranslocation/ABC/d/Hexer.app"))
@@ -224,6 +251,8 @@ import Testing
         try makeBundle(at: app)
         chmod(dir.path, 0o555)
         #expect(throws: UpdateError.notWritable(path: dir.path)) { try AppBundleInstaller.checkReplaceable(app) }
+        #expect(AppBundleInstaller.needsPrivileges(app))
+        #expect(!AppBundleInstaller.needsPrivileges(URL(fileURLWithPath: "/private/var/folders/x/AppTranslocation/ABC/d/Hexer.app")))
     }
 }
 

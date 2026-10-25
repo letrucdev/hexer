@@ -28,6 +28,8 @@ public enum UpdateError: Error, Equatable, LocalizedError {
     case notWritable(path: String)
     /// Swapping the new app into place failed.
     case replaceFailed(path: String, code: Int32)
+    /// Swapping the new app into place with administrator rights failed (the shell's message).
+    case privilegedReplaceFailed(String)
 
     public var errorDescription: String? {
         switch self {
@@ -45,6 +47,7 @@ public enum UpdateError: Error, Equatable, LocalizedError {
             "macOS runs Hexer from a temporary location because it wasn’t moved after downloading. Move Hexer to the Applications folder, open it from there and try again."
         case .notWritable(let path): "Hexer can’t replace itself in “\(path)” because you don’t have permission to change it."
         case .replaceFailed(let path, let code): "Replacing “\(path)” failed: \(String(cString: strerror(code)))."
+        case .privilegedReplaceFailed(let message): "Installing with administrator rights failed: \(message)"
         }
     }
 }

@@ -35,6 +35,7 @@ import Security
         case let e as UpdateError: UIErrorMessage(e.localizedText)
         case let e as MountedDiskImage.Failure: UIErrorMessage(e.localizedText)
         case let e as CodeSignature.Failure: UIErrorMessage(e.localizedText)
+        case let e as PrivilegedShell.Failure: UIErrorMessage(e.localizedText)
         default: nil
         }
     }
@@ -51,7 +52,9 @@ private struct UIErrorMessage {
     var text: String { detail.map { title + "\n" + $0 } ?? title }
 }
 
-private func systemError(_ code: Int32) -> String { String(cString: strerror(code)) }
+/// The system's description of an errno value, in the UI language for the common ones
+/// (`strerror` only speaks English; the translations are in Scripts/l10n/vi.py).
+private func systemError(_ code: Int32) -> String { L(String(cString: strerror(code))) }
 
 private func hexOffset(_ offset: UInt64) -> String { "0x" + String(offset, radix: 16, uppercase: true) }
 
@@ -190,6 +193,16 @@ private func hexOffset(_ offset: UInt64) -> String { "0x" + String(offset, radix
             L("Hexer can’t replace itself in “%@” because you don’t have permission to change it.",
               FileManager.default.displayName(atPath: path))
         case .replaceFailed(let path, let code): L("Replacing “%@” failed: %@.", path, systemError(code))
+        case .privilegedReplaceFailed(let message): L("Installing with administrator rights failed: %@", message)
+        }
+    }
+}
+
+@MainActor extension PrivilegedShell.Failure {
+    fileprivate var localizedText: String {
+        switch self {
+        case .cancelled: L("The operation was cancelled.")
+        case .failed(let message): L("Installing with administrator rights failed: %@", message)
         }
     }
 }

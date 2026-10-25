@@ -30,6 +30,28 @@ public enum AppBundleInstaller {
         }
     }
 
+    /// Whether replacing the app at `url` takes administrator rights: the user lacks write
+    /// permission on the bundle or its folder (an administrator's Applications folder, say).
+    /// False for a translocated app, which nobody can replace in place.
+    public static func needsPrivileges(_ url: URL) -> Bool {
+        if url.path.contains("/AppTranslocation/") { return false }
+        return access(url.path, W_OK) != 0 || access(url.deletingLastPathComponent().path, W_OK) != 0
+    }
+
+    /// A `/bin/sh` script doing what `replace` does, for running with administrator rights:
+    /// the old bundle is moved aside into `newBundle`'s folder, the new one moved into its
+    /// place (put back if that fails), and the old one deleted. Paths are quoted for the shell.
+    public static func replaceScript(_ installed: URL, with newBundle: URL) -> String {
+        func quoted(_ path: String) -> String { "'" + path.replacingOccurrences(of: "'", with: "'\\''") + "'" }
+        let aside = newBundle.deletingLastPathComponent().appendingPathComponent(".replaced-\(UUID().uuidString)")
+        return """
+            old=\(quoted(installed.path)); new=\(quoted(newBundle.path)); aside=\(quoted(aside.path))
+            /bin/mv "$old" "$aside" || exit 1
+            /bin/mv "$new" "$old" || { /bin/mv "$aside" "$old"; exit 1; }
+            /bin/rm -rf "$aside"
+            """
+    }
+
     /// Moves `newBundle` to `installed`'s path, which must be on the same volume, and deletes the
     /// old bundle. The two trade places in one atomic step where the file system can (APFS,
     /// HFS+); elsewhere the old bundle is moved aside first and put back if the move fails.
