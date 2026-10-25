@@ -1,105 +1,105 @@
-# Hexer — Thiết kế giao diện
+# Hexer — UI design
 
-Tài liệu này mô tả thiết kế của Hexer theo bản vẽ trên Claude Design và theo giao diện đang chạy trong app. Khi sửa UI, cập nhật **cả ba**: mã nguồn, canvas, và file này.
+This document describes Hexer's design as drawn on Claude Design and as implemented in the running app. When changing UI, update **all three**: source code, canvas, and this file.
 
-- **Canvas (nguồn gốc):** https://claude.ai/artifact/JBSgQBQpVLtMWto8QECZgb (version 22, ngày 2026-10-25)
-- **Nền tảng:** thiết kế cho macOS 27 "Golden Gate" với Liquid Glass; chạy từ macOS 15 (xem §11). SwiftUI + AppKit, không dùng Xcode.
-- **Ngôn ngữ UI:** tiếng Anh (khoá gốc) và tiếng Việt
-- **Bàn giao kỹ thuật:** xem [HANDOFF.md](HANDOFF.md)
+- **Canvas (source of truth):** https://claude.ai/artifact/JBSgQBQpVLtMWto8QECZgb (version 22, 2026-10-25)
+- **Platform:** designed for macOS 27 "Golden Gate" with Liquid Glass; runs on macOS 15 and later (see §11). SwiftUI + AppKit, no Xcode.
+- **UI languages:** English (source keys) and Vietnamese
+- **Technical handoff:** see [HANDOFF.md](HANDOFF.md)
 
-## 1. Các artboard trên canvas
+## 1. Canvas artboards
 
-| Artboard | Nội dung | Mã nguồn chính |
+| Artboard | Content | Main source |
 |---|---|---|
-| `Main.dc.html` (light) / `MainDark.dc.html` | Cửa sổ chính: sidebar, toolbar, lưới hex, find bar, drawer kết quả, status bar, Data Inspector. Có tương tác (đổi tab drawer, di chuyển caret). | `Views/DocumentWindowView.swift`, `SidebarView.swift`, `InspectorView.swift`, `StatusBarView.swift`, `ResultsDrawer.swift`, `HexGrid/*` |
-| `FindBar.dc.html` | Find bar kính nổi, hàng Replace, popover tuỳ chọn (Text/Hex/Integer/Float), 4 trạng thái | `Views/FindBar.swift`, `GlassBarStyle.swift` |
+| `Main.dc.html` (light) / `MainDark.dc.html` | Main window: sidebar, toolbar, hex grid, find bar, results drawer, status bar, Data Inspector. Interactive (switch drawer tabs, move the caret). | `Views/DocumentWindowView.swift`, `SidebarView.swift`, `InspectorView.swift`, `StatusBarView.swift`, `ResultsDrawer.swift`, `HexGrid/*` |
+| `FindBar.dc.html` | Floating glass find bar, Replace row, options popover (Text/Hex/Integer/Float), 4 states | `Views/FindBar.swift`, `GlassBarStyle.swift` |
 | `Sheets.dc.html` | Go to Offset, Select Block, Insert Bytes, Fill Selection, Filter Characters, Compare | `Views/Sheets/*`, `Views/Analysis/CompareViews.swift` |
-| `Analysis.dc.html` | Sheet Generate Checksums, cửa sổ Statistics | `Views/Analysis/ChecksumViews.swift`, `StatisticsView.swift` |
-| `CompareDisk.dc.html` | Chế độ so sánh hai cửa sổ, tài liệu ổ đĩa chỉ đọc với sector navigator | `CompareViews.swift`, `SectorNavigator.swift` |
-| `Settings.dc.html` | Cửa sổ Settings 5 pane (bấm được) | `Views/SettingsWindowController.swift` |
-| `MenusVI.dc.html` | Bản đồ menu + phím tắt; các thành phần bằng tiếng Việt | `App/MainMenu.swift`, `Resources/Localization/vi.lproj` |
-| `Tools.dc.html` | Open Disk (+ cảnh báo mở để ghi), Clone Disk, Split, Concatenate (đang chạy), Wipe Securely | `Views/Tools/DiskViews.swift`, `FileToolViews.swift` |
-| `Compat.dc.html` | Find bar, hàng Replace và chip chế độ: kính (macOS 26 trở lên) đặt cạnh material (macOS 15), ở cả sáng và tối | `Views/GlassBarStyle.swift` |
-| `Import.dc.html` | Tài liệu import Intel Hex: sidebar Sections liệt kê vùng undefined, dòng gập (thường và có caret), quy tắc gập, mục View ▸ Fold Undefined Sections | `HexGrid/HexCanvasView.swift`, `HexEditorView.swift`, `HexerCore/Layout/RowMap.swift` |
-| `Welcome.dc.html` | Màn hình chào lần mở đầu: 4 trang (Welcome, Edit, Find, Disks), khi nào hiện, chuyển động, bàn phím và trợ năng | `Views/Welcome/*` |
-| `Update.dc.html` | Cửa sổ Software Update: có bản mới, đang tải, đang xác minh, sẵn sàng cài, đã mới nhất, lỗi, không tự thay được (tối, tiếng Việt) | `Views/SoftwareUpdateView.swift`, `App/SoftwareUpdate.swift` |
+| `Analysis.dc.html` | Generate Checksums sheet, Statistics window | `Views/Analysis/ChecksumViews.swift`, `StatisticsView.swift` |
+| `CompareDisk.dc.html` | Two-window compare mode, read-only disk document with sector navigator | `CompareViews.swift`, `SectorNavigator.swift` |
+| `Settings.dc.html` | Settings window, 5 panes (clickable) | `Views/SettingsWindowController.swift` |
+| `MenusVI.dc.html` | Menu map + shortcuts; components in Vietnamese | `App/MainMenu.swift`, `Resources/Localization/vi.lproj` |
+| `Tools.dc.html` | Open Disk (+ open-for-writing warning), Clone Disk, Split, Concatenate (running), Wipe Securely | `Views/Tools/DiskViews.swift`, `FileToolViews.swift` |
+| `Compat.dc.html` | Find bar, Replace row and mode chip: glass (macOS 26 and later) next to material (macOS 15), in light and dark | `Views/GlassBarStyle.swift` |
+| `Import.dc.html` | Intel Hex import document: Sections sidebar listing undefined regions, fold rows (normal and with caret), fold rules, View ▸ Fold Undefined Sections item | `HexGrid/HexCanvasView.swift`, `HexEditorView.swift`, `HexerCore/Layout/RowMap.swift` |
+| `Welcome.dc.html` | First-launch welcome screen: 4 pages (Welcome, Edit, Find, Disks), when it shows, motion, keyboard and accessibility | `Views/Welcome/*` |
+| `Update.dc.html` | Software Update window: update available, downloading, verifying, ready to install, up to date, error, cannot self-replace (dark, Vietnamese) | `Views/SoftwareUpdateView.swift`, `App/SoftwareUpdate.swift` |
 
-Bố cục canvas: hàng 1 cửa sổ chính (sáng/tối) · hàng 2 tìm kiếm và sheet · hàng 3 phân tích, so sánh, ổ đĩa · hàng 4 Settings, menu, tiếng Việt · hàng 5 công cụ tệp và ổ đĩa, dữ liệu import có vùng gập · hàng 6 macOS 15 · hàng 7 lần mở đầu (màn hình chào) và cập nhật phần mềm. Thứ tự và vị trí board nằm trong `project/canvas.json`.
+Canvas layout: row 1 main window (light/dark) · row 2 search and sheets · row 3 analysis, compare, disks · row 4 Settings, menus, Vietnamese · row 5 file and disk tools, import data with folded regions · row 6 macOS 15 · row 7 first launch (welcome screen) and software update. Board order and positions are in `project/canvas.json`.
 
-## 2. Nguyên tắc (macOS 27 HIG, bản 6/2026)
+## 2. Principles (macOS 27 HIG, June 2026 edition)
 
-Apple đưa lại các Design Principles (Purpose, Agency, Responsibility, Familiarity, Flexibility, Simplicity, Craft, Delight). Áp dụng vào Hexer:
+Apple restored the Design Principles (Purpose, Agency, Responsibility, Familiarity, Flexibility, Simplicity, Craft, Delight). Applied to Hexer:
 
-1. **Pane hệ thống, sát mép cửa sổ.** Sidebar là `NavigationSplitView` với `List(.sidebar)`; inspector là `.inspector(isPresented:)`. Cả hai chạy sát mép cửa sổ, nội dung chảy phía sau. Không tự vẽ sidebar hay inspector dạng thẻ kính nổi. Đó là kiểu macOS 26 mà bản thiết kế đầu tiên đã dùng sai.
-2. **Kính chỉ dành cho control.** Liquid Glass chỉ dùng cho nút, capsule và thanh nổi (find bar, compare capsule, sector navigator, chip chế độ). Không bao giờ đặt kính lên lưới hex, bảng hay văn bản trạng thái. Thông báo lỗi nằm trên material chuẩn, không dùng kính.
-3. **Hiệu ứng mép cuộn để hệ thống tự lo.** Không thêm `.soft` hay hiệu ứng mép cuộn trang trí.
-4. **Toolbar tối đa 3 nhóm.** Mọi mục trên toolbar đều có trong menu bar.
-5. **Không đặt thông tin quan trọng ở đáy sidebar.**
-6. **Sheet và alert dùng material chuẩn của hệ thống.** Nút mặc định ở bên phải; Return xác nhận, Esc huỷ.
-7. **Settings:** tiêu đề cửa sổ là tên pane đang mở; cửa sổ vừa khít nội dung pane.
-8. **An toàn trước:** ổ đĩa mở chỉ đọc theo mặc định; ổ khởi động có khoá; thao tác không hoàn tác được phải ghi rõ "(cannot be undone)".
-9. **Cửa sổ riêng mở ở giữa màn hình**, canh theo cỡ thật của nội dung: cửa sổ công cụ (Open Disk, Clone Disk, Split, Concatenate, Wipe), Software Update, Settings, Hexer Help, Acknowledgements, About, màn hình chào; Statistics thì lần đầu ở giữa, sau đó nhớ vị trí. Cửa sổ có nội dung SwiftUI gọi `NSWindow.centerAtContentSize()` thay cho `center()`.
+1. **System panes, flush with the window edge.** The sidebar is a `NavigationSplitView` with `List(.sidebar)`; the inspector is `.inspector(isPresented:)`. Both run flush to the window edge with content flowing behind them. Never draw the sidebar or inspector as floating glass cards. That is the macOS 26 style the first design wrongly used.
+2. **Glass only for controls.** Liquid Glass is only for buttons, capsules and floating bars (find bar, compare capsule, sector navigator, mode chip). Never put glass over the hex grid, tables or status text. Error messages sit on standard material, not glass.
+3. **Leave scroll-edge effects to the system.** Do not add `.soft` or decorative scroll-edge effects.
+4. **Toolbar has at most 3 groups.** Every toolbar item is also in the menu bar.
+5. **No important information at the bottom of the sidebar.**
+6. **Sheets and alerts use standard system material.** Default button on the right; Return confirms, Esc cancels.
+7. **Settings:** the window title is the name of the open pane; the window fits the pane content exactly.
+8. **Safety first:** disks open read-only by default; the boot disk is locked; irreversible operations must say "(cannot be undone)".
+9. **Standalone windows open centered on screen**, sized to their real content: tool windows (Open Disk, Clone Disk, Split, Concatenate, Wipe), Software Update, Settings, Hexer Help, Acknowledgements, About, the welcome screen; Statistics is centered the first time, then remembers its position. Windows with SwiftUI content call `NSWindow.centerAtContentSize()` instead of `center()`.
 
-## 3. Token
+## 3. Tokens
 
-### 3.1 Màu
+### 3.1 Color
 
-Canvas dùng biến CSS. Trong app, màu lưới nằm ở `HexTheme` (`HexGrid/HexTheme.swift`); phần còn lại dùng màu hệ thống.
+The canvas uses CSS variables. In the app, grid colors live in `HexTheme` (`HexGrid/HexTheme.swift`); everything else uses system colors.
 
-| Token | Sáng | Tối | Trong app |
+| Token | Light | Dark | In the app |
 |---|---|---|---|
-| `--accent` | `#0A64D8` | `#4AA3FF` | `Color.accentColor` (theo hệ thống) |
-| `--accent-soft` (vùng chọn ở cột đang focus) | accent 16% | accent 28% | selection của `HexCanvasView` |
-| `--accent-dim` (vùng chọn ở cột còn lại, nền caret) | accent 8% | accent 13% | |
-| `--ghost` (ghost caret, viền 1.5 pt) | accent 55% | accent 70% | |
-| `--offset` (cột offset, số hex) | `#0B47B8` | `#7CB9FF` | `HexTheme.offset` |
-| `--odd` (nhóm byte lẻ) | `#7A5652` | `#D1AAA3` | `HexTheme.oddColumn` |
-| `--mod` (byte đã sửa, đậm) | `#D70015` | `#FF6B63` | `HexTheme.modified` |
-| `--hit` (kết quả tìm kiếm) | `#FFC400` 42% | `#FFD60A` 35% | `HexTheme.searchHit` |
-| diff (khác biệt khi so sánh) | `#FF9500` 30% | `#FF9F0A` 35% | `HexTheme.difference` |
+| `--accent` | `#0A64D8` | `#4AA3FF` | `Color.accentColor` (follows system) |
+| `--accent-soft` (selection in the focused column) | accent 16% | accent 28% | selection in `HexCanvasView` |
+| `--accent-dim` (selection in the other column, caret background) | accent 8% | accent 13% | |
+| `--ghost` (ghost caret, 1.5 pt border) | accent 55% | accent 70% | |
+| `--offset` (offset column, hex digits) | `#0B47B8` | `#7CB9FF` | `HexTheme.offset` |
+| `--odd` (odd byte group) | `#7A5652` | `#D1AAA3` | `HexTheme.oddColumn` |
+| `--mod` (modified byte, bold) | `#D70015` | `#FF6B63` | `HexTheme.modified` |
+| `--hit` (search result) | `#FFC400` 42% | `#FFD60A` 35% | `HexTheme.searchHit` |
+| diff (difference when comparing) | `#FF9500` 30% | `#FF9F0A` 35% | `HexTheme.difference` |
 | bookmark | system orange | system orange | `HexTheme.bookmark` |
-| `--hdr` (hàng tiêu đề cột) | `#F7F7F9` | `#232326` (app: `#202023`) | `HexTheme.headerBackground` |
-| undefined (vùng trống khi import) | tertiary label | tertiary label | `HexTheme.undefined` |
-| fold (nền và chữ của dòng gập) | quaternary system fill · secondary label | như bên sáng | `HexTheme.foldBackground`, `HexTheme.foldText` |
+| `--hdr` (column header row) | `#F7F7F9` | `#232326` (app: `#202023`) | `HexTheme.headerBackground` |
+| undefined (empty regions when importing) | tertiary label | tertiary label | `HexTheme.undefined` |
+| fold (background and text of fold rows) | quaternary system fill · secondary label | same as light | `HexTheme.foldBackground`, `HexTheme.foldText` |
 | `--grid` | `#FFFFFF` | `#1B1B1D` | `textBackgroundColor` |
 | `--fg` / `--fg2` / `--fg3` | `#1D1D1F` / `#5F5F66` / `#8E8E93` | `#F2F2F5` / `#A8A8AE` / `#77777D` | label / secondary / tertiary |
-| `--pane` (sidebar, inspector) | `rgba(244,245,248,.9)` | `rgba(38,38,42,.92)` | do hệ thống vẽ |
-| `--glass` | trắng 70% + blur 24 | `rgba(66,66,72,.6)` | `.glassEffect(.regular…)` |
+| `--pane` (sidebar, inspector) | `rgba(244,245,248,.9)` | `rgba(38,38,42,.92)` | drawn by the system |
+| `--glass` | white 70% + blur 24 | `rgba(66,66,72,.6)` | `.glassEffect(.regular…)` |
 
-Giá trị không hợp lệ trong inspector (`Invalid`) dùng phông thường, màu tertiary; giá trị hợp lệ dùng phông mono.
+Invalid values in the inspector (`Invalid`) use the regular font in tertiary color; valid values use the mono font.
 
-### 3.2 Chữ
+### 3.2 Type
 
-| Vai trò | Kiểu |
+| Role | Style |
 |---|---|
-| Lưới hex | SF Mono 13 pt (Settings ▸ Format cho chọn 9–28 pt, SF Mono/Menlo/Monaco/Courier New); chiều cao hàng = line height + 5 |
-| Nội dung chung, nhãn form, nút | SF Pro 13 |
-| Hàng inspector, bảng kết quả, status bar | 12 (giá trị inspector: mono 12) |
-| Tiêu đề nhóm (sidebar, inspector, cột Sums/CRC/Digests) | 11 đậm, màu secondary |
-| Chú thích, chip, phím tắt | 11 |
-| Tiêu đề sheet | headline (13 đậm) |
+| Hex grid | SF Mono 13 pt (Settings ▸ Format allows 9–28 pt, SF Mono/Menlo/Monaco/Courier New); row height = line height + 5 |
+| General content, form labels, buttons | SF Pro 13 |
+| Inspector rows, results tables, status bar | 12 (inspector values: mono 12) |
+| Group titles (sidebar, inspector, Sums/CRC/Digests columns) | 11 bold, secondary color |
+| Captions, chips, shortcuts | 11 |
+| Sheet title | headline (13 bold) |
 
-### 3.3 Kích thước và khoảng cách
+### 3.3 Sizes and spacing
 
-| Thành phần | Giá trị | Nguồn |
+| Component | Value | Source |
 |---|---|---|
 | Sidebar | min 210 · ideal 240 · max 340 | `DocumentWindowView` |
 | Inspector | min 260 · ideal 300 · max 420 | `DocumentWindowView` |
-| Thanh kính (capsule find bar, compare, sector navigator) | cao **36**, bo 18, padding ngang 16 | `GlassBar.height` |
-| Nút icon trong thanh kính | 28 × 28 | `GlassBar.iconSize`, `GlassBarIconButton` |
-| Find bar | neo góc trên phải lưới: top 34, trailing 16 | `DocumentWindowView` |
-| Overlay đáy (compare capsule, sector navigator) | cách đáy lưới 16 | |
-| Drawer kết quả | cao 210 | |
-| Status bar | cao 30, padding ngang 14 | `StatusBarView` |
-| Sheet | padding 20, khoảng cách dọc 16, rộng tối thiểu 380 | `SheetScaffold` |
-| Cửa sổ công cụ | padding 20; Open Disk rộng 680, các cửa sổ khác 600 | `FileToolViews`, `DiskViews` |
-| Settings | pane rộng 520, cao theo nội dung (Inspector cố định 520) | `SettingsWindowController` |
-| Nút sheet | regular control size (cao 28 trên canvas, bo tròn) | |
+| Glass bar (find bar, compare, sector navigator capsules) | height **36**, corner radius 18, horizontal padding 16 | `GlassBar.height` |
+| Icon button in a glass bar | 28 × 28 | `GlassBar.iconSize`, `GlassBarIconButton` |
+| Find bar | anchored to the grid's top-right corner: top 34, trailing 16 | `DocumentWindowView` |
+| Bottom overlays (compare capsule, sector navigator) | 16 above the grid bottom | |
+| Results drawer | height 210 | |
+| Status bar | height 30, horizontal padding 14 | `StatusBarView` |
+| Sheet | padding 20, vertical spacing 16, min width 380 | `SheetScaffold` |
+| Tool windows | padding 20; Open Disk width 680, other windows 600 | `FileToolViews`, `DiskViews` |
+| Settings | pane width 520, height fits content (Inspector fixed at 520) | `SettingsWindowController` |
+| Sheet buttons | regular control size (28 high on canvas, rounded) | |
 
-## 4. Cửa sổ chính
+## 4. Main window
 
 ```
-┌─ Sidebar 240 ──┬──────────────── Nội dung ──────────────────────┬─ Inspector 300 ──┐
+┌─ Sidebar 240 ──┬──────────────── Content ───────────────────────┬─ Inspector 300 ──┐
 │ ●●●  [▯]       │ [Open Save Undo Redo]  HxD64.exe   [Insert|Overwrite|Read-only] │ [Find GoTo ▯]    │
 │ Bookmarks      │ Offset(h) 00 01 … 0F  Decoded text              │ Data Inspector ⋯ │
 │  ● 00032220 ⌃1 │ 00032220  54 46 6F 72 …  TFormHexView┌─Find bar─┐│ [LE|BE] ☐ Hex    │
@@ -111,164 +111,164 @@ Giá trị không hợp lệ trong inspector (`Invalid`) dùng phông thường,
 └────────────────┴──────────────────────────────────────────────────┴──────────────────┘
 ```
 
-- **Khi mở app:** nếu không có tài liệu nào (không mở kèm tệp, không có cửa sổ được khôi phục), app hiện ngay bảng Open của hệ thống, giống TextEdit. Bấm icon Dock lúc không còn cửa sổ nào cũng hiện bảng này. App không tạo cửa sổ trống. Riêng **lần đầu** mở app không kèm tệp thì màn hình chào (§6.9) hiện thay bảng Open.
-- **Toolbar (3 nhóm):** navigation = Open, Save, Undo, Redo · principal = segmented Insert/Overwrite/Read-only (ẩn khi đang so sánh) · primaryAction = Find, Go to Offset, Inspector. Tiêu đề là tên tệp, phụ đề là kích thước và chế độ.
+- **On app launch:** if there is no document (no file opened with the app, no restored window), the app immediately shows the system Open panel, like TextEdit. Clicking the Dock icon when no window is left also shows this panel. The app never creates an empty window. Only on the **first** launch without a file does the welcome screen (§6.9) show instead of the Open panel.
+- **Toolbar (3 groups):** navigation = Open, Save, Undo, Redo · principal = segmented Insert/Overwrite/Read-only (hidden while comparing) · primaryAction = Find, Go to Offset, Inspector. Title is the file name, subtitle is size and mode.
 - **Sidebar:**
-  - *Bookmarks:* chấm cam, offset, phím ⌃0–9. Khi trống, hiện dòng hướng dẫn (xuống dòng được).
-  - *Sections:* các vùng có dữ liệu, kèm chú thích.
-  - *Document:* Size, Modified, Encoding, Layout. Chỉ giá trị Modified tô đỏ, và chỉ khi khác 0.
-- **Lưới hex:**
-  - Các cột: offset (xanh), hex chia theo nhóm byte (nhóm lẻ màu `--odd`), text đã giải mã.
-  - Hàng tiêu đề nền `--hdr`; cột chứa caret được tô accent đậm.
-  - Byte đã sửa màu đỏ đậm. Caret có gạch chân accent; cột còn lại hiện ghost caret (viền).
-  - Vùng undefined phủ trọn từ 2 dòng trở lên được gập thành một dòng (xem §6.5).
-  - Không dùng kính trong lưới.
-- **Drawer:** 3 tab segmented cỡ nhỏ (tab chọn nền accent). Bên phải có phần phụ:
+  - *Bookmarks:* orange dot, offset, shortcut ⌃0–9. When empty, shows a hint line (wraps).
+  - *Sections:* regions that have data, with a caption.
+  - *Document:* Size, Modified, Encoding, Layout. Only the Modified value is red, and only when nonzero.
+- **Hex grid:**
+  - Columns: offset (blue), hex split into byte groups (odd groups in `--odd`), decoded text.
+  - Header row background `--hdr`; the column holding the caret is tinted in strong accent.
+  - Modified bytes in bold red. The caret has an accent underline; the other column shows a ghost caret (outline).
+  - An undefined region that fully covers 2 or more rows is folded into one row (see §6.5).
+  - No glass in the grid.
+- **Drawer:** 3 small segmented tabs (selected tab has accent background). On the right, a secondary section:
   - Search Results: "159 matches" + Clear.
-  - Checksums: ô "Expected result" (240 pt, hẹp thì 140 pt, hẹp nữa thì ẩn) + Refresh.
-  - Nút đóng ở cuối.
-  - Các bảng:
+  - Checksums: "Expected result" field (240 pt, 140 pt when narrow, hidden when narrower) + Refresh.
+  - Close button at the end.
+  - Tables:
     - Results: Offset | Excerpt (hex) | Excerpt (text).
     - Checksums: # | Algorithm | Checksum | Usage.
-    - Compare: danh sách khác biệt, hoặc "Not Comparing".
-- **Status bar:** `Offset:`, `Block:` (`—` khi không chọn), `Length:` dạng `C (12)`, tên bảng mã ngắn, hệ cơ số offset, chip chế độ (kính có tint accent, bấm được). Khi hẹp, giá trị các trường cắt giữa (Block co trước) chứ không làm cửa sổ rộng ra; bảng mã và hệ cơ số ẩn đi trước.
+    - Compare: list of differences, or "Not Comparing".
+- **Status bar:** `Offset:`, `Block:` (`—` when no selection), `Length:` as `C (12)`, short encoding name, offset base, mode chip (glass with accent tint, clickable). When narrow, field values truncate in the middle (Block shrinks first) instead of widening the window; encoding and base hide first.
 - **Inspector:**
-  - Header "Data Inspector" + menu ⋯ (Hex, Choose Types… mở Settings ▸ Inspector).
-  - Segmented Little/Big endian + checkbox Hex.
-  - Các nhóm: Integers, Characters, Floating point, Date & time, Other (GUID), Disassembly (x86-16/32/64, ARM64).
-  - Hàng gọn 12 pt. Nhấp đúp để sửa; tooltip ghi "Double-click to edit".
-  - Footer "Step as Int32 ▾" + 4 nút bước. Không có nút ẩn bên trong pane (dùng nút toolbar).
+  - Header "Data Inspector" + ⋯ menu (Hex, Choose Types… opens Settings ▸ Inspector).
+  - Segmented Little/Big endian + Hex checkbox.
+  - Groups: Integers, Characters, Floating point, Date & time, Other (GUID), Disassembly (x86-16/32/64, ARM64).
+  - Compact 12 pt rows. Double-click to edit; tooltip says "Double-click to edit".
+  - Footer "Step as Int32 ▾" + 4 step buttons. No hidden button inside the pane (use the toolbar button).
 
-## 5. Thành phần
+## 5. Components
 
-| Thành phần | Quy tắc |
+| Component | Rule |
 |---|---|
-| `GlassCapsuleButtonStyle` (`.glassCapsule`, `.glassCapsuleProminent`) | Mọi nút chữ trên thanh kính: cao 36, padding 16, capsule. Prominent = tint accent, dùng cho hành động chính (Find All, Replace All). |
-| `GlassBarIconButton` | Nút icon 28 × 28, borderless, luôn có `help` (tooltip) và nhãn accessibility. |
-| Capsule nhóm | Các nút liên quan gộp chung một capsule (▲▼; Replace ⇄ + Close ✕). Dùng `GlassEffectContainer` + `glassEffectID` để hàng Replace "mọc" ra từ hàng Find. |
-| Segmented | Mode picker: kích thước toolbar. Tab drawer: nhỏ, tab chọn nền accent. Inspector LE/BE: nhỏ. Ô chọn hệ cơ số `hex · dec · oct`: segmented nhỏ, đổi hệ thì chuyển đổi luôn giá trị đã nhập. |
-| Ô số (`NumberField`) | Phông mono, viền tròn, chữ đỏ khi không phải số hợp lệ; nút mặc định bị khoá cho đến khi hợp lệ. |
-| `SheetScaffold` | Tiêu đề headline → nội dung dạng grid, nhãn căn phải → Cancel + nút mặc định ở góc phải. |
-| `ToolFooter` | Cancel + nút chính. Khi đang chạy: thanh tiến độ 180 + % + Stop. Lỗi hiện thành sheet trên chính cửa sổ đó. |
-| `FileField` | Đường dẫn rút gọn ở giữa trên nền quaternary + nút Choose…. |
-| Alert | Alert hệ thống. Thông báo ngắn kiểu câu hỏi ("Open disk6 with write access?") + giải thích hậu quả. Nút của thao tác không hoàn tác được (Write to Disk, Write Directly, Overwrite, Wipe and Delete, Open for Writing) dùng `addDestructiveButton` (`App/Alerts.swift`): tô đỏ, không bao giờ là nút mặc định, Return không kích hoạt; Esc vẫn huỷ. |
-| Bảng | `NSTableView`/`Table` hệ thống, hàng xen kẽ; cột offset mono màu `--offset`. |
-| Form Settings | `Form.grouped`: switch và popup ở mép phải; stepper đặt bên trong `LabeledContent` để giá trị nằm cạnh nút ⇅; chú thích dùng `Section` footer. |
+| `GlassCapsuleButtonStyle` (`.glassCapsule`, `.glassCapsuleProminent`) | All text buttons on glass bars: height 36, padding 16, capsule. Prominent = accent tint, for the primary action (Find All, Replace All). |
+| `GlassBarIconButton` | 28 × 28 icon button, borderless, always has `help` (tooltip) and an accessibility label. |
+| Group capsule | Related buttons share one capsule (▲▼; Replace ⇄ + Close ✕). Use `GlassEffectContainer` + `glassEffectID` so the Replace row "grows" out of the Find row. |
+| Segmented | Mode picker: toolbar size. Drawer tabs: small, selected tab has accent background. Inspector LE/BE: small. The `hex · dec · oct` base picker: small segmented; changing the base converts the entered value on the spot. |
+| Number field (`NumberField`) | Mono font, round border, red text when not a valid number; the default button is disabled until valid. |
+| `SheetScaffold` | Headline title → content as a grid with right-aligned labels → Cancel + default button at the right corner. |
+| `ToolFooter` | Cancel + primary button. While running: 180 progress bar + % + Stop. Errors show as a sheet on that same window. |
+| `FileField` | Path truncated in the middle on a quaternary background + Choose… button. |
+| Alert | System alert. Short question-style message ("Open disk6 with write access?") + an explanation of the consequences. Buttons for irreversible actions (Write to Disk, Write Directly, Overwrite, Wipe and Delete, Open for Writing) use `addDestructiveButton` (`App/Alerts.swift`): red, never the default button, Return does not trigger them; Esc still cancels. |
+| Table | System `NSTableView`/`Table`, alternating rows; offset column mono in `--offset` color. |
+| Settings form | `Form.grouped`: switches and popups at the right edge; steppers placed inside `LabeledContent` so the value sits next to the ⇅ button; captions use `Section` footer. |
 
-## 6. Màn hình và trạng thái
+## 6. Screens and states
 
 ### 6.1 Find & Replace (⌘F, ⌥⌘F)
-- **Hàng Find:**
-  - [🔍 ô tìm 200 pt · "3 of 159" · nút kiểu dữ liệu "Text ▾"]
-  - Khi lưới hẹp (ví dụ cửa sổ 1024 pt, tiếng Việt), ô tìm và ô thay thế co xuống tối thiểu 90 pt. Nhãn trong capsule (nút, checkbox) luôn một dòng (`lineLimit(1)` + `fixedSize`), không bao giờ xuống dòng tràn khỏi capsule. Find bar cách hai mép lưới 16 pt.
+- **Find row:**
+  - [🔍 search field 200 pt · "3 of 159" · data type button "Text ▾"]
+  - When the grid is narrow (for example a 1024 pt window, Vietnamese), the search and replace fields shrink to a minimum of 90 pt. Labels inside the capsule (buttons, checkboxes) are always one line (`lineLimit(1)` + `fixedSize`), never wrapping past the capsule. The find bar is 16 pt from both grid edges.
   - [▲ ▼]
   - [Find All] (prominent)
-  - [⇄ hiện Replace · ✕]
-- **Hàng Replace:** [☑ Prompt on replace] [⇄ ô thay thế] [Replace] (glass) [Replace All] (prominent).
-- **Popover tuỳ chọn:**
+  - [⇄ show Replace · ✕]
+- **Replace row:** [☑ Prompt on replace] [⇄ replace field] [Replace] (glass) [Replace All] (prominent).
+- **Options popover:**
   - Data type: Text / Hex / Integer / Float.
-  - Text: Encoding "Editor (Windows-1252)" hoặc "Unicode UTF-16 LE"; Case sensitive.
-  - Hex: chú thích về ⌘E.
+  - Text: Encoding "Editor (Windows-1252)" or "Unicode UTF-16 LE"; Case sensitive.
+  - Hex: a note about ⌘E.
   - Integer: Bit width "(any)", Byte order, Sign Either/Signed/Unsigned.
-  - Float: Single / Double / Real48 / Extended kèm số byte; Byte order.
-  - Direction All / Forward / Backward, kèm chú thích "“All” searches the whole file, wrapping around at the end."
-- **Trạng thái:**
-  - Trống: placeholder đổi theo kiểu dữ liệu; Find All bị khoá.
-  - Pattern sai: viền đỏ + thông báo trên material.
-  - Đang tìm: spinner + Stop trong capsule; tiến độ hiện ở status bar.
-  - Hỏi khi thay thế: alert "Replace this occurrence at …?", "Occurrence n of N.", các nút Replace / Skip / All / Cancel.
+  - Float: Single / Double / Real48 / Extended with byte counts; Byte order.
+  - Direction All / Forward / Backward, with the note "“All” searches the whole file, wrapping around at the end."
+- **States:**
+  - Empty: placeholder changes with the data type; Find All disabled.
+  - Bad pattern: red border + message on material.
+  - Searching: spinner + Stop in the capsule; progress shown in the status bar.
+  - Prompt on replace: alert "Replace this occurrence at …?", "Occurrence n of N.", buttons Replace / Skip / All / Cancel.
 
 ### 6.2 Sheets
 - **Go to Offset (⌘L):**
   - Offset + hex/dec/oct.
   - Relative to: Beginning of the file / Current offset (+ or −) / End of the file (backwards).
-  - Dòng "Destination: …".
-  - Nút Go. Nhớ hệ cơ số và gốc giữa các lần mở.
-- **Select Block (⇧⌘A):** Start offset; popup End offset/Length + ô số; Numbers in; dòng "N bytes" hoặc "The block is empty or outside the file."
-- **Insert Bytes (⇧⌘I):** Byte count + hệ cơ số; Fill pattern (hex lặp lại); câu tóm tắt kết quả.
+  - "Destination: …" line.
+  - Go button. Remembers base and origin between openings.
+- **Select Block (⇧⌘A):** Start offset; popup End offset/Length + number field; Numbers in; line "N bytes" or "The block is empty or outside the file."
+- **Insert Bytes (⇧⌘I):** Byte count + base; Fill pattern (repeated hex); a summary sentence of the result.
 - **Fill Selection:**
-  - Danh sách pass (220 × 150), Add/Remove.
+  - Pass list (220 × 150), Add/Remove.
   - Presets: DoD Sanitizing, Zero Bytes.
-  - "Pattern of pass n": Hex values, hoặc Random bytes From/to (decimal).
-  - "Write directly to disk (cannot be undone)", kèm chú thích đổi theo lựa chọn.
+  - "Pattern of pass n": Hex values, or Random bytes From/to (decimal).
+  - "Write directly to disk (cannot be undone)", with a caption that changes with the choice.
 - **Filter Characters (View):**
-  - Lựa chọn: All characters / ASCII only (20–7E) / Letters and digits / Custom byte ranges.
-  - Bảng xem trước 16 × 16 theo bảng mã hiện tại.
+  - Options: All characters / ASCII only (20–7E) / Letters and digits / Custom byte ranges.
+  - 16 × 16 preview table in the current encoding.
 - **Compare (⌘K):**
-  - 1. Data source (tệp hiện tại).
+  - 1. Data source (current file).
   - 2. Data source (popup + Open File…).
   - Windows: Side by side / One above the other.
-  - Scope: Whole files / Selected data, kèm chú thích.
+  - Scope: Whole files / Selected data, with a caption.
 
-### 6.3 Phân tích
+### 6.3 Analysis
 - **Generate Checksums (⇧⌘K):**
-  - Ba cột:
+  - Three columns:
     - Sums: Checksum-8/16/32/64, Custom….
     - CRC: CRC-16, CRC-16/CCITT-FALSE, CRC-32, CRC-32C, Custom CRC….
     - Digests: MD2, MD4, MD5, SHA-1/256/384/512.
-  - Custom mở tuỳ chọn ngay bên dưới (độ rộng, polynomial, init, XOR, reflection).
-  - Scope Whole file/Selection; "Compare with expected value" + ô nhập; Calculate.
+  - Custom opens options right below (width, polynomial, init, XOR, reflection).
+  - Scope Whole file/Selection; "Compare with expected value" + input field; Calculate.
 - **Statistics:**
   - Whole file/Selection, Hide maximum, "256 of 256 values present", Refresh.
-  - Biểu đồ 256 cột; bấm một cột để giữ lựa chọn.
-  - Panel "Selected value": Character, Count, Share, Bytes, Entropy.
+  - 256-bar chart; click a bar to keep the selection.
+  - "Selected value" panel: Character, Count, Share, Bytes, Entropy.
 
-### 6.4 So sánh và ổ đĩa
-- **So sánh:**
-  - Hai cửa sổ đặt cạnh nhau (hoặc trên dưới); sidebar, inspector và mode picker được ẩn để nhường chỗ.
-  - Byte khác biệt tô cam.
-  - Capsule đáy: "Difference at 104 · 3 bytes ▲ ▼ ✕"; F6 / ⇧F6.
-  - Drawer Compare liệt kê Offset | Length | dữ liệu từng bên.
-- **Tài liệu ổ đĩa:**
-  - Tiêu đề "disk4 — HEXER", phụ đề "8.4 MB · Read-only"; mode picker khoá ở Read-only.
+### 6.4 Compare and disks
+- **Compare:**
+  - Two windows side by side (or one above the other); the sidebar, inspector and mode picker are hidden to make room.
+  - Differing bytes are orange.
+  - Bottom capsule: "Difference at 104 · 3 bytes ▲ ▼ ✕"; F6 / ⇧F6.
+  - The Compare drawer lists Offset | Length | data from each side.
+- **Disk document:**
+  - Title "disk4 — HEXER", subtitle "8.4 MB · Read-only"; the mode picker is locked to Read-only.
   - Sector navigator: ⏮ ‹ Sector [n] of N › ⏭.
-  - Mở ảnh đĩa thì hỏi sector size (512 / 2048 / 4096).
+  - Opening a disk image asks for the sector size (512 / 2048 / 4096).
 
-### 6.5 Dữ liệu import: gập vùng undefined
-- Sau khi import Intel Hex/S-Record/ETL, các khoảng trống giữa các bản ghi là vùng undefined (sidebar ▸ Sections).
-- Dòng nằm trọn trong vùng (từ `RowMap.minimumFoldedRows` = 2 dòng) gập thành **một dòng gập**:
-  - Cột offset: byte ẩn đầu tiên.
-  - Capsule `foldBackground` trải hết cột hex + text, nhãn phông hệ thống nhỏ hơn lưới 2 pt, màu `foldText`: "▸  1,840 undefined bytes · Click to show".
-  - Không phải kính; là nội dung lưới.
-- Dòng có byte định nghĩa vẫn hiện bình thường, phần trống là `??`.
-- Bấm dòng gập để mở vùng đó. Go to Offset, Find, bookmark hay sidebar dẫn vào bên trong vùng đang gập thì tự mở vùng.
-- ↑ ↓ và Page Up/Down đi theo dòng trên màn hình; tới dòng gập thì caret nằm ở byte ẩn đầu tiên, dòng gập được viền accent 2 pt. Home/End không làm gì trên dòng gập.
-- View ▸ Fold Undefined Sections (bật sẵn) tắt/bật gập cho cả tài liệu; bật lại thì gập lại cả các vùng đã mở.
-- Hai cửa sổ so sánh cuộn theo byte, nên vẫn khớp khi hai bên gập khác nhau.
+### 6.5 Import data: folding undefined regions
+- After importing Intel Hex/S-Record/ETL, the gaps between records are undefined regions (sidebar ▸ Sections).
+- Rows lying entirely inside a region (from `RowMap.minimumFoldedRows` = 2 rows) fold into **one fold row**:
+  - Offset column: the first hidden byte.
+  - A `foldBackground` capsule spans the hex + text columns, label in a system font 2 pt smaller than the grid, color `foldText`: "▸  1,840 undefined bytes · Click to show".
+  - It is not glass; it is grid content.
+- Rows that contain defined bytes display normally, with the gaps shown as `??`.
+- Click a fold row to expand that region. Go to Offset, Find, a bookmark or the sidebar leading into a folded region expands it automatically.
+- ↑ ↓ and Page Up/Down follow the on-screen rows; on reaching a fold row the caret sits on its first hidden byte and the fold row gets a 2 pt accent outline. Home/End do nothing on a fold row.
+- View ▸ Fold Undefined Sections (on by default) toggles folding for the whole document; turning it back on re-folds regions that were expanded.
+- The two compare windows scroll by byte, so they stay aligned even when the two sides fold differently.
 
 ### 6.6 Settings (⌘,)
-Tab trên toolbar, mỗi tab có icon và nhãn; tiêu đề cửa sổ là tên pane.
+Tabs on the toolbar, each with an icon and label; the window title is the pane name.
 - **General:**
   - Notifications: Warn when opening a disk with write access ✓; Confirm file size changes ✓; Tell me when copied text was filtered ✓; Tell me when selected characters were filtered ✗.
   - Safety: Open disks as read-only ✓; Keep a backup (.bak) when saving ✗; New documents open in = Overwrite.
-  - Software Update: Check for updates automatically ✓; Include beta versions ✗; Last checked (ngày giờ, hoặc "Never") + nút Check Now (mở cửa sổ Software Update). Bản không cập nhật được (chạy `swift run`, thiếu khoá) thì ẩn cả phần này.
+  - Software Update: Check for updates automatically ✓; Include beta versions ✗; Last checked (date and time, or "Never") + Check Now button (opens the Software Update window). For builds that cannot update (run via `swift run`, missing key) this whole section is hidden.
 - **Format:** Size (13 pt, stepper), Typeface (SF Mono).
 - **View:**
   - Layout: Bytes per row 16, Fit to window width, Byte group size 1, Columns = Hex and Text.
   - Text and numbers: Text encoding = Windows (ANSI), Offset base = Hexadecimal, Lowercase hex digits.
   - Footer: "These defaults apply to newly opened documents…"
-- **Inspector:** Types shown (30 kiểu, mặc định bật hết) + Reset.
-- **Export:** Line break determined by (Bytes per line / Characters per line = 80); Motorola S-Record 32 byte/dòng; Intel Hex 32 byte/dòng.
+- **Inspector:** Types shown (30 types, all on by default) + Reset.
+- **Export:** Line break determined by (Bytes per line / Characters per line = 80); Motorola S-Record 32 bytes/line; Intel Hex 32 bytes/line.
 
-### 6.7 Công cụ
+### 6.7 Tools
 - **Open Disk (⌥⌘O):**
-  - Bảng Name | Type | Size | Hardware, chia nhóm Physical disks / Logical volumes. Icon: khoá cho ổ khởi động, ổ đĩa, volume.
-  - ☑ Open as read-only; nút Refresh.
-  - Chú thích về mật khẩu quản trị.
-  - Mở để ghi thì hiện alert: **Open Read-only** (mặc định, Return) / Open for Writing (destructive) / Cancel (Esc).
-- **Clone Disk:** Source / Target (ổ đĩa hoặc "Disk image file" + FileField); cảnh báo ghi đè; không thể chọn ổ khởi động làm đích.
+  - Table Name | Type | Size | Hardware, grouped into Physical disks / Logical volumes. Icons: lock for the boot disk, disk, volume.
+  - ☑ Open as read-only; Refresh button.
+  - Caption about the administrator password.
+  - Opening for writing shows an alert: **Open Read-only** (default, Return) / Open for Writing (destructive) / Cancel (Esc).
+- **Clone Disk:** Source / Target (a disk or "Disk image file" + FileField); overwrite warning; the boot disk cannot be chosen as the target.
 - **Split File:**
   - File, Part base name.
-  - Part size: các preset đĩa mềm / Zip / CD, hoặc Custom.
-  - Naming: .001 / hỏi từng tên.
-  - Dòng "Creates N parts."
-- **Concatenate Files:** danh sách có số thứ tự (kéo để sắp xếp), Add…/Remove/Clear, Output file.
-- **Wipe Securely:** File; Method DoD 5220.22-M (3 passes) / Zero / Random; cảnh báo về SSD/APFS; nút "Wipe and Delete" + alert xác nhận.
+  - Part size: floppy / Zip / CD presets, or Custom.
+  - Naming: .001 / ask for each name.
+  - Line "Creates N parts."
+- **Concatenate Files:** numbered list (drag to reorder), Add…/Remove/Clear, Output file.
+- **Wipe Securely:** File; Method DoD 5220.22-M (3 passes) / Zero / Random; SSD/APFS warning; "Wipe and Delete" button + confirmation alert.
 
-### 6.8 Menu và phím tắt
-Thứ tự menu: Hexer · File · Edit · Search · View · Analysis · Tools · Window · Help. Menu Hexer: About Hexer, Check for Updates…, Settings… (⌘,), Services, Hide/Show, Quit. Open Recent ngay sau Open… là mục của AppKit (tự chèn và điền danh sách, chuỗi tiếng Việt của hệ thống); không tự dựng mục này trong `MainMenu.swift`. Phím tắt chính:
+### 6.8 Menus and shortcuts
+Menu order: Hexer · File · Edit · Search · View · Analysis · Tools · Window · Help. Hexer menu: About Hexer, Check for Updates…, Settings… (⌘,), Services, Hide/Show, Quit. Open Recent right after Open… is an AppKit item (AppKit inserts it and fills the list, with the system's Vietnamese strings); do not build this item yourself in `MainMenu.swift`. Main shortcuts:
 
-| Lệnh | Phím |
+| Command | Key |
 |---|---|
 | Open Disk… | ⌥⌘O |
 | Reload from Disk | ⌘R |
@@ -289,59 +289,59 @@ Thứ tự menu: Hexer · File · Edit · Search · View · Analysis · Tools ·
 | Next / Previous Difference | F6 / ⇧F6 |
 | Tab 1–9 | ⌘1–9 |
 
-Danh sách đầy đủ nằm trong `App/MainMenu.swift` và artboard `MenusVI`.
+The full list is in `App/MainMenu.swift` and the `MenusVI` artboard.
 
-### 6.9 Màn hình chào (lần mở đầu)
-- **Khi nào hiện:**
-  - Lần đầu app mở mà không có tài liệu: hiện thay bảng Open. Khoá `WelcomeShown` trong UserDefaults được đặt ngay khi màn hình hiện, nên chỉ hiện một lần.
-  - Help ▸ Welcome to Hexer mở lại bất cứ lúc nào.
-  - Mở kèm tệp hoặc chạy có cờ `-Hexer…` thì không hiện (khoá vẫn chưa đặt, lần mở trống sau sẽ hiện).
-- **Cửa sổ:** 680 × 560 pt, cố định, chỉ có nút đóng; tiêu đề ẩn, thanh tiêu đề trong suốt, kéo được bằng nền.
-- **4 trang:**
-  1. *Welcome:* icon app, "Welcome to Hexer", câu giới thiệu, và một hàng hex trong thẻ: byte ngẫu nhiên lần lượt "chốt" thành `48 65 78 65 72`, caret chạy theo, chữ "Hexer" hiện dần ở cột văn bản.
-  2. *Edit:* lưới mini 3 dòng; gõ đè "hello" thành "HEXER" (từng nibble, đỏ đậm như byte đã sửa), chip Overwrite, rồi phím ⌘Z hiện và hoàn tác từng byte.
-  3. *Find:* lưới mini 4 dòng có 3 chỗ `FF D8 FF`, capsule tìm kiếm "1 of 3" và thẻ Data Inspector (Int8, UInt16, Int32); kết quả hiện tại chuyển lần lượt.
-  4. *Disks:* thẻ ổ đĩa "disk4 — HEXER" có khoá xanh và chip Read-only, 2 dòng hex của sector, capsule sector navigator đếm sector.
-  - Mỗi trang tính năng: hình minh hoạ 520 × 200, tiêu đề 26 pt đậm, 3 dòng mô tả 14 pt kèm SF Symbol màu của trang.
-- **Màu của trang:** accent (Welcome), đỏ `HexTheme.modified` (Edit), cam (Find), xanh lá (Disks). Dùng cho quầng sáng phía trên (radial gradient 20%), symbol, chấm trang và vòng lan khi đổi trang.
-- **Thanh dưới:** Skip (borderless, trái; Esc) · chấm trang ở giữa (chấm hiện tại dài 22 pt, bấm để nhảy trang) · Back + Continue (prominent, Return), cỡ large. Trang cuối: không có Skip, nút chính là "Open a File…".
-- **Kết thúc:** "Open a File…" luôn mở bảng Open. Khi màn hình hiện lúc mở app, Skip, Esc hay nút đóng cũng dẫn tới bảng Open (như lần mở không có màn chào); mở từ menu Help thì chỉ đóng.
-- **Chuyển động:**
-  - *Nền:* lưới byte hex trôi lên chậm (6 pt/s), mờ phía sau nội dung (lớp phủ màu nền cửa sổ hình elip và ở đáy), rõ hơn ở mép. Thỉnh thoảng một dải chọn chéo quét qua; vài byte loé đỏ như vừa bị ghi đè; khi đổi trang, một vòng màu của trang lan từ giữa ra.
-  - *Đổi trang:* trang cũ mờ, nhoè và trượt ra; trang mới trượt vào theo hướng đi (tiến từ phải, lùi từ trái). Các phần tử trong trang lần lượt nổi lên (mờ → rõ, dịch lên 18 pt, spring, trễ 0,08 s mỗi phần tử).
-  - *Hình minh hoạ:* đổi theo từng bước như editor khi gõ phím, không nội suy giữa các bước (xem HANDOFF §3 về hiệu năng).
-- **Reduce Motion:** trang cross-fade, nội dung hiện ngay, nền đứng yên, hình minh hoạ giữ một khoảnh khắc tiêu biểu.
-- **Bàn phím:** Return = Continue/Open a File…, Esc = Skip (trang cuối: đóng), ← → lật trang.
-- **Kính:** chỉ các capsule nhỏ trong hình minh hoạ (mô phỏng find bar, chip, sector navigator) dùng `barGlass`; nút là nút hệ thống.
+### 6.9 Welcome screen (first launch)
+- **When it shows:**
+  - The first time the app opens with no document: shown instead of the Open panel. The `WelcomeShown` key in UserDefaults is set the moment the screen appears, so it shows only once.
+  - Help ▸ Welcome to Hexer reopens it at any time.
+  - Not shown when launched with a file or with `-Hexer…` flags (the key stays unset, so the next empty launch will show it).
+- **Window:** 680 × 560 pt, fixed size, close button only; hidden title, transparent title bar, draggable by the background.
+- **4 pages:**
+  1. *Welcome:* app icon, "Welcome to Hexer", an intro sentence, and a hex row in a card: random bytes "lock in" one by one to `48 65 78 65 72`, the caret following, the word "Hexer" fading in in the text column.
+  2. *Edit:* a 3-row mini grid; typing over "hello" turns it into "HEXER" (nibble by nibble, bold red like modified bytes), an Overwrite chip, then a ⌘Z key appears and undoes byte by byte.
+  3. *Find:* a 4-row mini grid with 3 occurrences of `FF D8 FF`, a search capsule "1 of 3" and a Data Inspector card (Int8, UInt16, Int32); the current result moves from one to the next.
+  4. *Disks:* a disk card "disk4 — HEXER" with a blue lock and a Read-only chip, 2 hex rows of a sector, a sector navigator capsule counting sectors.
+  - Each feature page: 520 × 200 illustration, 26 pt bold title, 3 description lines at 14 pt with SF Symbols in the page color.
+- **Page colors:** accent (Welcome), red `HexTheme.modified` (Edit), orange (Find), green (Disks). Used for the glow at the top (radial gradient 20%), symbols, page dots and the ripple on page change.
+- **Bottom bar:** Skip (borderless, left; Esc) · page dots in the middle (current dot 22 pt long, click to jump to a page) · Back + Continue (prominent, Return), large size. Last page: no Skip, the primary button is "Open a File…".
+- **Ending:** "Open a File…" always opens the Open panel. When the screen showed at app launch, Skip, Esc or the close button also lead to the Open panel (as in a launch without the welcome screen); when opened from the Help menu they only close it.
+- **Motion:**
+  - *Background:* a grid of hex bytes drifts upward slowly (6 pt/s), faded behind the content (an elliptical window-background overlay and one at the bottom), clearer at the edges. Occasionally a diagonal selection band sweeps across; a few bytes flash red as if just overwritten; on page change, a ring in the page color spreads from the center.
+  - *Page change:* the old page fades, blurs and slides out; the new page slides in in the direction of travel (forward from the right, back from the left). Elements within the page rise in turn (fade in, shift up 18 pt, spring, 0.08 s delay per element).
+  - *Illustrations:* change step by step like the editor when typing, no interpolation between steps (see HANDOFF.md, Architecture (§3), on performance).
+- **Reduce Motion:** pages cross-fade, content appears immediately, the background stays still, illustrations keep one representative moment.
+- **Keyboard:** Return = Continue/Open a File…, Esc = Skip (last page: close), ← → turn pages.
+- **Glass:** only the small capsules inside illustrations (mimicking the find bar, chip, sector navigator) use `barGlass`; buttons are system buttons.
 
-### 6.10 Cập nhật phần mềm (Hexer ▸ Check for Updates…)
-- **Cửa sổ:** một cửa sổ thường (titled, closable, không resize), rộng 520 pt, tiêu đề "Software Update". Bố cục như alert: icon app 64 pt bên trái; bên phải là thông báo đậm (`.headline`), chi tiết màu secondary, rồi hàng nút ở mép phải, nút mặc định đứng cuối (Return), nút huỷ nhận Esc. Không dùng kính (đây là cửa sổ, không phải control nổi). Chiều cao theo nội dung của từng trạng thái.
-- **Trạng thái:**
+### 6.10 Software Update (Hexer ▸ Check for Updates…)
+- **Window:** a regular window (titled, closable, not resizable), 520 pt wide, title "Software Update". Alert-like layout: 64 pt app icon on the left; on the right a bold message (`.headline`), secondary-color details, then a row of buttons at the right edge, the default button last (Return), the cancel button taking Esc. No glass (this is a window, not a floating control). Height fits the content of each state.
+- **States:**
 
-| Trạng thái | Thông báo | Nút |
+| State | Message | Buttons |
 |---|---|---|
-| Đang kiểm tra (chỉ khi người dùng bấm) | Checking for updates… + thanh tiến độ không xác định | Cancel |
-| Có bản mới | Hexer X is available · You have version Y… · khung What's New (danh sách từ CHANGELOG, tối đa 150 pt rồi cuộn) + link Release Notes on GitHub | Skip This Version (trái) · Remind Me Later · **Install Update** |
-| Không tự thay được (app bị translocate, hoặc không có quyền ghi thư mục) | như trên + dòng cảnh báo có biểu tượng tam giác vàng, chỉ ghi tên thư mục | Skip This Version · Remind Me Later · **Download…** (mở trang release) |
-| Đang tải | Downloading Hexer X… + thanh tiến độ + "2.5 MB of 6.9 MB" | Cancel (quay về "Có bản mới") |
-| Đang xác minh | Verifying Hexer X… + câu giải thích + thanh không xác định | Cancel |
-| Sẵn sàng | Hexer X is ready to install · Relaunch… hoặc cài khi thoát; nếu có tài liệu chưa lưu thì thêm dòng "Before quitting, Hexer asks whether to save your changes." | Install on Quit · **Relaunch** |
-| Đã mới nhất | Hexer is up to date · Version X is the newest version available. | **OK** |
-| Lỗi | Couldn't check for updates / Couldn't install the update + thông báo lỗi (chọn được chữ) | Open Download Page (khi lỗi lúc cài) · **OK** |
+| Checking (only when the user clicked) | Checking for updates… + indeterminate progress bar | Cancel |
+| Update available | Hexer X is available · You have version Y… · What's New box (list from CHANGELOG, max 150 pt then scrolls) + Release Notes on GitHub link | Skip This Version (left) · Remind Me Later · **Install Update** |
+| Cannot self-replace (app is translocated, or no write permission to the folder) | as above + a warning line with a yellow triangle icon, naming only the folder | Skip This Version · Remind Me Later · **Download…** (opens the release page) |
+| Downloading | Downloading Hexer X… + progress bar + "2.5 MB of 6.9 MB" | Cancel (returns to "Update available") |
+| Verifying | Verifying Hexer X… + an explanatory sentence + indeterminate bar | Cancel |
+| Ready | Hexer X is ready to install · Relaunch… or install on quit; if there are unsaved documents, add the line "Before quitting, Hexer asks whether to save your changes." | Install on Quit · **Relaunch** |
+| Up to date | Hexer is up to date · Version X is the newest version available. | **OK** |
+| Error | Couldn't check for updates / Couldn't install the update + error message (text selectable) | Open Download Page (for install-time errors) · **OK** |
 
-- **Đóng cửa sổ** = Remind Me Later; lúc đang tải hay xác minh thì huỷ; khi đã sẵn sàng thì bản cập nhật vẫn được cài lúc thoát.
-- **Khi nào hiện:** kiểm tra tự động không bao giờ hiện gì trừ khi có bản mới; nếu lúc đó bảng Open (modal) đang mở thì đợi bảng đóng rồi mới hiện. Check for Updates… và Check Now hiện mọi kết quả, kể cả bản đã bỏ qua.
-- **What's New** lấy mục "What's new" / "Có gì mới" trong ghi chú release (tức mục của phiên bản trong CHANGELOG.md), theo ngôn ngữ giao diện; markdown inline (đậm, code, link) được hiển thị.
+- **Closing the window** = Remind Me Later; while downloading or verifying it cancels; once ready, the update is still installed on quit.
+- **When it shows:** the automatic check never shows anything unless there is a new version; if the (modal) Open panel is open at that moment, it waits for the panel to close before showing. Check for Updates… and Check Now show every result, including skipped versions.
+- **What's New** takes the "What's new" / "Có gì mới" section from the release notes (i.e. the version's entry in CHANGELOG.md), per the UI language; inline markdown (bold, code, links) is rendered.
 
-## 7. Bản địa hoá
+## 7. Localization
 
-- Khoá là chuỗi tiếng Anh trong `Text("…")`, `L("…")` và các API nhận `LocalizedStringKey`. Bản dịch nằm trong `Scripts/l10n/vi.py`, script này sinh ra `Resources/Localization/vi.lproj/Localizable.strings`.
-- `Scripts/l10n_audit.swift` chạy trong `bundle.sh` và làm build thất bại nếu có chuỗi chưa dịch. Audit nhận cả các helper `field(…)`, `fact(…)`, `group(…)`, `GlassBarIconButton(_, "…")`, tham số `placeholder:` và hai nhánh của `Text(điều kiện ? "A" : "B")`. Hiện có 666 khoá, đã dịch đủ.
-- Lỗi từ HexerCore/HexerPlatform (tiếng Anh, CLI dùng nguyên văn) được dịch ở tầng app trong `App/ErrorMessages.swift`; `AppDelegate.application(_:willPresentError:)` áp dụng cho mọi `presentError`, còn `NSAlert(error:)` và nhãn lỗi của find bar dùng `error.localizedForDisplay` / `error.displayMessage`. Phần mô tả errno (`strerror`) vẫn là tiếng Anh của hệ thống.
-- Không dịch tên kiểu kỹ thuật: Int32, UTF-8, GUID, FILETIME, x86-64, ARM64, Little-endian/Big-endian.
-- Một số bản dịch đã chốt:
+- Keys are the English strings in `Text("…")`, `L("…")` and APIs that take `LocalizedStringKey`. Translations are in `Scripts/l10n/vi.py`, which generates `Resources/Localization/vi.lproj/Localizable.strings`.
+- `Scripts/l10n_audit.swift` runs in `bundle.sh` and fails the build if any string is untranslated. The audit also covers the helpers `field(…)`, `fact(…)`, `group(…)`, `GlassBarIconButton(_, "…")`, the `placeholder:` parameter and both branches of `Text(condition ? "A" : "B")`. There are currently 666 keys, all translated.
+- Errors from HexerCore/HexerPlatform (English; the CLI uses them verbatim) are translated in the app layer in `App/ErrorMessages.swift`; `AppDelegate.application(_:willPresentError:)` applies to every `presentError`, while `NSAlert(error:)` and the find bar's error label use `error.localizedForDisplay` / `error.displayMessage`. The errno description (`strerror`) stays in the system's English.
+- Do not translate technical type names: Int32, UTF-8, GUID, FILETIME, x86-64, ARM64, Little-endian/Big-endian.
+- Agreed translations (the Vietnamese column is data, keep as is):
 
-| Tiếng Anh | Tiếng Việt |
+| English | Vietnamese |
 |---|---|
 | File / Edit / Search / View / Analysis / Tools / Window / Help | Tệp / Sửa / Tìm kiếm / Hiển thị / Phân tích / Công cụ / Cửa sổ / Trợ giúp |
 | Insert / Overwrite / Read-only | Chèn / Ghi đè / Chỉ đọc |
@@ -354,53 +354,53 @@ Danh sách đầy đủ nằm trong `App/MainMenu.swift` và artboard `MenusVI`.
 | Install Update / Remind Me Later / Skip This Version | Cài bản cập nhật / Nhắc tôi sau / Bỏ qua phiên bản này |
 | Relaunch / Install on Quit | Mở lại / Cài khi thoát |
 
-- Chuỗi tiếng Việt dài hơn tiếng Anh khoảng 20–40%. Kiểm tra cắt chữ bằng `-AppleLanguages '(vi)'`, nhất là ở toolbar, find bar, tab drawer và tab Settings.
+- Vietnamese strings are about 20–40% longer than English. Check for truncation with `-AppleLanguages '(vi)'`, especially in the toolbar, find bar, drawer tabs and Settings tabs.
 
-## 8. Trợ năng
+## 8. Accessibility
 
-- Lưới hex có hỗ trợ VoiceOver (`HexCanvasView+Accessibility.swift`): đọc offset, giá trị và vùng chọn.
-- Mọi nút chỉ có icon đều có `help` và nhãn accessibility. Trên canvas, các nút này dùng `aria-label`.
-- Mọi lệnh đều đi được bằng bàn phím: có trong menu, có phím tắt; sheet dùng Return/Esc.
-- Màn hình chào: nền và hình minh hoạ ẩn với VoiceOver; mỗi chấm trang đọc "Page 2 of 4"; tôn trọng Reduce Motion (§6.9).
-- Không dùng màu làm tín hiệu duy nhất:
-  - Byte đã sửa vừa đỏ vừa đậm.
-  - Lỗi pattern có thêm câu thông báo.
-  - Ổ đĩa bị khoá có icon khoá.
+- The hex grid supports VoiceOver (`HexCanvasView+Accessibility.swift`): reads offset, value and selection.
+- Every icon-only button has `help` and an accessibility label. On the canvas these buttons use `aria-label`.
+- Every command is reachable by keyboard: in a menu, with a shortcut; sheets use Return/Esc.
+- Welcome screen: background and illustrations are hidden from VoiceOver; each page dot reads "Page 2 of 4"; respects Reduce Motion (§6.9).
+- Color is never the only signal:
+  - Modified bytes are both red and bold.
+  - Pattern errors also show a message.
+  - Locked disks have a lock icon.
 
-## 9. Nên và không nên
+## 9. Do and don't
 
-| Nên | Không nên |
+| Do | Don't |
 |---|---|
-| Dùng pane hệ thống (sidebar, inspector), sheet và alert hệ thống | Tự vẽ thẻ kính nổi cho sidebar hoặc inspector |
-| Kính chỉ trên control nổi, cao 36 pt thống nhất | Kính lên lưới, bảng, status text; trộn các chiều cao 28/32/36 trên cùng một thanh |
-| Mỗi lệnh toolbar có trong menu và có phím tắt | Thêm nhóm toolbar thứ 4 |
-| Mặc định an toàn (chỉ đọc, xác nhận trước khi xoá hoặc ghi đĩa) | Ghi xuống đĩa trước khi người dùng bấm Save |
-| Cập nhật canvas và DESIGN.md cùng lúc với mã UI | Để canvas lệch so với app |
+| Use system panes (sidebar, inspector), system sheets and alerts | Draw floating glass cards for the sidebar or inspector |
+| Glass only on floating controls, a uniform 36 pt high | Glass over the grid, tables, status text; mixing 28/32/36 heights on one bar |
+| Every toolbar command is in a menu and has a shortcut | Add a 4th toolbar group |
+| Safe defaults (read-only, confirm before deleting or writing to disk) | Write to disk before the user clicks Save |
+| Update the canvas and DESIGN.md together with the UI code | Let the canvas drift from the app |
 
-## 10. Quy trình sửa canvas
+## 10. Canvas editing workflow
 
-1. Đọc lại file trên artifact (`Artifact` action `read`, `path: project/<File>.dc.html`). Bản làm việc lưu trong scratchpad, ví dụ `…/scratchpad/canvas/project/`.
-2. Sửa các file `.dc.html` trong cùng một thư mục gốc. Quy tắc định dạng:
-   - `{{hole}}` chỉ dùng để tra giá trị.
-   - Sự kiện viết dạng `onClick="{{fn}}"`.
-   - `<sc-for>`/`<sc-if>` phải có `hint-*`.
-   - Logic đặt trong `class Component extends DCLogic` với `renderVals()`.
-   - `data-props` là JSON đặt trong nháy đơn.
-3. Publish một lần với `url`, `root`, `file_path`, và `files` cho các file còn lại. Chỉ gửi `canvas.json` khi thêm, bớt hoặc đổi kích thước board; đọc lại `canvas.json` trước khi gửi.
-4. Không kiểm tra canvas bằng cách render hoặc chụp màn hình. Kiểm tra app thật bằng `-HexerSnapshot` (xem HANDOFF.md).
+1. Re-read the files on the artifact (`Artifact` action `read`, `path: project/<File>.dc.html`). The working copy lives in the scratchpad, for example `…/scratchpad/canvas/project/`.
+2. Edit the `.dc.html` files under the same root directory. Format rules:
+   - `{{hole}}` is only for looking up values.
+   - Events are written as `onClick="{{fn}}"`.
+   - `<sc-for>`/`<sc-if>` must have `hint-*`.
+   - Logic goes in `class Component extends DCLogic` with `renderVals()`.
+   - `data-props` is JSON in single quotes.
+3. Publish once with `url`, `root`, `file_path`, and `files` for the remaining files. Send `canvas.json` only when adding, removing or resizing boards; re-read `canvas.json` before sending.
+4. Do not verify the canvas by rendering or screenshotting it. Verify the real app with `-HexerSnapshot` (see HANDOFF.md, "Scripted app runs").
 
-## 11. Chạy trên macOS 15 (không có Liquid Glass)
+## 11. Running on macOS 15 (no Liquid Glass)
 
-App chạy từ macOS 15 Sequoia. Liquid Glass chỉ có từ macOS 26, nên mọi control nổi đi qua các helper trong `Views/GlassBarStyle.swift`. Không gọi `glassEffect`, `glassEffectID` hay `GlassEffectContainer` trực tiếp.
+The app runs on macOS 15 Sequoia and later. Liquid Glass exists only from macOS 26, so every floating control goes through the helpers in `Views/GlassBarStyle.swift`. Never call `glassEffect`, `glassEffectID` or `GlassEffectContainer` directly.
 
-| Helper | macOS 26 trở lên | macOS 15 |
+| Helper | macOS 26 and later | macOS 15 |
 |---|---|---|
-| `.barGlass()` | `glassEffect(.regular.interactive(), in: .capsule)` | `.regularMaterial` dạng capsule, viền `separator` 0,5 pt, bóng đen 12% (bán kính 6, lệch xuống 2) |
-| `.barGlass(tint:)` | kính có tint (nút prominent, chip chế độ) | nền màu tint đặc (accent cho Find All/Replace All, accent 18% cho chip) |
-| `.barGlass(interactive: false)` | kính không tương tác (checkbox "Prompt on replace") | như `.barGlass()` |
-| `.barGlassID(_:in:)` | `glassEffectID` (hàng Replace "mọc" từ hàng Find) | không làm gì |
-| `GlassGroup(spacing:)` | `GlassEffectContainer` | nội dung giữ nguyên |
+| `.barGlass()` | `glassEffect(.regular.interactive(), in: .capsule)` | `.regularMaterial` capsule, `separator` border 0.5 pt, black shadow 12% (radius 6, offset down 2) |
+| `.barGlass(tint:)` | tinted glass (prominent buttons, mode chip) | solid tint background (accent for Find All/Replace All, accent 18% for the chip) |
+| `.barGlass(interactive: false)` | non-interactive glass ("Prompt on replace" checkbox) | same as `.barGlass()` |
+| `.barGlassID(_:in:)` | `glassEffectID` (Replace row "grows" from the Find row) | does nothing |
+| `GlassGroup(spacing:)` | `GlassEffectContainer` | content unchanged |
 
-- Kích thước, khoảng cách và chiều cao 36 pt giống hệt trên hai hệ điều hành; chỉ khác chất liệu.
-- Kiểm giao diện macOS 15 ngay trên máy mới bằng cờ `-HexerNoGlass 1`. Cờ này chỉ đổi phần kính, không giả lập các khác biệt khác của macOS 15 (toolbar, sidebar, inspector do hệ thống vẽ).
-- Toolbar, sidebar, inspector, sheet và alert là của hệ thống nên tự theo giao diện của từng phiên bản macOS.
+- Sizes, spacing and the 36 pt height are identical on both OS versions; only the material differs.
+- Check the macOS 15 look on a new machine with the `-HexerNoGlass 1` flag. It changes only the glass; it does not emulate other macOS 15 differences (toolbar, sidebar, inspector are drawn by the system).
+- Toolbar, sidebar, inspector, sheets and alerts are system-owned, so they follow each macOS version's look automatically.

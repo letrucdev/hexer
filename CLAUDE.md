@@ -1,42 +1,43 @@
 # Hexer
 
-Trình sửa hex cho macOS 27, viết bằng SwiftUI + AppKit với Liquid Glass. Mục tiêu là đủ tính năng như HxD 2.5. Giao diện có tiếng Anh và tiếng Việt.
+Hex editor for macOS 27, written in SwiftUI + AppKit with Liquid Glass. Goal: feature parity with HxD 2.5. The UI ships in English and Vietnamese.
 
-## Đọc trước
-- **[HANDOFF.md](HANDOFF.md):** đọc khi bắt đầu một việc mới. File ghi trạng thái, kiến trúc, việc chưa làm, việc cần cải thiện và nhật ký các phiên.
-- **[DESIGN.md](DESIGN.md):** đọc trước khi sửa bất kỳ UI nào. Canvas gốc nằm ở https://claude.ai/artifact/JBSgQBQpVLtMWto8QECZgb.
+## Read first
+- **[HANDOFF.md](HANDOFF.md):** read when starting a new task. Holds status, architecture, what is not done, what to improve, and the session log.
+- **[DESIGN.md](DESIGN.md):** read before changing any UI. The source canvas is at https://claude.ai/artifact/JBSgQBQpVLtMWto8QECZgb.
+- These docs are written in English to save tokens; keep them in English.
 
-## Build và kiểm tra (không có Xcode, chỉ có Command Line Tools)
-- `Scripts/bundle.sh` build ra `build/Hexer.app`. Build dừng nếu có chuỗi UI chưa dịch tiếng Việt.
-- `Scripts/test.sh` chạy swift-testing (không có XCTest).
-- `Scripts/crosscheck.sh` so `hexer-cli` với các công cụ hệ thống.
-- Trước khi báo xong, cả ba lệnh trên đều phải đạt.
+## Build and checks (no Xcode, Command Line Tools only)
+- `Scripts/bundle.sh` builds `build/Hexer.app`. The build fails if any UI string lacks a Vietnamese translation.
+- `Scripts/test.sh` runs swift-testing (no XCTest).
+- `Scripts/crosscheck.sh` compares `hexer-cli` against system tools.
+- All three must pass before reporting done.
 
-## Quy tắc
-- **Không dùng `@State`**, vì CLT thiếu SwiftUIMacros. Dùng model `@Observable` + `@Bindable`.
-- **Chuỗi UI mới:** viết khoá tiếng Anh trong `Text("…")` hoặc `L("…")`, rồi thêm bản dịch vào `Scripts/l10n/vi.py`.
-- **Đặt code đúng tầng:** logic thuần nằm trong `HexerCore` và phải có test; ổ đĩa nằm trong `HexerPlatform`; app nằm trong `Sources/Hexer`, mặc định chạy trên MainActor.
-- **Giao diện theo HIG macOS 27:**
-  - Sidebar, inspector, sheet và alert dùng của hệ thống.
-  - Liquid Glass chỉ dùng cho control nổi, cao `GlassBar.height` (36).
-  - Toolbar tối đa 3 nhóm.
-- **Sửa UI xong** thì cập nhật luôn canvas và DESIGN.md.
-- **Kiểm UI bằng ảnh chụp app thật:**
-  - Dùng `-HexerSnapshot` và các cờ `-Hexer…`; mỗi cờ phải kèm một giá trị.
-  - Kiểm cả giao diện sáng, tối, tiếng Việt (`-AppleLanguages '(vi)'`) và cửa sổ hẹp.
-  - Chỉ chụp theo cửa sổ (`screencapture -l`), không bao giờ chụp vùng màn hình.
-- **Ổ đĩa:** mặc định chỉ đọc; không ghi vào ổ khởi động; không dùng `authopen -w`.
-- **Git:** repo `letrucdev/hexer`, nhánh `main`. Chỉ commit, push hoặc tạo tag khi người dùng yêu cầu.
-- **Phát hành:** push lên `main` không tạo release; chỉ push tag phiên bản mới tạo release (`.github/workflows/release.yml`).
-  - Tên tag dạng `vX.Y.Z`, ví dụ `v0.1.1`. Sửa lỗi hoặc thay đổi nhỏ thì tăng Z. Có tính năng mới thì tăng Y và đặt Z về 0. Thay đổi lớn thì tăng X.
-  - Bản thử nghiệm thêm hậu tố `-beta.N`, ví dụ `v0.2.0-beta.1`; workflow sẽ đánh dấu là pre-release.
-  - **Mỗi release phải ghi những gì thay đổi.** Trước khi tạo tag, thêm mục `## X.Y.Z — YYYY-MM-DD` lên đầu `CHANGELOG.md`, gồm `### What's new` (tiếng Anh) và `### Có gì mới` (tiếng Việt).
-    - Viết cho người dùng: dùng app thì thấy gì khác. Không chép tiêu đề commit; bỏ qua thay đổi chỉ ở test, CI hay tài liệu.
-    - Mục này mở đầu ghi chú release trên GitHub. Xem trước bằng `Scripts/release_notes.sh X.Y.Z vTRƯỚC`.
-    - Thiếu mục thì workflow Release dừng ngay ở job `notes`, trước khi chạy test hay build.
-  - Dùng tag annotated, nội dung `Hexer X.Y.Z`. Commit và push `CHANGELOG.md` lên `main` trước, rồi đặt tag trên commit đó: `git tag -a v0.1.1 -m "Hexer 0.1.1" <commit> && git push origin v0.1.1`.
-    - CI của phần code phải đã đạt. Commit chỉ sửa tệp `.md` thì không chạy CI; workflow Release tự chạy lại toàn bộ CI.
-  - Không sửa `CFBundleShortVersionString` bằng tay, vì workflow lấy phiên bản từ tag. Bản build trên máy lấy theo tag `v*` gần nhất (`Scripts/bundle.sh`).
-  - **Tự cập nhật:** workflow ký DMG bằng secret `HEXER_UPDATE_KEY` (khoá Ed25519, bản gốc trong Keychain của máy; xem HANDOFF.md, "Khoá ký bản cập nhật"), rồi đẩy DMG và `update.json` lên máy chủ cập nhật (bucket Cloudflare R2, qua API S3; secret `UPDATE_S3_URL`, `UPDATE_S3_ACCESS_KEY_ID`, `UPDATE_S3_SECRET_ACCESS_KEY`; xem HANDOFF.md, "Máy chủ cập nhật") bằng `Scripts/publish_update.sh`; thiếu secret nào thì workflow dừng ở job `notes`. App đọc `update.json` từ các địa chỉ trong `HexerUpdateFeedURLs` của `Resources/Info.plist`, theo thứ tự: máy chủ cập nhật trước, bản chép trên GitHub Release sau. Không đổi `HexerUpdatePublicKey` trong `Resources/Info.plist`: các bản đã cài chỉ tin khoá đó, đổi là chúng không tự cập nhật được nữa.
-  - Sau khi push tag, theo dõi workflow Release đến khi xong (khoảng 7 phút). Rồi kiểm tra `update.json` trên máy chủ cập nhật có phiên bản mới, và trang release có `Hexer-X.Y.Z.dmg`, `Hexer-X.Y.Z.dmg.sha256`, `Hexer-X.Y.Z.dmg.sig`, `update.json` và phần thay đổi của phiên bản.
-- **Cuối mỗi phiên:** cập nhật HANDOFF.md (đã làm, chưa làm, nhật ký).
+## Rules
+- **No `@State`**: the CLT lack SwiftUIMacros. Use an `@Observable` model + `@Bindable`.
+- **New UI strings:** write the English key in `Text("…")` or `L("…")`, then add the translation to `Scripts/l10n/vi.py`.
+- **Put code in the right layer:** pure logic goes in `HexerCore` and needs tests; disk access goes in `HexerPlatform`; the app lives in `Sources/Hexer` and runs on the MainActor by default.
+- **UI follows the macOS 27 HIG:**
+  - Sidebar, inspector, sheets and alerts are the system's.
+  - Liquid Glass only for floating controls, `GlassBar.height` (36) tall.
+  - At most 3 toolbar groups.
+- **After changing UI**, update the canvas and DESIGN.md too.
+- **Verify UI with screenshots of the real app:**
+  - Use `-HexerSnapshot` and the other `-Hexer…` flags; every flag must be followed by a value.
+  - Check light, dark, Vietnamese (`-AppleLanguages '(vi)'`) and a narrow window.
+  - Capture by window only (`screencapture -l`), never a screen region.
+- **Disks:** read-only by default; never write to the boot disk; never use `authopen -w`.
+- **Git:** repo `letrucdev/hexer`, branch `main`. Commit, push or tag only when the user asks.
+- **Releases:** pushing to `main` does not release; only pushing a version tag does (`.github/workflows/release.yml`).
+  - Tags are `vX.Y.Z`, e.g. `v0.1.1`. Bug fixes and small changes bump Z. New features bump Y and reset Z to 0. Big changes bump X.
+  - Pre-releases add `-beta.N`, e.g. `v0.2.0-beta.1`; the workflow marks them as pre-release.
+  - **Every release must say what changed.** Before tagging, add a `## X.Y.Z — YYYY-MM-DD` section at the top of `CHANGELOG.md` with `### What's new` (English) and `### Có gì mới` (Vietnamese).
+    - Write for users: what looks different when using the app. Don't copy commit titles; skip changes that only touch tests, CI or docs.
+    - The section opens the GitHub release notes. Preview with `Scripts/release_notes.sh X.Y.Z vPREVIOUS`.
+    - Without the section the Release workflow stops at the `notes` job, before tests or build.
+  - Use an annotated tag with message `Hexer X.Y.Z`. Commit and push `CHANGELOG.md` to `main` first, then tag that commit: `git tag -a v0.1.1 -m "Hexer 0.1.1" <commit> && git push origin v0.1.1`.
+    - CI for the code must already be green. A commit touching only `.md` files doesn't run CI; the Release workflow reruns all of CI itself.
+  - Don't edit `CFBundleShortVersionString` by hand: the workflow takes the version from the tag. Local builds use the latest `v*` tag (`Scripts/bundle.sh`).
+  - **Self-update:** the workflow signs the DMG with secret `HEXER_UPDATE_KEY` (Ed25519 key, original in this machine's Keychain; see HANDOFF.md, "Update signing key"), then uploads the DMG and `update.json` to the update server (Cloudflare R2 bucket via the S3 API; secrets `UPDATE_S3_URL`, `UPDATE_S3_ACCESS_KEY_ID`, `UPDATE_S3_SECRET_ACCESS_KEY`; see HANDOFF.md, "Update server") with `Scripts/publish_update.sh`; a missing secret stops the workflow at the `notes` job. The app reads `update.json` from the addresses in `HexerUpdateFeedURLs` in `Resources/Info.plist`, in order: update server first, the copy on the GitHub Release second. Never change `HexerUpdatePublicKey` in `Resources/Info.plist`: installed copies trust only that key, and changing it stops them from updating.
+  - After pushing a tag, watch the Release workflow until it finishes (about 7 minutes). Then check that `update.json` on the update server lists the new version, and that the release page has `Hexer-X.Y.Z.dmg`, `Hexer-X.Y.Z.dmg.sha256`, `Hexer-X.Y.Z.dmg.sig`, `update.json` and the version's change notes.
+- **End of every session:** update HANDOFF.md (done, not done, log).

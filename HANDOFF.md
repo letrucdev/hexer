@@ -1,460 +1,288 @@
-# Hexer — Bàn giao kỹ thuật
+# Hexer — Technical handoff
 
-Cập nhật lần cuối: 2026-10-26. Đọc file này trước khi code tiếp; phần thiết kế giao diện nằm ở [DESIGN.md](DESIGN.md).
+Last updated: 2026-10-26. Read this file before continuing work; UI design is in [DESIGN.md](DESIGN.md).
 
-Hexer là trình sửa hex thiết kế cho macOS 27, viết bằng SwiftUI + AppKit với Liquid Glass, và **chạy từ macOS 15** (macOS 15 không có kính, xem DESIGN.md §11). Mục tiêu là đủ tính năng như **HxD 2.5**, được dựng lại từ `HxD64.exe` bằng REA.
+Hexer is a hex editor designed for macOS 27, written in SwiftUI + AppKit with Liquid Glass, and it **runs on macOS 15 and later** (macOS 15 has no glass, see DESIGN.md §11). The goal is feature parity with **HxD 2.5**, reconstructed from `HxD64.exe` using REA.
 
-| Tài liệu | Đường dẫn |
+| Document | Path |
 |---|---|
-| Kế hoạch gốc (10 phase, kiến trúc, rủi ro) | `~/.claude/plans/d-ng-rea-ph-n-t-ch-wiggly-metcalfe.md` |
-| Thiết kế UI (canvas Claude Design) | https://claude.ai/artifact/JBSgQBQpVLtMWto8QECZgb · [DESIGN.md](DESIGN.md) |
-| Bản HxD dùng để đối chiếu | `~/Downloads/HxD/HxD64.exe` (crosscheck cũng dùng file này) |
+| Original plan (10 phases, architecture, risks) | `~/.claude/plans/d-ng-rea-ph-n-t-ch-wiggly-metcalfe.md` |
+| UI design (Claude Design canvas) | https://claude.ai/artifact/JBSgQBQpVLtMWto8QECZgb · [DESIGN.md](DESIGN.md) |
+| HxD build used for comparison | `~/Downloads/HxD/HxD64.exe` (crosscheck uses this file too) |
 
-## 1. Trạng thái nhanh
+## 1. Quick status
 
-- Phase 1–9 đã xong. Phase 10 (đối chiếu chi tiết với HxD bằng REA) đã áp dụng các phát hiện chính.
-- **Đã kiểm tra lại ngày 2026-10-25:**
-  - `Scripts/test.sh`: 193 test đều đạt (HexerCore 139, HexerDisasm 12, HexerPlatform 42).
-  - `Scripts/crosscheck.sh`: 287/287 đạt.
-  - `Scripts/bundle.sh`: build không có warning, ngoại trừ cảnh báo search path của linker.
-  - Đã kiểm l10n: 666 khoá có tiếng Việt (audit giờ nhận thêm nhiều mẫu, xem §2).
-- **Bản mới nhất: v0.4.0** (2026-10-26), bản cầu nối sang máy chủ cập nhật trên Cloudflare R2 (`https://pub-78e377a21a0d499cb607f4ad3d0c899d.r2.dev/update.json`): 0.3.x tìm thấy nó qua GitHub API như trước, từ 0.4.0 trở đi app đọc manifest trên R2 (GitHub Release là nguồn dự phòng). Secret `HEXER_UPDATE_KEY` và 3 secret `UPDATE_S3_*` đã có trên GitHub. Người đang dùng 0.2.0 trở xuống phải tải bằng tay một lần.
-- **Git:** nhánh `main`, remote `origin` = `git@github-letrucdev:letrucdev/hexer.git` (host SSH `github-letrucdev` là alias trong `~/.ssh/config` của máy). Commit đầu tiên đã push ngày 2026-10-24. Chỉ commit hoặc push khi người dùng yêu cầu.
+- Phases 1–9 are done. Phase 10 (detailed comparison with HxD using REA) has had its main findings applied.
+- **Re-verified on 2026-10-25:**
+  - `Scripts/test.sh`: all 193 tests pass (HexerCore 139, HexerDisasm 12, HexerPlatform 42).
+  - `Scripts/crosscheck.sh`: 287/287 pass.
+  - `Scripts/bundle.sh`: builds with no warnings except the linker search-path warning.
+  - l10n checked: 666 keys have Vietnamese (the audit now recognizes many more patterns, see §2).
+- **Latest release: v0.4.0** (2026-10-26), the bridge release to the Cloudflare R2 update server (`https://pub-78e377a21a0d499cb607f4ad3d0c899d.r2.dev/update.json`): 0.3.x finds it through the GitHub API as before; from 0.4.0 on the app reads the manifest on R2 (GitHub Release is the fallback). The `HEXER_UPDATE_KEY` secret and the 3 `UPDATE_S3_*` secrets are set on GitHub. Users on 0.2.0 or earlier must download manually once.
+- **Git:** branch `main`, remote `origin` = `git@github-letrucdev:letrucdev/hexer.git` (SSH host `github-letrucdev` is an alias in this machine's `~/.ssh/config`). First commit pushed 2026-10-24. Commit or push only when the user asks.
 
-## 2. Môi trường và lệnh
+## 2. Environment and commands
 
-Máy chỉ có **Command Line Tools**, không có Xcode: Swift 6.4, SDK MacOSX27, SwiftPM tools 6.2, Swift 6 language mode. Deployment target **macOS 15** (`Package.swift`, `LSMinimumSystemVersion`); `bundle.sh` ghi `minos 15.0`, `sdk 27.0` vào binary.
+The machine has only **Command Line Tools**, no Xcode: Swift 6.4, SDK MacOSX27, SwiftPM tools 6.2, Swift 6 language mode. Deployment target **macOS 15** (`Package.swift`, `LSMinimumSystemVersion`); `bundle.sh` writes `minos 15.0`, `sdk 27.0` into the binary.
 
-| Lệnh | Tác dụng |
+| Command | What it does |
 |---|---|
-| `Scripts/bundle.sh` | Build release → `build/Hexer.app`. Chạy `vtool` (SDK 27), l10n audit, `plutil -lint`, `iconutil`, codesign ad-hoc. Build **thất bại nếu có chuỗi UI chưa dịch**. Phiên bản lấy từ `$VERSION` (workflow Release đặt theo tag), nếu không có thì từ tag `v*` gần nhất (`git describe --tags --abbrev=0`); chỉ khi không có tag (clone nông như CI thường) mới giữ `0.1` của `Resources/Info.plist`. |
-| `CONFIG=debug Scripts/bundle.sh` · `UNIVERSAL=1 Scripts/bundle.sh` · `Scripts/bundle.sh --run [args]` | Bản debug · bản arm64 + x86_64 · build rồi chạy luôn |
-| `SIGN_IDENTITY=… Scripts/bundle.sh` | Ký bằng identity thật. Ký ad-hoc làm macOS **mất quyền Screen Recording sau mỗi lần build**. |
-| `Scripts/test.sh` | `swift test --disable-xctest` (swift-testing). Test platform có attach ảnh đĩa thật bằng `hdiutil`. Quá `$TEST_TIMEOUT` giây (mặc định 900, tính cả build) thì dừng và in các dòng `error:`: tiến trình con còn chạy (ví dụ một `hdiutil` treo) và các frame của code Hexer trong stack của tiến trình test (lấy bằng `sample`). Trên CI, các dòng này thành annotation đọc được không cần đăng nhập. swift-testing không in gì cho tới khi chạy xong nếu output không phải terminal, kể cả `--event-stream-output-path`. |
-| `Scripts/crosscheck.sh` | So `hexer-cli` với xxd, grep, perl, md5, shasum, cksum, cmp… trên HxD64.exe và các tệp ngẫu nhiên |
-| `swift Scripts/record_demo.swift && swift Scripts/make_promo.swift [--lang vi]` | Video giới thiệu `build/promo/hexer-tour.mp4` (bản phụ đề tiếng Việt: `hexer-tour-vi.mp4`), 1920×1080, 60 fps, H.264 + AAC, 120 giây, khoảng 175 MB, **không commit**. `record_demo` chạy app với `-HexerDemo` (kịch bản `App/DemoScript.swift` tự thao tác qua API của app, không phát sự kiện chuột/phím ra hệ thống) và quay **chỉ cửa sổ Hexer** ở 60 fps bằng ScreenCaptureKit. `make_promo` dựng khung hình bằng Core Image trên GPU (render mất khoảng 30 giây): mở đầu với sàn byte 3D, icon và chữ "Hexer"; cửa sổ trồi lên khi nhịp vào; con trỏ (đường hơi cong, tốc độ kiểu minimum-jerk), hiệu ứng click, badge phím; camera trượt mượt theo các sự kiện `focus` trong `timeline.json` (smootherstep 1,6 s vào, 1,5 s ra, zoom theo thang log quanh điểm đứng yên); caption kính có số chương (thu gọn khi zoom); chuyển chương đúng beat; cuối video có lưới tính năng và link. Nhạc nền nhẹ 80 BPM do `Scripts/make_music.py` (numpy, tự tổng hợp, không dùng sample) tạo từ `cues.json` mà `make_promo` ghi ra, ghép vào bằng `afconvert` và `AVAssetExportSession`. `--stills 6.5,20` chỉ xuất các khung đó ra PNG để xem nhanh. Chỉ báo chia sẻ màu tím được vá bằng ảnh sạch (cửa sổ chính) và bằng cách dò từng khung (cửa sổ Statistics). Cần quyền Screen Recording, numpy, và chạy `Scripts/bundle.sh` trước. |
-| `Scripts/vm_test.sh start` · `deploy` · `selftest` · `shot NAME [GIÂY] -- ARGS` · `capture` · `burst` · `keys` · `press` · `menu` · `close` · `ax` · `ssh CMD` | Test trên máy ảo macOS trong UTM qua SSH. `start` bật máy ảo (`utmctl`) rồi đợi SSH. `deploy` chép `Hexer.app`, `hexer-cli`, tệp mẫu (`$P/Hexer`, `$P/Hexer-b`, `$P/firmware.hex`) và `vm_agent`. `shot` mở app với các cờ `-Hexer…`, chụp **cửa sổ UTM** rồi cắt theo cửa sổ Hexer, lưu vào `build/vm/shots/`; `capture` chụp ngay lúc đó; `burst` bấm phím rồi chụp liền nhiều khung để xem animation. `keys` (`left`, `return`, `escape`, `cmd+o`…), `press`, `menu`, `close` và `ax windows|tree|frame` điều khiển Hexer trong máy ảo qua `Scripts/vm_agent.swift` (sự kiện phím gửi thẳng vào tiến trình, nút và menu qua Accessibility API), không đụng chuột hay bàn phím của máy này. Cấu hình trong `build/vm/config` (`VM_HOST`, `VM_USER`, `VM_KEY`, `VM_NAME`; máy hiện tại: macOS 15.0, `letrucdev@192.168.64.2`). Một lần trong máy ảo: bật Remote Login, thêm public key vào `~/.ssh/authorized_keys`, và cho `/usr/libexec/sshd-keygen-wrapper` quyền Accessibility (máy hiện tại đã có). MCP `utm` cũng bật/tắt được máy ảo và lấy IP (`start_vm`, `get_vm_ip`…). |
-| `Scripts/make_dmg.sh` · `--no-build` | Bản phát hành cho người khác: build universal rồi tạo `build/Hexer-<version>.dmg` gồm `Hexer.app`, lối tắt `Applications`, biểu tượng ổ đĩa và hai hướng dẫn RTF ("Install Hexer.rtf", "Hướng dẫn cài đặt Hexer.rtf", sinh từ `Distribution/install-{en,vi}.html` bằng `textutil`). App ký ad hoc và chưa notarize, nên hướng dẫn chỉ cách cho phép lần mở đầu (Privacy & Security ▸ Open Anyway, hoặc `xattr -dr com.apple.quarantine`). Có `SIGN_IDENTITY` thì ký cả DMG. Tên nút trong hướng dẫn lấy từ bảng bản địa hoá của hệ thống (CoreServicesUIAgent, SecurityPrivacyExtension). |
-| `Scripts/sign_update.sh VERSION` | Ký `build/Hexer-VERSION.dmg` bằng khoá trong `$HEXER_UPDATE_KEY` → `.dmg.sig`, rồi kiểm lại bằng `HexerUpdatePublicKey` trong `build/Hexer.app`; khoá không khớp thì dừng. Workflow Release chạy sau `make_dmg.sh`. Thử ở máy này: `HEXER_UPDATE_KEY="$(security find-generic-password -a letrucdev/hexer -s 'Hexer update signing key' -w)" Scripts/sign_update.sh 0.1` (xoá `.sig` sau khi thử). |
-| `Scripts/publish_update.sh VERSION NOTES_FILE` | Đẩy `build/Hexer-VERSION.dmg` và `update.json` (manifest cũ trên máy chủ + bản này) lên máy chủ cập nhật qua API S3; cần `UPDATE_S3_URL`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`. Workflow Release chạy sau `sign_update.sh`. Xem "Máy chủ cập nhật" bên dưới. |
-| `Scripts/fetch_capstone.sh` | Tải lại hoặc cập nhật Capstone 5.0.9 vào `Sources/CCapstone` (đã kiểm sha256) |
-| `swift build --product hexer-cli` | CLI: `dump`, `find`, `replace`, `checksum`, `stats`, `diff`, `export`, `import` (`ihex`/`srec`/`etl`), `disasm`, `edit`, `split`, `concat`, `disks` (`list`/`read`), `update` (`keygen`/`public-key`/`sign`/`verify` cho chữ ký bản cập nhật; `manifest`/`download`/`upload` cho máy chủ cập nhật), `bench`, `selftest`, `help` |
-| `hexer-cli selftest` | Kiểm known-answer ngay trong binary (checksum, digest, bảng mã, piece tree, tìm kiếm, Intel Hex/S-Record, lưu tệp, Capstone). Dùng cho bản build không chạy được test suite, ví dụ lát x86_64 của bản universal: `arch -x86_64 hexer-cli selftest`. |
+| `Scripts/bundle.sh` | Release build → `build/Hexer.app`. Runs `vtool` (SDK 27), l10n audit, `plutil -lint`, `iconutil`, ad-hoc codesign. The build **fails if any UI string lacks a translation**. Version comes from `$VERSION` (the Release workflow sets it from the tag), otherwise from the latest `v*` tag (`git describe --tags --abbrev=0`); only with no tags (a shallow clone such as normal CI) does it keep `0.1` from `Resources/Info.plist`. |
+| `CONFIG=debug Scripts/bundle.sh` · `UNIVERSAL=1 Scripts/bundle.sh` · `Scripts/bundle.sh --run [args]` | Debug build · arm64 + x86_64 build · build then run |
+| `SIGN_IDENTITY=… Scripts/bundle.sh` | Sign with a real identity. Ad-hoc signing makes macOS **lose the Screen Recording permission after every build**. |
+| `Scripts/test.sh` | `swift test --disable-xctest` (swift-testing). Platform tests attach real disk images with `hdiutil`. After `$TEST_TIMEOUT` seconds (default 900, build included) it stops and prints `error:` lines: child processes still running (e.g. a hung `hdiutil`) and the Hexer-code frames in the test process's stack (taken with `sample`). On CI these lines become annotations readable without logging in. swift-testing prints nothing until it finishes when output is not a terminal, even with `--event-stream-output-path`. |
+| `Scripts/crosscheck.sh` | Compares `hexer-cli` against xxd, grep, perl, md5, shasum, cksum, cmp… on HxD64.exe and random files |
+| `swift Scripts/record_demo.swift && swift Scripts/make_promo.swift [--lang vi]` | Promo video `build/promo/hexer-tour.mp4` (`--lang vi`: `hexer-tour-vi.mp4`), 1920×1080, 60 fps, 120 seconds, about 175 MB, **not committed**. `record_demo` runs the app with `-HexerDemo` (the `App/DemoScript.swift` script drives the app through its own API, emitting no system events) and records only the Hexer window with ScreenCaptureKit. `make_promo` builds frames with Core Image (about 30 seconds): 3D intro, cursor, key badges, camera sliding along the `focus` events in `timeline.json`, glass captions, chapter transitions on the beat, final feature grid. The 80 BPM music is synthesized by `Scripts/make_music.py` (numpy) from `cues.json`, assembled with `afconvert` and `AVAssetExportSession`. `--stills 6.5,20` exports only those frames as PNG. Needs Screen Recording permission, numpy, and `Scripts/bundle.sh` run first. Details in session 6. |
+| `Scripts/vm_test.sh start` · `deploy` · `selftest` · `shot NAME [SECONDS] -- ARGS` · `capture` · `burst` · `keys` · `press` · `menu` · `close` · `ax` · `ssh CMD` | Tests in a macOS VM in UTM over SSH. `deploy` copies the app, `hexer-cli`, sample files and `vm_agent`. `shot` opens the app with `-Hexer…` flags, captures the **UTM window**, and crops to the Hexer window into `build/vm/shots/`; `burst` presses a key then captures several frames in a row. `keys`, `press`, `menu`, `close`, `ax` control Hexer through `Scripts/vm_agent.swift` (keys go straight to the process, buttons and menus via Accessibility), without touching this machine's mouse/keyboard. Config in `build/vm/config` (`VM_HOST`, `VM_USER`, `VM_KEY`, `VM_NAME`; currently macOS 15.0, `letrucdev@192.168.64.2`). One-time setup inside the VM: enable Remote Login, add the public key to `authorized_keys`, give `/usr/libexec/sshd-keygen-wrapper` Accessibility permission (already done). The `utm` MCP can also start/stop the VM and get its IP. |
+| `Scripts/make_dmg.sh` · `--no-build` | Release for other people: builds universal, then creates `build/Hexer-<version>.dmg` containing `Hexer.app`, an `Applications` shortcut, a volume icon and two RTF guides ("Install Hexer.rtf", "Hướng dẫn cài đặt Hexer.rtf", generated from `Distribution/install-{en,vi}.html` with `textutil`). The app is ad-hoc signed and not notarized, so the guides explain how to allow the first launch (Privacy & Security ▸ Open Anyway, or `xattr -dr com.apple.quarantine`). With `SIGN_IDENTITY` the DMG is signed too. Button names in the guides come from the system localization tables (CoreServicesUIAgent, SecurityPrivacyExtension). |
+| `Scripts/sign_update.sh VERSION` | Signs `build/Hexer-VERSION.dmg` with the key in `$HEXER_UPDATE_KEY` → `.dmg.sig`, then verifies with `HexerUpdatePublicKey` in `build/Hexer.app`; stops if the key does not match. The Release workflow runs it after `make_dmg.sh`. Try it on this machine: `HEXER_UPDATE_KEY="$(security find-generic-password -a letrucdev/hexer -s 'Hexer update signing key' -w)" Scripts/sign_update.sh 0.1` (delete the `.sig` afterwards). |
+| `Scripts/publish_update.sh VERSION NOTES_FILE` | Pushes `build/Hexer-VERSION.dmg` and `update.json` (old manifest on the server + this version) to the update server over the S3 API; needs `UPDATE_S3_URL`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`. The Release workflow runs it after `sign_update.sh`. See "Update server" below. |
+| `Scripts/fetch_capstone.sh` | Re-download or update Capstone 5.0.9 into `Sources/CCapstone` (sha256 checked) |
+| `swift build --product hexer-cli` | CLI: `dump`, `find`, `replace`, `checksum`, `stats`, `diff`, `export`, `import` (`ihex`/`srec`/`etl`), `disasm`, `edit`, `split`, `concat`, `disks` (`list`/`read`), `update` (`keygen`/`public-key`/`sign`/`verify` for update signatures; `manifest`/`download`/`upload` for the update server), `bench`, `selftest`, `help` |
+| `hexer-cli selftest` | Known-answer checks inside the binary (checksum, digest, encodings, piece tree, search, Intel Hex/S-Record, file save, Capstone). For builds that cannot run the test suite, e.g. the x86_64 slice of the universal build: `arch -x86_64 hexer-cli selftest`. |
 
-### CI và phát hành (GitHub Actions)
+### CI and releases
+(GitHub Actions)
 - **`.github/workflows/ci.yml`:**
-  - Chạy khi push lên `main` hoặc mở pull request (bỏ qua thay đổi chỉ ở `*.md`, `docs/`, `Distribution/`), hoặc chạy tay.
-  - Chạy `Scripts/test.sh`, `Scripts/crosscheck.sh` (HxD64.exe không có trên runner nên bị bỏ qua) và `Scripts/bundle.sh`; tải `Hexer.app` lên làm artifact, giữ 7 ngày.
+  - Runs on push to `main` or on a pull request (ignoring changes only in `*.md`, `docs/`, `Distribution/`), or manually.
+  - Runs `Scripts/test.sh`, `Scripts/crosscheck.sh` (HxD64.exe is not on the runner, so that part is skipped) and `Scripts/bundle.sh`; uploads `Hexer.app` as an artifact, kept 7 days.
 - **`.github/workflows/release.yml`:**
-  - Chạy khi push tag `v*`. Quy tắc đặt tên và lệnh tạo tag nằm trong CLAUDE.md (mục "Phát hành"), ví dụ `git tag -a v0.1.1 -m "Hexer 0.1.1" && git push origin v0.1.1`.
-  - Job `notes` chạy trước: `Scripts/release_notes.sh` phải tìm thấy mục của phiên bản trong `CHANGELOG.md`, nếu không thì dừng.
-  - Job `notes` cũng dừng nếu thiếu secret `HEXER_UPDATE_KEY` (xem "Khoá ký bản cập nhật" bên dưới).
-  - Job `notes` cũng dừng nếu thiếu secret `UPDATE_S3_URL`, `UPDATE_S3_ACCESS_KEY_ID` hay `UPDATE_S3_SECRET_ACCESS_KEY`, hoặc `HexerUpdateFeedURLs` trong Info.plist còn địa chỉ giữ chỗ `REPLACE-ME` (xem "Máy chủ cập nhật" bên dưới).
-  - Sau đó gọi lại `ci.yml`; nếu đạt thì lấy phiên bản từ tag, ghi vào `CFBundleShortVersionString`, chạy `Scripts/make_dmg.sh`, rồi `Scripts/sign_update.sh` (ký DMG, kiểm chữ ký bằng khoá công khai trong app vừa build).
-  - Ghi chú do `Scripts/release_notes.sh` dựng vào `build/release-notes.md`: mục của phiên bản trong `CHANGELOG.md` (thay chỗ `@CHANGES@` trong `Distribution/release-notes.md`), hướng dẫn cài đặt, link so sánh với tag trước, rồi dòng SHA-256.
-  - `Scripts/publish_update.sh` đẩy lên máy chủ cập nhật: tải `update.json` hiện có (qua API S3, không qua cache), thêm bản mới bằng `hexer-cli update manifest` (notes = `release-notes.md`, `urls` = DMG trên máy chủ rồi DMG trên GitHub Release), upload DMG (`Cache-Control: immutable`) rồi mới upload `update.json` (`max-age=300`), cuối cùng `curl` kiểm DMG đã công khai ở địa chỉ app sẽ đọc.
-  - Tạo release bằng `gh release create`, kèm DMG, tệp `.sha256`, tệp `.sig` (bản 0.3.x cần) và bản chép `update.json` (nguồn dự phòng của app). Tag có dấu `-` (ví dụ `v0.2.0-beta.1`) thành pre-release.
-- **Runner:** `xcode-27` (macOS 27, Xcode 27.0, SDK 27; nhãn còn ở dạng preview), chọn qua `DEVELOPER_DIR`. Khi `DEVELOPER_DIR` trỏ tới một Xcode, Package.swift không thêm `-plugin-path` của CLT.
-- **Repo public** (https://github.com/letrucdev/hexer). Không đăng nhập vẫn xem được trạng thái từng bước qua API (`/actions/runs`, `/actions/runs/<id>/jobs`), nhưng log thì phải đăng nhập. Vì vậy `Scripts/ci_run.sh` lặp lại các dòng lỗi của bước bị lỗi thành annotation (`/check-runs/<id>/annotations`), đọc công khai được. Máy này chưa cài `gh`; Python của máy thiếu chứng chỉ SSL, nên gọi API bằng `curl`.
-- **Kết quả:** CI mất khoảng 4–5 phút; workflow Release (gồm cả CI) khoảng 7–8 phút.
-- **Giới hạn API khi theo dõi:** không đăng nhập thì chỉ có 60 lần gọi mỗi giờ cho mỗi IP; Hexer 0.3.x trên cùng mạng cũng dùng chung hạn mức đó để kiểm tra cập nhật (từ 0.4.0 thì không: app đọc manifest, không gọi API). Theo dõi một workflow thì hỏi mỗi 60 s là đủ. Phiên 7 dùng hết hạn mức (mỗi 30 s, nhiều workflow liền nhau), app 0.3.0 kiểm tra thì nhận 403. Trang release và link tải asset (`/releases/download/…`) không tính vào hạn mức.
-- **Máy chủ cập nhật (Cloudflare R2, API S3):**
-  - Một bucket R2 công khai chứa `update.json` và các `Hexer-X.Y.Z.dmg`. App đọc ở địa chỉ công khai (`HexerUpdateFeedURLs[0]` trong `Resources/Info.plist`, dạng `https://pub-….r2.dev/update.json`; sau này đổi sang tên miền riêng thì chỉ sửa chỗ này và phát hành bản mới, các bản cũ hơn vẫn đọc được qua nguồn dự phòng trên GitHub). `publish_update.sh` suy ra địa chỉ công khai của DMG từ chính khoá này nên không có biến nào phải khớp bằng tay. Lưu ý Cloudflare nói `r2.dev` bị giới hạn tốc độ và không dành cho sản phẩm; khi có tên miền riêng thì gắn vào bucket (Settings ▸ Custom Domains).
-  - **Tạo một lần (người dùng tự làm trên Cloudflare):** R2 ▸ Create bucket (tên ví dụ `hexer-updates`, location Automatic) ▸ Settings ▸ Public access ▸ bật r2.dev subdomain, chép địa chỉ `https://pub-….r2.dev`. R2 ▸ Manage R2 API Tokens ▸ Create API token: quyền **Object Read & Write**, giới hạn vào bucket đó, TTL vô hạn; chép Access Key ID, Secret Access Key và endpoint `https://<account id>.r2.cloudflarestorage.com`.
-  - **Secret trên GitHub** (Settings ▸ Secrets and variables ▸ Actions): `UPDATE_S3_URL` = `https://<account id>.r2.cloudflarestorage.com/<bucket>` (endpoint + tên bucket, không có dấu `/` cuối), `UPDATE_S3_ACCESS_KEY_ID`, `UPDATE_S3_SECRET_ACCESS_KEY`. Workflow đặt hai khoá vào `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` cho `hexer-cli` (tên chuẩn của mọi công cụ S3; region `AWS_REGION`, mặc định `auto` của R2).
-  - **Chữ ký S3 (AWS SigV4)** tự viết trong `HexerCore/Update/AWSSignatureV4.swift` (CryptoKit, có test theo hai ví dụ trong tài liệu S3 của Amazon), nên runner không cần `aws` hay `wrangler`. `hexer-cli update download|upload` gửi bằng URLSession. Bucket nào tương thích S3 (B2, MinIO, S3) cũng dùng được, chỉ đổi `UPDATE_S3_URL`.
-  - Thử ở máy này không cần tạo release: `UPDATE_S3_URL=… AWS_ACCESS_KEY_ID=… AWS_SECRET_ACCESS_KEY=… hexer-cli update download --if-missing-ok "$UPDATE_S3_URL/update.json"` (404 là bình thường khi bucket trống; 403 là token sai quyền). Lần upload thật đầu tiên là release 0.4.0 (workflow đạt ngay lần đầu, xem nhật ký phiên 9).
-  - `update.json` trên máy chủ là nguồn sự thật của danh sách 10 bản mới nhất; mất nó thì release sau tạo lại manifest chỉ có bản mới (bản cũ không còn được đề nghị cho người bật beta, nhưng bản ổn định mới nhất vẫn có).
-- **Khoá ký bản cập nhật (Ed25519):**
-  - Khoá bí mật nằm trong Keychain đăng nhập của máy này: mục "Hexer update signing key", account `letrucdev/hexer` (tạo ngày 2026-10-25 bằng `hexer-cli update keygen`, không in ra màn hình). Khoá công khai `qQH58WYIAJxTACG1jnB/eweAvWnoo3oMkTYQWfKo+MI=` nằm ở `HexerUpdatePublicKey` trong `Resources/Info.plist`.
-  - Đưa lên GitHub (một lần, người dùng tự làm vì máy không có `gh`): chạy `security find-generic-password -a letrucdev/hexer -s 'Hexer update signing key' -w | pbcopy`, rồi dán vào Settings ▸ Secrets and variables ▸ Actions ▸ New repository secret, tên `HEXER_UPDATE_KEY`. Nên cất thêm một bản trong trình quản lý mật khẩu.
-  - Mất khoá thì không ký được bản mới cho các bản đã cài; phải phát hành bản có khoá công khai mới và người dùng tải tay một lần. Lộ khoá thì cũng vậy (đổi khoá và báo người dùng).
-- **Chi phí:** phút chạy runner macOS bị tính nhiều hơn Linux (gần đây là gấp 10 lần) vào hạn mức Actions của repo private; nên kiểm tra mức dùng trong Settings ▸ Billing.
+  - Runs on push of a `v*` tag. Naming rules and the tag command are in CLAUDE.md (section "Releases"), e.g. `git tag -a v0.1.1 -m "Hexer 0.1.1" && git push origin v0.1.1`.
+  - The `notes` job runs first: `Scripts/release_notes.sh` must find the version's section in `CHANGELOG.md`, otherwise it stops.
+  - The `notes` job also stops if the `HEXER_UPDATE_KEY` secret is missing (see "Update signing key" below).
+  - The `notes` job also stops if the `UPDATE_S3_URL`, `UPDATE_S3_ACCESS_KEY_ID` or `UPDATE_S3_SECRET_ACCESS_KEY` secret is missing, or if `HexerUpdateFeedURLs` in Info.plist still has the placeholder address `REPLACE-ME` (see "Update server" below).
+  - Then it calls `ci.yml`; if that passes it takes the version from the tag, writes it to `CFBundleShortVersionString`, runs `Scripts/make_dmg.sh`, then `Scripts/sign_update.sh` (signs the DMG, verifies the signature with the public key in the app just built).
+  - Release notes are built by `Scripts/release_notes.sh` into `build/release-notes.md`: the version's section from `CHANGELOG.md` (replacing `@CHANGES@` in `Distribution/release-notes.md`), the install guide, a compare link to the previous tag, then the SHA-256 line.
+  - `Scripts/publish_update.sh` pushes to the update server: downloads the existing `update.json` (over the S3 API, bypassing caches), adds the new version with `hexer-cli update manifest` (notes = `release-notes.md`, `urls` = the DMG on the server then the DMG on the GitHub Release), uploads the DMG (`Cache-Control: immutable`), then uploads `update.json` (`max-age=300`), and finally `curl`s to check the DMG is public at the address the app will read.
+  - Creates the release with `gh release create`, with the DMG, the `.sha256` file, the `.sig` file (needed by 0.3.x) and a copy of `update.json` (the app's fallback source). A tag containing `-` (e.g. `v0.2.0-beta.1`) becomes a pre-release.
+- **Runner:** `xcode-27` (macOS 27, Xcode 27.0, SDK 27; the label is still preview), selected via `DEVELOPER_DIR`. When `DEVELOPER_DIR` points to an Xcode, Package.swift does not add the CLT `-plugin-path`.
+- **Public repo** (https://github.com/letrucdev/hexer). Without logging in you can still see each step's status through the API (`/actions/runs`, `/actions/runs/<id>/jobs`), but logs require login. So `Scripts/ci_run.sh` repeats the failed step's error lines as annotations (`/check-runs/<id>/annotations`), readable publicly. `gh` is not installed on this machine; the machine's Python lacks SSL certificates, so call the API with `curl`.
+- **Timings:** CI takes about 4–5 minutes; the Release workflow (including CI) about 7–8 minutes.
+- **API limits when monitoring:** unauthenticated gives only 60 calls per hour per IP; Hexer 0.3.x on the same network shares that quota for update checks (from 0.4.0 it does not: the app reads the manifest, no API calls). Polling a workflow every 60 s is enough. Session 7 used up the quota (every 30 s, several workflows in a row), and the 0.3.0 app got a 403 when checking. Release pages and asset download links (`/releases/download/…`) do not count against the quota.
 
-### Những điểm dễ vấp
-- **`@State` không biên dịch được**, vì CLT thiếu SwiftUIMacros. Dùng model `@Observable` + `@Bindable`. `@FocusState`, `@Namespace` và `@AppStorage` vẫn dùng được.
-- **Test target cần `-plugin-path …/host/plugins/testing`.** Hằng `testSettings` trong `Package.swift` lo việc này; thiếu nó thì thỉnh thoảng báo không tìm thấy TestingMacros.
-- **SourceKit báo "No such module 'HexerPlatform'"** trong editor. Lỗi này giả, vì không có project Xcode; cứ build bằng script là được.
-- **API mới hơn macOS 15:** trình biên dịch báo lỗi nếu dùng mà không có `if #available`. Kính luôn đi qua helper trong `GlassBarStyle.swift` (`barGlass`, `barGlassID`, `GlassGroup`). Kiểm giao diện macOS 15 bằng `-HexerNoGlass 1`.
-- **Lỗi isolation của Swift 6:** module app chạy với `defaultIsolation(MainActor)`. Hằng `static let` hay helper dùng từ nền phải đánh dấu `nonisolated`.
-  - Closure đưa cho AppKit hay SwiftUI gọi lại cũng mặc định MainActor, và **trap lúc chạy** nếu bị gọi từ luồng khác. Ví dụ: dynamic provider của `NSColor` bị SwiftUI gọi trên luồng render khi animate. Hàm tạo ra closure loại này phải là `nonisolated` (xem `NSColor.dynamic` trong `HexTheme.swift`).
-- **Bundle cần thêm chuỗi tiếng Việt.** Mỗi chuỗi UI mới phải có bản dịch trong `Scripts/l10n/vi.py`. Chạy `python3 -I Scripts/l10n/vi.py` để sinh `Resources/Localization/vi.lproj/Localizable.strings`; nếu thiếu, `bundle.sh` dừng. Pattern mà audit nhận diện nằm trong `Scripts/l10n_audit.swift`: `Text`/`Button`/`L(…)`…, helper `item`/`menu`/`sub`/`pane`/`field`/`fact`/`group`, nút icon (`GlassBarIconButton`, `iconButton`…), `title:`/`placeholder:` và hai nhánh `Text(c ? "A" : "B")`. Helper mới nhận chuỗi UI thì thêm vào danh sách này.
-- **Khoá dịch không được chứa `\n`.** Câu nhiều dòng thì ghép từ nhiều `L(…)` (xem `App/ErrorMessages.swift`).
-- **Canh giữa cửa sổ có nội dung SwiftUI:** `NSHostingController` chỉ đưa cỡ cho cửa sổ sau một lượt layout (`layoutIfNeeded()` cũng không đủ), nên `center()` gọi ngay sau khi gán `contentViewController` sẽ canh theo cỡ 0, rồi cửa sổ phình sang phải và xuống dưới từ giữa màn hình. Dùng `NSWindow.centerAtContentSize()` (`App/NSWindow+Centering.swift`, đặt cỡ theo `fittingSize` rồi mới canh). `NSTabViewController` (Settings) chỉ đổi cỡ cửa sổ theo pane khi cửa sổ hiện lên, nên Settings canh giữa sau `showWindow` lần đầu. Đo vị trí cửa sổ không cần quyền Screen Recording: `CGWindowListCopyWindowInfo` trả về `kCGWindowBounds`.
-- **Selector trùng với NSApplication:** action không có target đi qua responder chain tới `NSApp` **trước** app delegate, nên delegate không được đặt action trùng tên method của `NSApplication`. `showHelp:` từng làm Help ▸ Hexer Help hiện "Help isn't available for Hexer"; giờ là `showHexerHelp:`.
-- **NSAlert trên macOS 27:** khi `runModal` chạy, Return được chuyển từ `keyEquivalent` của nút đầu sang `window.defaultButtonCell`. Muốn nút nào không nhận Return thì dùng `alert.addDestructiveButton(withTitle:)` (`App/Alerts.swift`), đừng tự gán `keyEquivalent`.
+### Update server (Cloudflare R2, S3 API)
+- A public R2 bucket holds `update.json` and the `Hexer-X.Y.Z.dmg` files. The app reads the public address (`HexerUpdateFeedURLs[0]` in `Resources/Info.plist`, of the form `https://pub-….r2.dev/update.json`; if it later moves to a custom domain, change only this and ship a new release; older versions still read through the GitHub fallback). `publish_update.sh` derives the DMG's public address from that same key, so no variable has to be kept in sync by hand. Note Cloudflare says `r2.dev` is rate limited and not meant for production; once there is a custom domain, attach it to the bucket (Settings ▸ Custom Domains).
+- **One-time setup (the user does this on Cloudflare):** R2 ▸ Create bucket (e.g. name `hexer-updates`, location Automatic) ▸ Settings ▸ Public access ▸ enable the r2.dev subdomain, copy the address `https://pub-….r2.dev`. R2 ▸ Manage R2 API Tokens ▸ Create API token: **Object Read & Write** permission, scoped to that bucket, no TTL; copy the Access Key ID, Secret Access Key and endpoint `https://<account id>.r2.cloudflarestorage.com`.
+- **GitHub secrets** (Settings ▸ Secrets and variables ▸ Actions): `UPDATE_S3_URL` = `https://<account id>.r2.cloudflarestorage.com/<bucket>` (endpoint + bucket name, no trailing `/`), `UPDATE_S3_ACCESS_KEY_ID`, `UPDATE_S3_SECRET_ACCESS_KEY`. The workflow puts the two keys in `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` for `hexer-cli` (the standard names for every S3 tool; region `AWS_REGION`, R2's default is `auto`).
+- **S3 signature (AWS SigV4)** is hand-written in `HexerCore/Update/AWSSignatureV4.swift` (CryptoKit, tested against two examples in Amazon's S3 docs), so the runner needs neither `aws` nor `wrangler`. `hexer-cli update download|upload` send with URLSession. Any S3-compatible bucket (B2, MinIO, S3) works; just change `UPDATE_S3_URL`.
+- Test on this machine without making a release: `UPDATE_S3_URL=… AWS_ACCESS_KEY_ID=… AWS_SECRET_ACCESS_KEY=… hexer-cli update download --if-missing-ok "$UPDATE_S3_URL/update.json"` (404 is normal when the bucket is empty; 403 means the token has the wrong permissions). The first real upload was the 0.4.0 release (the workflow passed on the first try, see session 9 in the log).
+- `update.json` on the server is the source of truth for the list of the 10 latest versions; if it is lost, the next release recreates a manifest with only the new version (older versions are no longer offered to people with beta enabled, but the latest stable still is).
 
-### Chạy app có kịch bản (`App/DebugLaunchArguments.swift`)
-Ví dụ:
+### Update signing key (Ed25519)
+- The private key is in this machine's login Keychain: item "Hexer update signing key", account `letrucdev/hexer` (created 2026-10-25 with `hexer-cli update keygen`, never printed). The public key `qQH58WYIAJxTACG1jnB/eweAvWnoo3oMkTYQWfKo+MI=` is in `HexerUpdatePublicKey` in `Resources/Info.plist`.
+- Getting it onto GitHub (once, the user does it since the machine has no `gh`): run `security find-generic-password -a letrucdev/hexer -s 'Hexer update signing key' -w | pbcopy`, then paste into Settings ▸ Secrets and variables ▸ Actions ▸ New repository secret, named `HEXER_UPDATE_KEY`. Also keep a copy in a password manager.
+- If the key is lost, new versions cannot be signed for installed copies; you must ship a version with a new public key and users download manually once. The same applies if the key leaks (change the key and tell users).
+- **Cost:** macOS runner minutes count much more than Linux (recently 10×) against the Actions quota of a private repo; check usage in Settings ▸ Billing.
+
+### Gotchas
+- **`@State` does not compile**, because CLT lacks SwiftUIMacros. Use an `@Observable` model + `@Bindable`. `@FocusState`, `@Namespace` and `@AppStorage` still work.
+- **The test target needs `-plugin-path …/host/plugins/testing`.** The `testSettings` constant in `Package.swift` handles it; without it you occasionally get "TestingMacros not found".
+- **SourceKit reports "No such module 'HexerPlatform'"** in the editor. This is a false error, since there is no Xcode project; just build with the scripts.
+- **APIs newer than macOS 15:** the compiler errors if you use them without `if #available`. Glass always goes through the helpers in `GlassBarStyle.swift` (`barGlass`, `barGlassID`, `GlassGroup`). Check the macOS 15 look with `-HexerNoGlass 1`.
+- **Swift 6 isolation errors:** the app module runs with `defaultIsolation(MainActor)`. A `static let` constant or a helper used from the background must be marked `nonisolated`.
+  - Closures handed to AppKit or SwiftUI for callbacks also default to MainActor, and **trap at runtime** if called from another thread. Example: an `NSColor` dynamic provider is called by SwiftUI on the render thread during animation. A function that creates such a closure must be `nonisolated` (see `NSColor.dynamic` in `HexTheme.swift`).
+- **The bundle needs Vietnamese strings.** Every new UI string must have a translation in `Scripts/l10n/vi.py`. Run `python3 -I Scripts/l10n/vi.py` to generate `Resources/Localization/vi.lproj/Localizable.strings`; if one is missing, `bundle.sh` stops. The patterns the audit recognizes are in `Scripts/l10n_audit.swift`: `Text`/`Button`/`L(…)`…, the helpers `item`/`menu`/`sub`/`pane`/`field`/`fact`/`group`, icon buttons (`GlassBarIconButton`, `iconButton`…), `title:`/`placeholder:` and the two-branch `Text(c ? "A" : "B")`. Add any new helper that takes UI strings to this list.
+- **Translation keys must not contain `\n`.** Build multi-line text from several `L(…)` calls (see `App/ErrorMessages.swift`).
+- **Centering a window with SwiftUI content:** `NSHostingController` only gives the window a size after a layout pass (`layoutIfNeeded()` is not enough), so calling `center()` right after assigning `contentViewController` centers on size 0, and then the window grows right and down from the screen center. Use `NSWindow.centerAtContentSize()` (`App/NSWindow+Centering.swift`, sets the size from `fittingSize` and only then centers). `NSTabViewController` (Settings) only resizes the window per pane when the window appears, so Settings is centered after the first `showWindow`. Measuring window position needs no Screen Recording permission: `CGWindowListCopyWindowInfo` returns `kCGWindowBounds`.
+- **Selector clashing with NSApplication:** actions with no target go through the responder chain to `NSApp` **before** the app delegate, so the delegate must not define an action named like an `NSApplication` method. `showHelp:` once made Help ▸ Hexer Help show "Help isn't available for Hexer"; it is now `showHexerHelp:`.
+- **NSAlert on macOS 27:** while `runModal` runs, Return moves from the first button's `keyEquivalent` to `window.defaultButtonCell`. To keep a button from receiving Return, use `alert.addDestructiveButton(withTitle:)` (`App/Alerts.swift`); do not set `keyEquivalent` yourself.
+
+### Scripted app runs (`App/DebugLaunchArguments.swift`)
+Example:
 
 ```sh
 build/Hexer.app/Contents/MacOS/Hexer file.bin -HexerGoTo 0x100 -HexerAction goToOffset: -HexerSnapshot /path/shot.png -HexerQuit 1
 ```
 
-- Các cờ: `-HexerAction sel:`, `-HexerSnapshot path`, `-HexerSnapshotShadow 1` (giữ bóng cửa sổ trên nền trong suốt, dùng cho ảnh README), `-HexerAppearance light|dark` (ép giao diện qua `NSApp.appearance`; đừng dùng `-NSRequiresAquaSystemAppearance`, cờ đó làm toolbar trong suốt), `-HexerFindAllSelect n` (chọn kết quả thứ n sau Find All, mặc định 2), `-HexerDemo DIR` + `-HexerDemoFirmware HEX` (kịch bản quay video, xem bảng lệnh), `-HexerNoGlass 1` (giao diện macOS 15, không kính), `-HexerAlertSnapshot path` (chụp alert modal kế tiếp, in nút nào nhận Return/Esc, rồi huỷ alert), `-HexerQuit 1`, `-HexerFind/-HexerFindType/-HexerFindAll`, `-HexerReplace/-HexerReplaceAll`, `-HexerSave`, `-HexerUndoAll`, `-HexerChecksums`, `-HexerExpected`, `-HexerCompare/-HexerCompareSteps/-HexerCompareList`, `-HexerCopyAs`, `-HexerImport path` (nhận thêm `-HexerWindowSize`, `-HexerGoTo`, `-HexerAction`), `-HexerOpenDisk diskN` (+ `-HexerOpenDiskWritable 1`, chỉ áp dụng cho ảnh đĩa), `-HexerPrintPDF`, `-HexerSectorSize`, `-HexerWindowSize WxH`, `-HexerGoTo`, `-HexerSelect a-b`, `-HexerMode`, `-HexerEncoding`, `-HexerBytesPerRow`, `-HexerDrawer`, `-HexerHideInspector`, `-HexerSettingsPane n`.
-- Có bất kỳ cờ `-Hexer…` nào thì app không hiện bảng Open hay màn hình chào lúc khởi động (`DebugLaunchArguments.isScripted`).
-- Màn hình chào: `-HexerWelcome n` mở ở trang n (0–3) mà không đánh dấu đã xem; `-HexerWelcomeTour s` lật trang mỗi s giây; `-HexerWelcomeEnd skip|open|close` kết thúc như khi bấm Skip, Open a File… hay nút đóng, coi như đang ở lúc mở app (để kiểm bảng Open hiện sau đó); `-HexerSnapshot path` chụp sau `-HexerSnapshotDelay` giây (mặc định 2,5).
-- Cửa sổ cập nhật: `-HexerUpdatePreview checking|upToDate|available|downloading|verifying|ready|failed|failedCheck` hiện trạng thái đó với một release mẫu (0.3.0) để chụp. `-HexerUpdateFeed URL` thay nguồn (HTTPS, hoặc `file://` mà asset cũng là `file://`); `-HexerUpdateCheck 1` kiểm ngay, `-HexerUpdateInstall 1` cài bản tìm được, `-HexerUpdateRelaunch 1` relaunch khi xong. Trạng thái được in ra dạng `HexerUpdatePhase …`. Chữ ký vẫn kiểm bằng khoá trong Info.plist, nên muốn thử trọn luồng thì dựng một bản sao app có bundle ID và khoá thử riêng (cách làm ở nhật ký phiên 7).
-- Xem lại màn hình chào như lần đầu: `defaults delete com.nongdandev.hexer WelcomeShown` rồi `open build/Hexer.app`. **Xoá lại khoá này sau khi thử**, để người dùng vẫn thấy màn hình chào lần đầu.
-- **Cờ nào cũng phải kèm giá trị** (ví dụ `1`). Nếu không, AppKit coi chữ đứng sau là tên tệp và mở nó.
-- Tiếng Việt: thêm `-AppleLanguages '(vi)'`.
-- Ảnh chụp dùng `screencapture -l <windowID>` (cần quyền Screen Recording). **Không bao giờ chụp theo vùng màn hình**, vì sẽ dính cửa sổ app khác.
+- Flags: `-HexerAction sel:`, `-HexerSnapshot path`, `-HexerSnapshotShadow 1` (keeps the window shadow on a transparent background, used for README images), `-HexerAppearance light|dark` (forces appearance via `NSApp.appearance`; do not use `-NSRequiresAquaSystemAppearance`, that flag makes the toolbar transparent), `-HexerFindAllSelect n` (select the nth result after Find All, default 2), `-HexerDemo DIR` + `-HexerDemoFirmware HEX` (video-recording script, see the command table), `-HexerNoGlass 1` (macOS 15 look, no glass), `-HexerAlertSnapshot path` (capture the next modal alert, print which button gets Return/Esc, then dismiss the alert), `-HexerQuit 1`, `-HexerFind/-HexerFindType/-HexerFindAll`, `-HexerReplace/-HexerReplaceAll`, `-HexerSave`, `-HexerUndoAll`, `-HexerChecksums`, `-HexerExpected`, `-HexerCompare/-HexerCompareSteps/-HexerCompareList`, `-HexerCopyAs`, `-HexerImport path` (also accepts `-HexerWindowSize`, `-HexerGoTo`, `-HexerAction`), `-HexerOpenDisk diskN` (+ `-HexerOpenDiskWritable 1`, only applies to disk images), `-HexerPrintPDF`, `-HexerSectorSize`, `-HexerWindowSize WxH`, `-HexerGoTo`, `-HexerSelect a-b`, `-HexerMode`, `-HexerEncoding`, `-HexerBytesPerRow`, `-HexerDrawer`, `-HexerHideInspector`, `-HexerSettingsPane n`.
+- With any `-Hexer…` flag the app shows neither the Open panel nor the welcome screen at launch (`DebugLaunchArguments.isScripted`).
+- Welcome screen: `-HexerWelcome n` opens at page n (0–3) without marking it as seen; `-HexerWelcomeTour s` flips a page every s seconds; `-HexerWelcomeEnd skip|open|close` ends it as if Skip, Open a File… or the close button was clicked, treated as being at app launch (to check that the Open panel appears afterwards); `-HexerSnapshot path` captures after `-HexerSnapshotDelay` seconds (default 2.5).
+- Update window: `-HexerUpdatePreview checking|upToDate|available|downloading|verifying|ready|failed|failedCheck` shows that state with a sample release (0.3.0) for screenshots. `-HexerUpdateFeed URL` replaces the source (HTTPS, or `file://` where the asset is also `file://`); `-HexerUpdateCheck 1` checks immediately, `-HexerUpdateInstall 1` installs the version found, `-HexerUpdateRelaunch 1` relaunches when done. The state is printed as `HexerUpdatePhase …`. The signature is still verified with the key in Info.plist, so to test the full flow build a copy of the app with its own test bundle ID and key (method in session 7 of the log).
+- View the welcome screen as on first launch: `defaults delete com.nongdandev.hexer WelcomeShown` then `open build/Hexer.app`. **Delete this key again after testing**, so users still see the welcome screen on first launch.
+- **Every flag must come with a value** (e.g. `1`). Otherwise AppKit treats the following word as a file name and opens it.
+- Vietnamese: add `-AppleLanguages '(vi)'`.
+- Screenshots use `screencapture -l <windowID>` (needs Screen Recording permission). **Never capture a screen region**, since it would catch other apps' windows.
 
-## 3. Kiến trúc
+## 3. Architecture
 
 ```
 Sources/
   CCapstone/      Capstone 5.0.9 vendored (X86 + AArch64)
-  CHexerSys/      C: nhận fd từ authopen (SCM_RIGHTS), ioctl DKIOC*
-  HexerCore/      Swift thuần, không phụ thuộc UI
-    Storage/      ByteSource, ChunkCache, PieceTree (B+tree persistent), EditableBuffer (undo vô hạn),
-                  AddBuffer, Generator (pattern/random), FileWriter (clone APFS + vá các vùng đã đổi)
-    Search/       SearchQuery, CompiledSearch, MatchScanner (memmem, gấp hoa/thường, UTF-16), Search/ReplaceEngine
-    Analysis/     Checksum (Sum, CRC Rocksoft, MD2/MD4 tự viết, MD5/SHA qua CryptoKit), ByteStatistics, CompareEngine
-    Codecs/       Export (Raw/Hex/Text, nguồn Pascal/C/C#/Java/VB.NET/PureBasic, Editor view/HTML/RTF/TeX,
+  CHexerSys/      C: receive fd from authopen (SCM_RIGHTS), ioctl DKIOC*
+  HexerCore/      Pure Swift, no UI dependency
+    Storage/      ByteSource, ChunkCache, PieceTree (persistent B+tree), EditableBuffer (unlimited undo),
+                  AddBuffer, Generator (pattern/random), FileWriter (APFS clone + patch changed regions)
+    Search/       SearchQuery, CompiledSearch, MatchScanner (memmem, case folding, UTF-16), Search/ReplaceEngine
+    Analysis/     Checksum (Sum, CRC Rocksoft, hand-written MD2/MD4, MD5/SHA via CryptoKit), ByteStatistics, CompareEngine
+    Codecs/       Export (Raw/Hex/Text, Pascal/C/C#/Java/VB.NET/PureBasic source, Editor view/HTML/RTF/TeX,
                   S19/S28/S37, Intel Hex 16/20/32), Import (Intel Hex, S-Record, ETL Extended)
-    Inspector/    DataInspector (30 kiểu), Codecs (LEB128, Real48, Ext80, OLE/FILETIME/DOS/time_t, GUID)
+    Inspector/    DataInspector (30 types), Codecs (LEB128, Real48, Ext80, OLE/FILETIME/DOS/time_t, GUID)
     Text/         TextEncoding (Windows-1252, CP437, Mac Roman, EBCDIC 500), CharacterFilter
-    Layout/       HexLayout, VirtualScrollMapper (cuộn co giãn cho tệp ~2^40 byte), RowMap (dòng hiển thị ↔ dòng dữ liệu khi gập vùng undefined)
+    Layout/       HexLayout, VirtualScrollMapper (scaled scrolling for files of ~2^40 bytes), RowMap (display row ↔ data row when folding undefined sections)
     FileTools/    split, concatenate, overwrite, wipe
-  HexerDisasm/    Wrapper Swift cho Capstone (x86-16/32/64, ARM64)
+  HexerDisasm/    Swift wrapper for Capstone (x86-16/32/64, ARM64)
   HexerPlatform/  DiskEnumerator (IOKit + DiskArbitration), RawDeviceOpener (authopen), DiskByteSource,
-                  DiskWriter (đọc-sửa-ghi theo sector), DiskCloner, DiskArbitrationSession (unmount)
-  Hexer/          App: vòng đời AppKit, view SwiftUI
-    App/          main, AppDelegate, MainMenu (menu dựng bằng code), AppSettings, L10n (L("…")), DebugLaunchArguments,
-                  Alerts (nút destructive), ErrorMessages (lỗi core → chuỗi UI)
+                  DiskWriter (sector-wise read-modify-write), DiskCloner, DiskArbitrationSession (unmount)
+  Hexer/          App: AppKit lifecycle, SwiftUI views
+    App/          main, AppDelegate, MainMenu (menus built in code), AppSettings, L10n (L("…")), DebugLaunchArguments,
+                  Alerts (destructive buttons), ErrorMessages (core errors → UI strings)
     Document/     HexDocument (NSDocument), HexWindowController, EditorSession (+Editing/+Search/+Tools),
-                  CompareSession, ExportImport, Jobs (JobCenter: tác vụ nền huỷ được, có tiến độ), Print
-    HexGrid/      HexCanvasView (vẽ bằng CoreText, nhập liệu, IME, VoiceOver), HexEditorView, HexTheme
+                  CompareSession, ExportImport, Jobs (JobCenter: cancellable background tasks with progress), Print
+    HexGrid/      HexCanvasView (CoreText drawing, input, IME, VoiceOver), HexEditorView, HexTheme
     Views/        DocumentWindowView, SidebarView, InspectorView, FindBar, ResultsDrawer, StatusBarView,
                   SectorNavigator, GlassBarStyle, SettingsWindowController, Sheets/, Analysis/, Tools/,
-                  Welcome/ (màn hình chào: controller + model, các trang, hình minh hoạ, nền Core Animation)
+                  Welcome/ (welcome screen: controller + model, pages, illustrations, Core Animation background)
   HexerCLI/       hexer-cli
 Tests/            HexerCoreTests, HexerDisasmTests, HexerPlatformTests (swift-testing)
-Resources/        Info.plist, entitlements (không sandbox), Icon, Licenses, Localization/{en,vi}.lproj
+Resources/        Info.plist, entitlements (no sandbox), Icon, Licenses, Localization/{en,vi}.lproj
 ```
 
-### Các quyết định chính
-- **Lưu tệp:**
-  - `FileWriter` clone tệp gốc (APFS `clonefile`) rồi chỉ vá các vùng đã đổi.
-  - Nếu kích thước thay đổi, ghi stream ra tệp mới rồi thay thế nguyên tử.
-  - Lịch sử undo vẫn đọc được byte cũ sau khi lưu.
-  - `.bak` là tuỳ chọn.
-  - `NSFilePresenter` báo khi tệp bị thay đổi từ bên ngoài.
-- **Lưới hex** là `NSView` riêng, chỉ vẽ các hàng đang thấy. `GlyphBatcher` đảo trục y vì CoreText dùng text matrix lật. Bật `clipsToBounds` để lưới không vẽ đè lên status bar.
-- **Ổ đĩa:**
-  - Mở `/dev/rdiskN`; nếu bị từ chối thì xin quyền bằng `AuthorizationCopyRights` + `authopen -stdoutpipe -extauth` (không bao giờ dùng `-w`, vì nó cắt cụt thiết bị).
-  - Mặc định mở chỉ đọc; ổ khởi động không bao giờ ghi được.
-  - Unmount trước khi ghi.
-- **EBCDIC dùng CP500**, đúng bảng trong HxD64.exe tại 0x57c8c4, không phải CP037.
-- **Compare** xếp hai cửa sổ không dùng animation, sau trễ 50 ms; animation từng gây vòng lặp Auto Layout. Capsule điều hướng khác biệt là overlay ở đáy lưới.
-- **Phụ đề cửa sổ ("9.6 MB · Overwrite"):** từ macOS 26, `HexWindowController` đặt `NSWindow.subtitle`. Trước macOS 26, split view của SwiftUI tự vẽ thanh tiêu đề và xoá `NSWindow.subtitle`, nên host bật `sceneBridgingOptions = [.toolbars, .title]` và `DocumentWindowView` đặt `.navigationSubtitle(session.windowSubtitle)`. Tiêu đề vẫn do NSDocument quản lý.
-- **Dấu "đã sửa" của cửa sổ:** vì `HexDocument` override `isDocumentEdited`, NSDocument không tự gọi `setDocumentEdited` cho window controller (chấm trong nút đóng không hiện, trên cả macOS 15 và 27). `bufferDidChange` gọi trực tiếp cho mọi window controller.
-- **Gập vùng undefined:** `HexEditorView.rowMap` (`RowMap`, HexerCore) quy đổi dòng hiển thị ↔ dòng dữ liệu. Mọi chỗ tính dòng (vẽ, caret, hit-test, cuộn, IME, ↑↓/Page, compare, sector navigator) đều đi qua nó; đừng dùng lại `offset / bytesPerRow` để ra dòng trên màn hình.
-  - Canvas đọc byte theo từng đoạn dòng dữ liệu liền nhau, không bao giờ đọc xuyên qua vùng gập (có thể lớn hàng GB).
-  - Khi bố cục dòng đổi (bytes per row, gập/mở), byte ở đầu màn hình được giữ nguyên.
-  - State: `EditorSession.foldsUndefinedSections`, `unfoldedSections` (theo byte đầu của vùng).
-- **Lỗi core sang tiếng Việt:** core giữ câu tiếng Anh (CLI in nguyên văn); app map từng case trong `App/ErrorMessages.swift`. Thêm case lỗi mới ở core thì thêm nhánh tương ứng ở đó và bản dịch trong `vi.py`.
-- **Màn hình chào lần đầu (`Views/Welcome/`):** `AppDelegate.applicationOpenUntitledFile` gọi `WelcomeWindowController.showIfFirstLaunch()` trước; nếu khoá `WelcomeShown` chưa có thì hiện màn hình chào thay bảng Open. Thiết kế ở DESIGN.md §6.9.
-  - **Hiệu năng (đo bằng `ps -o time` trên 6 s):** SwiftUI trong cửa sổ này vẽ bằng CoreGraphics trên CPU (`CGDrawingLayer` / `RBInterpolatedDisplayListContents` trong `sample`), nên mỗi khung hình của một animation tốn khoảng 13 ms. Bản đầu dùng `TimelineView(.animation)` + `Canvas` cho nền và hình minh hoạ: 25–40% một nhân. Hiện tại: 0–2% (trang Edit khoảng 6%). Phiên 5 đo lại trang đầu được 7–8% trên máy này, chưa rõ vì sao (xem nhật ký phiên 5).
-  - Nền byte hex là Core Animation (`WelcomeHexFieldView`): byte vẽ một lần vào mask, các layer cuộn bằng `CABasicAnimation`, dải quét và vòng lan là `CAGradientLayer` làm mask; byte loé đỏ là layer nhỏ do timer 0,3 s thêm vào. View này nằm **dưới** `NSHostingView` trong một container, không phải `NSViewRepresentable`.
-  - Hình minh hoạ chạy theo `WelcomeSchedule` (chỉ cập nhật ở các mốc thay đổi) và **không** nội suy giữa các mốc. Đừng thêm `.animation`, `contentTransition` hay `symbolEffect` lặp lại trong đó.
-  - Lớp phủ (veil) dùng `windowBackgroundColor`, nên `WelcomeHexFieldView` tự tô nền bằng đúng màu đó; nền cửa sổ trên macOS 26+ khác màu một chút, làm lớp phủ lộ thành mảng.
-  - `blur` bán kính lớn bị vẽ sai trong đường vẽ CG; quầng sáng là `RadialGradient`.
-- **Bảng Open lúc khởi động:** `AppDelegate.applicationOpenUntitledFile` gọi `openDocument(nil)` (qua `DispatchQueue.main.async`, để sự kiện khởi động xử lý xong trước). AppKit gọi hàm này cả khi mở app không kèm tệp lẫn khi bấm Dock lúc không còn cửa sổ, nên không cần `applicationShouldHandleReopen`. Đã thử: bấm Dock trong lúc bảng đang mở không sinh bảng thứ hai, kể cả sau khi bấm Cancel.
-- **Tự cập nhật** (`HexerCore/Update`, `HexerPlatform/{Downloads,MountedDiskImage,CodeSignature,UpdateStaging}.swift`, `App/SoftwareUpdate.swift`, `Views/SoftwareUpdateView.swift`; giao diện ở DESIGN.md §6.10):
-  - **Nguồn (từ 0.4.0):** manifest `update.json` (`HexerCore/Update/UpdateManifest.swift`: `format` 1, mỗi release có `version`, `prerelease`, `page`, `notes`, `size`, `sha256`, `signature` Base64 và `urls` là các nơi tải DMG theo thứ tự ưu tiên; giữ 10 bản mới nhất). App thử lần lượt các địa chỉ trong `HexerUpdateFeedURLs` của Info.plist (máy chủ cập nhật trên Cloudflare R2, rồi bản chép trên GitHub Release `releases/latest/download/update.json`), lấy danh sách của nguồn đầu tiên đọc được; tải DMG thì thử từng `urls` cho tới khi được. Session ephemeral, User-Agent `Hexer/<version>`. Chỉ nhận release có phiên bản hợp lệ, có chữ ký và ít nhất một URL HTTPS. Manifest không cần đáng tin: chữ ký kiểm bằng khoá trong app, nên máy chủ chỉ có thể giấu bản mới, không thể tráo. **Bản 0.3.x** vẫn đọc API GitHub `GET /repos/letrucdev/hexer/releases` và cần `.dmg` + `.sig` trên trang release, nên workflow vẫn đăng cả hai lên GitHub; 0.3.x tìm thấy 0.4.0 qua đó rồi từ 0.4.0 đọc manifest. Pre-release chỉ tính khi bật "Include beta versions" hoặc khi đang chạy một bản beta.
-  - **Lịch:** 5 s sau khi mở rồi mỗi giờ, tối đa một lần mỗi ngày; lần mở đầu tiên không kiểm (khoá `UpdateChecksSince`). Chạy có cờ `-Hexer…` thì không kiểm, trừ khi có `-HexerUpdateFeed`. Kiểm tự động chỉ lên tiếng khi có bản mới; lỗi mạng hay 403/429 ("máy chủ cập nhật đã nhận quá nhiều yêu cầu") thì im lặng. Khoá UserDefaults: `CheckForUpdatesAutomatically`, `UpdateIncludesBetas`, `LastUpdateCheck`, `SkippedUpdateVersion`, `UpdateStagingFolder`.
-  - **Xác thực, theo thứ tự:** chữ ký Ed25519 trên thông điệp `hexer-update-v1\n<version>\n<sha256 hex của DMG>\n` (gắn cả phiên bản, nên không dùng lại được chữ ký của bản khác); gắn DMG chỉ đọc (`hdiutil attach -nobrowse -noverify -mountrandom`); `Hexer.app` bên trong phải đúng bundle ID, đúng phiên bản của release, `LSMinimumSystemVersion` ≤ macOS đang chạy; code signature nguyên vẹn (`SecStaticCodeCheckValidity`, strict, mọi kiến trúc, nested code). App đang ký ad hoc nên chỉ yêu cầu `identifier "com.nongdandev.hexer"`; khi có Developer ID (Team ID), tự chuyển sang yêu cầu designated requirement của bản đang chạy (cùng nhà phát triển). Sau khi chép bằng `ditto` thì kiểm code signature lần nữa.
-  - **Cài:** bản mới chờ trong thư mục tạm `itemReplacementDirectory` trên cùng volume với app. Khi app thoát (`applicationWillTerminate`), `renamex_np(RENAME_SWAP)` đổi chỗ hai bundle trong một bước nguyên tử, rồi xoá bản cũ; tên app người dùng đặt được giữ nguyên. Relaunch = `NSApp.terminate` (vẫn hỏi lưu tài liệu như khi thoát), sau khi đổi chỗ thì một `/bin/sh` nhỏ đợi tiến trình cũ kết thúc rồi `open` bản mới.
-  - **Không tự thay được** khi app bị App Translocation (chạy thẳng từ chỗ tải về, chưa chuyển vào Applications) hoặc thiếu quyền ghi bundle hay thư mục chứa nó: cửa sổ báo lý do và nút chính thành Download… (mở trang release).
-  - **Chưa xử lý:** nếu bấm Relaunch rồi huỷ ở hộp thoại lưu tài liệu, cờ relaunch vẫn còn, nên lần thoát sau Hexer sẽ tự mở lại (bản cập nhật vẫn được cài như "Install on Quit").
-  - macOS 26 báo `hdiutil attach`/`create` là deprecated (thay bằng `diskutil image`, không có trên macOS 15); vẫn chạy, cảnh báo bị lọc khỏi thông báo lỗi.
-- **Settings:** mỗi pane dùng `NSHostingController.sizingOptions = .preferredContentSize` và gán `title` (cửa sổ lấy tên pane làm tiêu đề). Thiếu dòng này thì cửa sổ mặc định 500×500 và nội dung bị đặt giữa.
+### Key decisions
+- **Saving files:**
+  - `FileWriter` clones the original file (APFS `clonefile`) and patches only the changed regions.
+  - If the size changes, it streams to a new file and replaces atomically.
+  - Undo history can still read the old bytes after saving.
+  - `.bak` is optional.
+  - `NSFilePresenter` reports when the file is changed externally.
+- **The hex grid** is a custom `NSView` that draws only the visible rows. `GlyphBatcher` flips the y axis because CoreText uses a flipped text matrix. `clipsToBounds` is on so the grid does not draw over the status bar.
+- **Disks:**
+  - Opens `/dev/rdiskN`; if denied, asks for permission with `AuthorizationCopyRights` + `authopen -stdoutpipe -extauth` (never `-w`, since it truncates the device).
+  - Opens read-only by default; the boot disk can never be written.
+  - Unmount before writing.
+- **EBCDIC uses CP500**, exactly the table in HxD64.exe at 0x57c8c4, not CP037.
+- **Compare** arranges the two windows without animation, after a 50 ms delay; animation once caused an Auto Layout loop. The diff-navigation capsule is an overlay at the bottom of the grid.
+- **Window subtitle ("9.6 MB · Overwrite"):** from macOS 26, `HexWindowController` sets `NSWindow.subtitle`. Before macOS 26, SwiftUI's split view draws its own title bar and clears `NSWindow.subtitle`, so the host sets `sceneBridgingOptions = [.toolbars, .title]` and `DocumentWindowView` sets `.navigationSubtitle(session.windowSubtitle)`. The title is still managed by NSDocument.
+- **Window "edited" dot:** since `HexDocument` overrides `isDocumentEdited`, NSDocument does not call `setDocumentEdited` on the window controllers itself (the dot in the close button does not appear, on both macOS 15 and 27). `bufferDidChange` calls it directly for every window controller.
+- **Folding undefined sections:** `HexEditorView.rowMap` (`RowMap`, HexerCore) converts display row ↔ data row. Every place that computes rows (drawing, caret, hit-test, scrolling, IME, ↑↓/Page, compare, sector navigator) goes through it; do not reuse `offset / bytesPerRow` to get an on-screen row.
+  - The canvas reads bytes in runs of contiguous data rows and never reads across a folded region (which can be GBs).
+  - When the row layout changes (bytes per row, fold/unfold), the byte at the top of the screen is preserved.
+  - State: `EditorSession.foldsUndefinedSections`, `unfoldedSections` (keyed by the region's first byte).
+- **Core errors in Vietnamese:** the core keeps English sentences (the CLI prints them verbatim); the app maps each case in `App/ErrorMessages.swift`. Adding a new core error case means adding the matching branch there and a translation in `vi.py`.
+- **First-run welcome screen (`Views/Welcome/`):** `AppDelegate.applicationOpenUntitledFile` calls `WelcomeWindowController.showIfFirstLaunch()` first; if the `WelcomeShown` key is not set it shows the welcome screen instead of the Open panel. Design in DESIGN.md §6.9.
+  - **Performance (measured with `ps -o time` over 6 s):** SwiftUI in this window draws with CoreGraphics on the CPU (`CGDrawingLayer` / `RBInterpolatedDisplayListContents` in `sample`), so each animation frame costs about 13 ms. The first version used `TimelineView(.animation)` + `Canvas` for the background and illustrations: 25–40% of one core. Now: 0–2% (Edit page about 6%). Session 5 re-measured the first page at 7–8% on this machine, cause unknown (see session 5 in the log).
+  - The hex-byte background is Core Animation (`WelcomeHexFieldView`): bytes are drawn once into a mask, layers scroll with `CABasicAnimation`, the sweep band and ripple ring are `CAGradientLayer` masks; red flashing bytes are small layers added by a 0.3 s timer. This view sits **below** the `NSHostingView` in a container; it is not an `NSViewRepresentable`.
+  - Illustrations follow `WelcomeSchedule` (updated only at change points) and do **not** interpolate between points. Do not add `.animation`, `contentTransition` or repeating `symbolEffect` there.
+  - The veil uses `windowBackgroundColor`, so `WelcomeHexFieldView` paints its own background with exactly that color; the window background on macOS 26+ differs slightly, making the veil show as a patch.
+  - A large-radius `blur` is drawn wrongly in the CG drawing path; the glow is a `RadialGradient`.
+- **Open panel at launch:** `AppDelegate.applicationOpenUntitledFile` calls `openDocument(nil)` (via `DispatchQueue.main.async`, so the launch event finishes first). AppKit calls this both when the app opens with no file and when the Dock icon is clicked with no windows, so `applicationShouldHandleReopen` is not needed. Tested: clicking the Dock while the panel is open does not create a second panel, even after clicking Cancel.
+- **Self-update** (`HexerCore/Update`, `HexerPlatform/{Downloads,MountedDiskImage,CodeSignature,UpdateStaging}.swift`, `App/SoftwareUpdate.swift`, `Views/SoftwareUpdateView.swift`; UI in DESIGN.md §6.10):
+  - **Source (since 0.4.0):** the `update.json` manifest (`HexerCore/Update/UpdateManifest.swift`: `format` 1, each release has `version`, `prerelease`, `page`, `notes`, `size`, `sha256`, Base64 `signature`, and `urls`, the DMG download locations in priority order; the 10 latest versions are kept). The app tries the addresses in `HexerUpdateFeedURLs` in Info.plist in turn (the update server on Cloudflare R2, then the copy on the GitHub Release `releases/latest/download/update.json`) and takes the list from the first one it can read; to download the DMG it tries each of `urls` until one works. Ephemeral session, User-Agent `Hexer/<version>`. Accepts only releases with a valid version, a signature and at least one HTTPS URL. The manifest need not be trusted: the signature is verified with the key in the app, so the server can only hide a new version, not swap it. **Version 0.3.x** still reads the GitHub API `GET /repos/letrucdev/hexer/releases` and needs the `.dmg` + `.sig` on the release page, so the workflow still posts both to GitHub; 0.3.x finds 0.4.0 that way and from 0.4.0 reads the manifest. Pre-releases count only when "Include beta versions" is on or when a beta is running.
+  - **Schedule:** 5 s after launch, then hourly, at most once a day; the very first launch does not check (key `UpdateChecksSince`). Runs with any `-Hexer…` flag do not check, unless `-HexerUpdateFeed` is given. Automatic checks speak up only when a new version exists; network errors or 403/429 ("the update server received too many requests") stay silent. UserDefaults keys: `CheckForUpdatesAutomatically`, `UpdateIncludesBetas`, `LastUpdateCheck`, `SkippedUpdateVersion`, `UpdateStagingFolder`.
+  - **Verification, in order:** Ed25519 signature over the message `hexer-update-v1\n<version>\n<sha256 hex of DMG>\n` (the version is included, so one version's signature cannot be reused for another); attach the DMG read-only (`hdiutil attach -nobrowse -noverify -mountrandom`); the `Hexer.app` inside must have the right bundle ID, the release's version, and `LSMinimumSystemVersion` ≤ the running macOS; intact code signature (`SecStaticCodeCheckValidity`, strict, all architectures, nested code). The app is ad-hoc signed so it requires only `identifier "com.nongdandev.hexer"`; when a Developer ID (Team ID) exists, it switches automatically to requiring the running copy's designated requirement (same developer). After copying with `ditto`, the code signature is checked again.
+  - **Install:** the new version waits in a temporary `itemReplacementDirectory` on the same volume as the app. When the app quits (`applicationWillTerminate`), `renamex_np(RENAME_SWAP)` swaps the two bundles in one atomic step, then deletes the old one; the app name the user chose is preserved. Relaunch = `NSApp.terminate` (still asks to save documents like a normal quit); after the swap a small `/bin/sh` waits for the old process to end, then `open`s the new one.
+  - **Cannot self-replace** when the app is under App Translocation (run straight from where it was downloaded, not moved to Applications) or lacks write permission on the bundle or its containing folder: the window says why and the primary button becomes Download… (opens the release page).
+  - **Not handled:** if you click Relaunch and then cancel the save-documents dialog, the relaunch flag stays set, so the next time Hexer quits it will reopen itself (the update is still installed like "Install on Quit").
+  - macOS 26 reports `hdiutil attach`/`create` as deprecated (replacement is `diskutil image`, not on macOS 15); it still works, the warning is filtered out of error messages.
+- **Settings:** each pane uses `NSHostingController.sizingOptions = .preferredContentSize` and sets `title` (the window takes the pane name as its title). Without this the window defaults to 500×500 and content is centered.
 
-## 4. Đã làm (so với HxD)
+## 4. Done (vs. HxD)
 
-| Nhóm | Tính năng |
+| Group | Features |
 |---|---|
-| Tệp | New, Open, Open Recent, Close/Close All, Save/Save As/Save All, Save Selection As, Reload from Disk, `.bak`, phát hiện thay đổi từ bên ngoài, Page Setup/Print, tab cửa sổ native, Tile Vertically/Horizontally |
-| Import/Export | Import Intel Hex, S-Record, ETL Extended (vùng trống thành section undefined). Export và Copy As đủ định dạng HxD (§3); độ dài dòng chỉnh trong Settings ▸ Export. |
-| Sửa | Undo/Redo không giới hạn, Cut/Copy/Paste Insert/Paste Overwrite/Delete, Copy Offset, Insert Bytes, Fill Selection (nhiều pass, hex/random, preset DoD và Zero, ghi thẳng xuống đĩa), Select All/Block, chế độ Insert/Overwrite/Read-only, nhập theo nibble, IME |
-| Tìm kiếm | Find/Replace/Find Next/Previous, Use Selection; kiểu Text (bảng mã editor hoặc UTF-16LE, phân biệt hoa thường), Hex, Integer (bất kỳ, 8–64, LE/BE, có dấu hoặc không), Float (Single/Double/Real48/Extended); hướng All/Forward/Backward; Find All vào drawer; hỏi trước khi thay thế; tìm chạy nền có Stop |
-| Điều hướng | Go to Offset (gốc: đầu tệp, vị trí hiện tại, cuối tệp; hex/dec/oct), bookmark 0–9, sector navigator |
-| Hiển thị | Bytes per row (8–4096, Custom…, vừa cửa sổ), nhóm 1/2/4/8/16, các cột Hex/Text, offset hex/dec/oct, 4 bảng mã, hex chữ thường, Filter Characters, ghost caret, tô màu cột lẻ, byte đã sửa màu đỏ, gập vùng undefined sau khi import (bấm để mở, View ▸ Fold Undefined Sections) |
-| Data Inspector | 30 kiểu (gồm LEB128, OLETIME, FILETIME, DOS, time_t, GUID, disassembly x86-16/32/64 + ARM64), LE/BE, Hex, sửa trực tiếp, bước theo kiểu, bật/tắt từng kiểu trong Settings |
-| Phân tích | Checksums (Sum 8–64, Custom, CRC-16, CRC-16/CCITT-FALSE, CRC-32, CRC-32C, Custom CRC, MD2/4/5, SHA-1/256/384/512, so với giá trị mong đợi, Copy / Copy with Details), Statistics (biểu đồ, Hide maximum, entropy), Compare (hai cửa sổ, F6/⇧F6, danh sách khác biệt) |
-| Ổ đĩa | Open Disk (vật lý/logic), Open Disk Image (chọn sector size), Clone Disk (ổ ↔ ảnh), ghi theo sector, cảnh báo khi mở để ghi |
-| Công cụ | Split (preset, Custom, đánh số .001 hoặc hỏi tên), Concatenate, Wipe Securely (DoD/Zero/Random, có cảnh báo SSD/APFS) |
-| Cập nhật | Hexer ▸ Check for Updates…, kiểm tra tự động mỗi ngày (tắt được, có tuỳ chọn bản beta), bỏ qua một phiên bản, tải có tiến độ, kiểm chữ ký Ed25519 và code signature, cài khi thoát hoặc Relaunch |
-| Khác | Settings (General/Format/View/Inspector/Export), About, Help, Acknowledgements, VoiceOver cho lưới, bản universal, tiếng Anh + tiếng Việt (kể cả thông báo lỗi từ core) |
-| An toàn | Alert của thao tác không hoàn tác được dùng nút destructive, Return không kích hoạt; alert mở ổ đĩa để ghi lấy "Open Read-only" làm mặc định |
-| CLI | Đủ lệnh trong kế hoạch: thêm `edit`, `split`, `concat`, `disks list/read`, `selftest`; crosscheck so với split/cat/perl/diskutil/dd |
-| UI macOS 27 | Sidebar và inspector của hệ thống chạy sát mép; toolbar 3 nhóm; thanh kính đồng nhất 36 pt (`GlassBarStyle.swift`); canvas đã vẽ lại khớp app (version 14–17) |
+| File | New, Open, Open Recent, Close/Close All, Save/Save As/Save All, Save Selection As, Reload from Disk, `.bak`, external change detection, Page Setup/Print, native window tabs, Tile Vertically/Horizontally |
+| Import/Export | Import Intel Hex, S-Record, ETL Extended (empty regions become undefined sections). Export and Copy As support every HxD format (§3); line length is adjustable in Settings ▸ Export. |
+| Edit | Unlimited Undo/Redo, Cut/Copy/Paste Insert/Paste Overwrite/Delete, Copy Offset, Insert Bytes, Fill Selection (multiple passes, hex/random, DoD and Zero presets, written straight to disk), Select All/Block, Insert/Overwrite/Read-only modes, nibble entry, IME |
+| Search | Find/Replace/Find Next/Previous, Use Selection; types Text (editor encoding or UTF-16LE, case sensitive), Hex, Integer (any, 8–64, LE/BE, signed or unsigned), Float (Single/Double/Real48/Extended); directions All/Forward/Backward; Find All into the drawer; confirm before replace; search runs in the background with Stop |
+| Navigation | Go to Offset (origin: file start, current position, file end; hex/dec/oct), bookmarks 0–9, sector navigator |
+| Display | Bytes per row (8–4096, Custom…, fit window), grouping 1/2/4/8/16, Hex/Text columns, hex/dec/oct offsets, 4 encodings, lowercase hex, Filter Characters, ghost caret, odd-column tint, modified bytes in red, folding of undefined sections after import (click to open, View ▸ Fold Undefined Sections) |
+| Data Inspector | 30 types (including LEB128, OLETIME, FILETIME, DOS, time_t, GUID, x86-16/32/64 + ARM64 disassembly), LE/BE, Hex, direct editing, step by type, each type toggled in Settings |
+| Analysis | Checksums (Sum 8–64, Custom, CRC-16, CRC-16/CCITT-FALSE, CRC-32, CRC-32C, Custom CRC, MD2/4/5, SHA-1/256/384/512, compare with expected value, Copy / Copy with Details), Statistics (chart, Hide maximum, entropy), Compare (two windows, F6/⇧F6, difference list) |
+| Disks | Open Disk (physical/logical), Open Disk Image (choose sector size), Clone Disk (disk ↔ image), sector-wise writes, warning when opening for write |
+| Tools | Split (presets, Custom, .001 numbering or ask for names), Concatenate, Wipe Securely (DoD/Zero/Random, with SSD/APFS warning) |
+| Updates | Hexer ▸ Check for Updates…, daily automatic check (can be turned off, optional beta versions), skip a version, download with progress, Ed25519 signature and code signature verification, install on quit or Relaunch |
+| Other | Settings (General/Format/View/Inspector/Export), About, Help, Acknowledgements, VoiceOver for the grid, universal build, English + Vietnamese (including error messages from the core) |
+| Safety | Alerts for irreversible actions use destructive buttons, Return does not trigger them; the alert for opening a disk for writing defaults to "Open Read-only" |
+| CLI | All commands in the plan: added `edit`, `split`, `concat`, `disks list/read`, `selftest`; crosscheck compares against split/cat/perl/diskutil/dd |
+| macOS 27 UI | System sidebar and inspector run edge to edge; 3-group toolbar; uniform 36 pt glass bars (`GlassBarStyle.swift`); canvas redrawn to match the app (versions 14–17) |
 
-## 5. Chưa làm
+## 5. Not done
 
-| Hạng mục | Ghi chú |
+| Item | Notes |
 |---|---|
-| Đổi tên / sắp xếp kiểu trong Data Inspector | Settings mới cho bật/tắt. Kế hoạch: Phase 4. |
-| Danh sách ổ đĩa (raw) gần đây | HxD có "recent disk images"; Hexer mới có Open Recent cho tệp. Cần kiểm tra xem ảnh đĩa có vào danh sách này không. |
-| `Scripts/snapshot.sh`, `Scripts/make_fixtures.sh` | Chưa tạo. Hiện chụp ảnh qua cờ `-Hexer…` và crosscheck tự sinh fixture. |
-| Trình sửa RAM/tiến trình | Đã hoãn theo quyết định của người dùng (cần `task_for_pid` / entitlement) |
-| Icon app kiểu kính động | Không làm được khi không có `actool` (Xcode) |
+| Rename / reorder types in the Data Inspector | Settings only toggles for now. Planned: Phase 4. |
+| Recent (raw) disks list | HxD has "recent disk images"; Hexer only has Open Recent for files. Need to check whether disk images enter that list. |
+| `Scripts/snapshot.sh`, `Scripts/make_fixtures.sh` | Not created. Currently screenshots go through `-Hexer…` flags and crosscheck generates its own fixtures. |
+| RAM/process editor | Deferred by the user's decision (needs `task_for_pid` / entitlement) |
+| Dynamic glass-style app icon | Not possible without `actool` (Xcode) |
 
-## 6. Cần cải thiện (ưu tiên từ trên xuống)
+## 6. To improve (highest priority first)
 
-1. **CI (tuỳ chọn).** Repo đã có trên GitHub. Có thể thêm workflow macOS chạy `Scripts/test.sh` và `Scripts/crosscheck.sh`. Crosscheck cần sửa đường dẫn cứng tới `HxD64.exe` (`HXD=` trong script; nếu không có tệp thì bỏ qua) và cần `hdiutil` cho phần ổ đĩa.
-2. **Chạy thử trên macOS 26.** macOS 15 đã kiểm trên máy ảo UTM (xem nhật ký phiên 3). macOS 26 chưa kiểm; có thể tạo thêm một máy ảo UTM rồi dùng `Scripts/vm_test.sh` với `VM_NAME`/`VM_HOST` tương ứng.
-3. **Kiểm thử ổ đĩa thật.**
-   - Prompt của authopen trên ổ trong (cần mật khẩu admin) chưa được thử.
-   - Đường ghi ổ đĩa mới chỉ có unit test trên ảnh đĩa attach. Cần thử trên USB thật: ghi, unmount, so `dd`. `hexer-cli disks read diskN` (với sudo) giúp so nhanh.
-4. **Kính của find bar trên lưới (chế độ sáng).** Chữ của lưới phía sau vẫn lờ mờ xuyên qua ô tìm kiếm. Đọc vẫn được, nhưng kém rõ hơn chế độ tối. Đây là `.glassEffect(.regular)` của hệ thống; chỉ chỉnh nếu người dùng thấy khó đọc.
-5. **Gập vùng undefined, phần còn lại:**
-   - Đi qua dòng gập bằng ↑/↓ thì caret mất cột (về byte đầu của vùng).
-   - Bản in (Print) không gập.
-   - Chưa có cách gập lại riêng một vùng đã mở, ngoài việc tắt rồi bật lại View ▸ Fold Undefined Sections. Có thể thêm menu ngữ cảnh "Fold Section".
-6. **Chiều rộng tối thiểu khi mở ngăn Checksums:** khoảng 1270 pt (tiếng Anh) và 1300 pt (tiếng Việt), so với 1166 pt khi không mở ngăn. Thủ phạm còn lại có thể là bảng hoặc segmented tab của drawer; đo bằng cách so `-HexerWindowSize 1100x700` có và không có `-HexerDrawer checksums`.
-7. **Cảnh báo NSTableView reentrancy:** "Application performed a reentrant operation in its NSTableView delegate". Đã tái hiện được (2026-10-24), lần nào cũng ra, cả arm64 lẫn x86_64: `build/Hexer.app/Contents/MacOS/Hexer FILE -HexerWindowSize 1100x700 -HexerFind Hexer -HexerFindType text -HexerFindAll 1 -HexerDrawer searchResults -HexerQuit 1`. Nghi bảng Search Results: `searchResultSelection` được đặt (và `onChange` đổi selection, cuộn lưới) ngay trong lúc bảng đang cập nhật sau Find All.
-8. **Role của segmented control (SDK 27).** SwiftUI chưa đặt được role `tabs` / `valueSelection` của `NSSegmentedControl`. Nếu cần đúng HIG, bọc AppKit cho tab drawer.
-9. **Ký app.** Dùng `SIGN_IDENTITY` (Developer ID hoặc chứng chỉ tự ký) để không mất quyền Screen Recording sau mỗi lần build.
-10. **Bản địa hoá còn sót:** phần mô tả errno (`strerror`) trong thông báo lỗi vẫn là tiếng Anh; số trong chuỗi dùng định dạng theo vùng của hệ thống (ví dụ "1,840" khi chỉ đổi ngôn ngữ sang tiếng Việt).
-11. **Tự cập nhật, phần còn lại:**
-    - Chưa thử trên máy ảo macOS 15 (ở macOS 27 đã thử trọn luồng, xem nhật ký phiên 7). Nên thử `-HexerUpdateCheck 1 -HexerUpdateInstall 1 -HexerUpdateRelaunch 1` với bản sao app như phiên 7.
-    - Chưa thử cài thật 0.3.2 → 0.4.0 (qua GitHub API) hay 0.4.0 → bản sau (qua manifest trên R2); mới kiểm tới bước "0.4.0 is available" với manifest thật (nhật ký phiên 9).
-    - Chưa có cập nhật cho người dùng không phải admin khi app nằm trong /Applications của admin: hiện chỉ báo lý do và mở trang tải về (Sparkle thì xin mật khẩu admin).
-    - Cờ relaunch còn sót khi huỷ hộp thoại lưu (§3, "Tự cập nhật").
-    - Không có bản cập nhật delta; mỗi lần tải cả DMG (khoảng 7 MB).
-12. **Hiệu năng:** chạy `hexer-cli bench` và mở tệp thưa 6 GB (`mkfile -n 6g`) sau các thay đổi lớn ở Storage hoặc HexGrid. Đã kiểm lại sau khi thêm gập vùng (2026-10-24): tệp 6 GB mở và nhảy tới cuối bình thường.
+1. **CI (optional).** The repo is on GitHub. A macOS workflow could run `Scripts/test.sh` and `Scripts/crosscheck.sh`. Crosscheck needs its hardcoded path to `HxD64.exe` fixed (`HXD=` in the script; skip if the file is missing) and needs `hdiutil` for the disk part.
+2. **Try on macOS 26.** macOS 15 was checked on a UTM VM (see session 3 in the log). macOS 26 has not been checked; you could create another UTM VM and use `Scripts/vm_test.sh` with the matching `VM_NAME`/`VM_HOST`.
+3. **Test on real disks.**
+   - The authopen prompt on an internal disk (needs the admin password) has not been tried.
+   - The disk write path only has unit tests on attached disk images. Try on a real USB drive: write, unmount, compare with `dd`. `hexer-cli disks read diskN` (with sudo) helps a quick comparison.
+4. **Find bar glass over the grid (light mode).** Grid text behind still shows faintly through the search field. Still readable, but less clear than dark mode. This is the system's `.glassEffect(.regular)`; adjust only if users find it hard to read.
+5. **Folding undefined sections, what remains:**
+   - Moving across a folded row with ↑/↓ makes the caret lose its column (it goes to the region's first byte).
+   - Print does not fold.
+   - There is no way to re-fold a single opened region, other than toggling View ▸ Fold Undefined Sections off and on. A "Fold Section" context menu could be added.
+6. **Minimum width when the Checksums drawer is open:** about 1270 pt (English) and 1300 pt (Vietnamese), versus 1166 pt without the drawer. The remaining culprit may be the table or the drawer's segmented tab; measure by comparing `-HexerWindowSize 1100x700` with and without `-HexerDrawer checksums`.
+7. **NSTableView reentrancy warning:** "Application performed a reentrant operation in its NSTableView delegate". Reproduced (2026-10-24), every time, on both arm64 and x86_64: `build/Hexer.app/Contents/MacOS/Hexer FILE -HexerWindowSize 1100x700 -HexerFind Hexer -HexerFindType text -HexerFindAll 1 -HexerDrawer searchResults -HexerQuit 1`. Suspect the Search Results table: `searchResultSelection` is set (and `onChange` changes the selection and scrolls the grid) while the table is updating after Find All.
+8. **Segmented control role (SDK 27).** SwiftUI cannot yet set the `tabs` / `valueSelection` role of `NSSegmentedControl`. If strict HIG is needed, wrap AppKit for the drawer tabs.
+9. **App signing.** Use `SIGN_IDENTITY` (Developer ID or a self-signed certificate) so Screen Recording permission is not lost after every build.
+10. **Remaining localization gaps:** the errno description (`strerror`) in error messages is still English; numbers in strings use the system region format (e.g. "1,840" when only the language is switched to Vietnamese).
+11. **Self-update, what remains:**
+    - Not tried on the macOS 15 VM (the full flow was tried on macOS 27, see session 7 in the log). Try `-HexerUpdateCheck 1 -HexerUpdateInstall 1 -HexerUpdateRelaunch 1` with an app copy as in session 7.
+    - A real install of 0.3.2 → 0.4.0 (via the GitHub API) or 0.4.0 → later (via the R2 manifest) has not been tried; only checked up to "0.4.0 is available" with the real manifest (session 9 in the log).
+    - No update path for non-admin users when the app is in an admin's /Applications: it only reports the reason and opens the download page (Sparkle would ask for the admin password).
+    - Leftover relaunch flag when the save dialog is cancelled (§3, "Self-update").
+    - No delta updates; each update downloads the whole DMG (about 7 MB).
+12. **Performance:** run `hexer-cli bench` and open a 6 GB sparse file (`mkfile -n 6g`) after major changes to Storage or HexGrid. Re-checked after adding folding (2026-10-24): a 6 GB file opens and jumps to the end normally.
 
-## 7. Quy ước khi code tiếp
+## 7. Coding conventions
 
-- **Đọc DESIGN.md trước khi đụng UI.** Liquid Glass chỉ dùng cho control; sidebar, inspector, sheet và alert dùng của hệ thống; thanh kính cao `GlassBar.height` (36). Sửa UI xong thì cập nhật canvas và DESIGN.md (quy trình ở DESIGN.md §10).
-- **Chuỗi UI:** viết bằng tiếng Anh trong `Text("…")` hoặc `L("…")`, thêm bản dịch vào `Scripts/l10n/vi.py`, rồi chạy `bundle.sh` để audit.
-- **Logic thuần** đặt trong HexerCore kèm test swift-testing. Nếu có lệnh CLI tương ứng thì thêm check vào `crosscheck.sh`.
-- **Mỗi thay đổi UI** phải được kiểm bằng ảnh chụp thật: sáng, tối, tiếng Việt, cửa sổ hẹp khoảng 1024 pt. Dùng `-HexerSnapshot`.
-- **Trước khi báo xong:** chạy `Scripts/test.sh`, `Scripts/crosscheck.sh` và `Scripts/bundle.sh`, tất cả phải đạt.
-- Comment trong code viết bằng tiếng Anh, giữ mật độ như code xung quanh.
+- **Read DESIGN.md before touching UI.** Liquid Glass is for controls only; sidebar, inspector, sheet and alert use the system's; glass bars are `GlassBar.height` (36) tall. After changing UI, update the canvas and DESIGN.md (procedure in DESIGN.md §10).
+- **UI strings:** write them in English in `Text("…")` or `L("…")`, add the translation to `Scripts/l10n/vi.py`, then run `bundle.sh` to audit.
+- **Pure logic** goes in HexerCore with swift-testing tests. If a matching CLI command exists, add a check to `crosscheck.sh`.
+- **Every UI change** must be checked with real screenshots: light, dark, Vietnamese, and a narrow window of about 1024 pt. Use `-HexerSnapshot`.
+- **Before reporting done:** run `Scripts/test.sh`, `Scripts/crosscheck.sh` and `Scripts/bundle.sh`; all must pass.
+- Code comments are written in English, with the same density as the surrounding code.
 
-## 8. Nhật ký các phiên
+## 8. Session log
 
-- **Phiên 1:**
-  - Phân tích HxD64.exe bằng REA và giải mã 38 form DFM.
-  - Lên kế hoạch 10 phase, tạo canvas Claude Design (kiểu macOS 26).
-  - Bắt đầu triển khai.
-- **Phiên 2 (2026-10-23):**
-  - Hoàn tất phase 1–9 và các phát hiện của phase 10.
-  - Cân lại sidebar và inspector. Đối chiếu HIG macOS 27, rồi chuyển sang pane hệ thống sát mép và toolbar 3 nhóm.
-  - Thống nhất chiều cao 36 pt cho thanh kính (Find All từng thấp hơn các nút bên cạnh).
-  - Vẽ lại toàn bộ canvas cho khớp app và thêm board Tools.
-  - Sửa cửa sổ Settings: bỏ khoảng trống, tiêu đề theo pane, đặt lại vị trí stepper, chuyển chú thích thành footer.
-  - Viết DESIGN.md và HANDOFF.md.
-- **Phiên 3 (2026-10-24):**
-  - **Alert an toàn:**
-    - Thêm `NSAlert.addDestructiveButton` (nút đỏ, không nhận Return) cho Write to Disk, Write Directly, Overwrite (clone) và Wipe and Delete.
-    - Alert mở ổ đĩa để ghi đổi thứ tự: Open Read-only (mặc định) / Open for Writing / Cancel.
-    - Kiểm bằng cờ mới `-HexerAlertSnapshot` trên ảnh đĩa thử.
-  - **Lỗi core sang tiếng Việt:** thêm `App/ErrorMessages.swift` (48 câu) và hook `willPresentError`. Find bar đã hiện lỗi tiếng Việt.
-  - **l10n:**
-    - Mở rộng audit; nhờ đó tìm ra một chuỗi chưa dịch ("Choose a file").
-    - Xoá 4 khoá không dùng ("Settings", "None", "Expected result:", "%@ bytes · group %@").
-  - **CLI:**
-    - Thêm `edit`, `split`, `concat`, `disks list/read`, `selftest`.
-    - Crosscheck thêm 34 check, có so `disks read` với `dd` trên ảnh raw gắn tạm (không mount, không ghi).
-  - **Gập vùng undefined:**
-    - `RowMap` (HexerCore, 5 test có so ngẫu nhiên với cách tính ngây thơ).
-    - Lưới vẽ dòng gập; bấm để mở; tự mở khi Go to / Find dẫn vào; ↑↓/Page theo dòng hiển thị; mục View ▸ Fold Undefined Sections.
-    - Compare cuộn đồng bộ theo byte.
-    - Data Inspector chỉ giải mã các byte định nghĩa tính từ caret; trong vùng undefined thì hiện "—" thay vì coi là 0.
-    - Chụp kiểm: tối, sáng, tiếng Việt, cửa sổ 1024, Go to vào giữa vùng, tắt gập, compare, tệp 6 GB.
-  - Canvas version 18 (board mới Import, sửa Tools và MenusVI), cập nhật DESIGN.md.
-  - **Kiểm chế độ sáng thật** (người dùng đã chuyển máy sang Light):
-    - Đã chụp cửa sổ chính, dòng gập, find bar và lỗi, Find All, Checksums, Go to, Statistics, 5 pane Settings, Open Disk, Wipe và alert mở ổ đĩa.
-    - Toolbar kính hiển thị bình thường. Hiện tượng "toolbar trong suốt" lúc trước chỉ do cờ `-NSRequiresAquaSystemAppearance`; khi cần kiểm giao diện sáng thì dùng chế độ sáng thật.
-    - Sửa find bar ở cửa sổ hẹp với tiếng Việt: trước đó "Hỏi trước khi thay thế" và "Thay thế tất cả" xuống dòng, tràn khỏi capsule 36 pt.
-      - Nhãn capsule giờ luôn một dòng (`GlassCapsuleButtonStyle` và checkbox).
-      - Ô tìm và ô thay thế co xuống tối thiểu 90 pt.
-      - Find bar cách hai mép lưới 16 pt.
-  - Commit đầu tiên và push lên `letrucdev/hexer` (theo yêu cầu của người dùng).
-  - **Hỗ trợ macOS 15** (theo yêu cầu của người dùng):
-    - Thử build bản sao với mức tối thiểu macOS 15: chỉ vướng 16 chỗ, toàn API kính trong 5 tệp. macOS 14 vướng thêm `Mutex` (Synchronization) ở HexerDisasm; macOS 13 trở xuống không khả thi vì `@Observable`.
-    - Gom kính vào `barGlass`, `barGlassID`, `GlassGroup`. Trên macOS 15 dùng material chuẩn kèm viền mảnh; nút prominent và chip dùng nền accent.
-    - Hạ deployment target và `LSMinimumSystemVersion` xuống 15.0.
-    - Kiểm: ký hiệu kính được liên kết dạng weak (`dyld_info -imports`), framework liên kết đều có trên macOS 15, chụp `-HexerNoGlass 1` ở sáng, tối, tiếng Việt, cửa sổ hẹp, compare và sector navigator.
-  - **Test trên macOS 15.0 thật (máy ảo UTM, người dùng cài):**
-    - `hexer-cli selftest` đạt; sửa và lưu tệp ra đúng từng byte như `hexer-cli replace`; `disks list/read` trên ảnh đĩa gắn tạm khớp `dd` (kể cả đoạn không thẳng hàng).
-    - Đã chụp: cửa sổ chính, find bar + Replace (sáng, tối, tiếng Việt, cửa sổ 1024), Find All, Checksums (ngăn và sheet), Go to (tiếng Việt), vùng gập sau khi import, so sánh hai cửa sổ, sector navigator, Statistics, 5 pane Settings, Open Disk (liệt kê ổ đĩa của máy ảo, ổ khởi động có khoá), alert mở ổ đĩa để ghi (Open Read-only mặc định, Open for Writing màu đỏ).
-    - Lỗi tìm thấy và đã sửa: phụ đề cửa sổ không hiện trên macOS 15; chấm "đã sửa" không hiện trong nút đóng (lỗi có từ trước, cả trên macOS 27).
-    - Khác biệt chấp nhận được: ở cửa sổ hẹp, sidebar và inspector của macOS 15 chiếm chỗ (không chảy sau nội dung như macOS 26+), lưới phải cuộn ngang và nhóm toolbar bên phải gập vào nút `»`.
-    - Thêm `Scripts/vm_test.sh` để lặp lại các bước trên.
-  - **DMG để phát hành** (theo yêu cầu của người dùng): `Scripts/make_dmg.sh`, hướng dẫn cài đặt tiếng Anh và tiếng Việt trong `Distribution/`.
-    - Bản universal: phần x86_64 mở được qua Rosetta, `hexer-cli selftest` (x86_64) đạt.
-    - Mô phỏng tải về trên máy này: app chép từ DMG có cờ quarantine mang theo cờ đó, Gatekeeper chặn (`spctl`: rejected); lệnh `xattr -dr` trong hướng dẫn gỡ được, chữ ký vẫn hợp lệ.
-    - **Chưa** thử hộp thoại Gatekeeper và nút Open Anyway trên máy ảo macOS 15, vì máy ảo đang tắt.
-  - **GitHub Actions** (theo yêu cầu của người dùng): `ci.yml` và `release.yml` (xem §2 "CI và phát hành").
-    - Trước khi push, đã chạy lại các bước của CI trong một bản sao sạch của repo: test, crosscheck, bundle và DMG đều đạt.
-    - Người dùng đã chuyển repo sang **public**, nên đọc được trạng thái Actions qua API công khai. Log chi tiết vẫn phải đăng nhập mới xem được.
-    - Lần chạy CI đầu lỗi ở `DiskEnumeratorTests`: ổ khởi động của runner (máy ảo) không có `busProtocol`; máy ảo UTM cũng vậy. Test giờ chấp nhận ổ chỉ có model hoặc tên media. Sau đó CI xanh trên `xcode-27`.
-    - **Release đầu tiên `v0.1`:** https://github.com/letrucdev/hexer/releases/tag/v0.1, gồm `Hexer-0.1.dmg` (6,5 MB, universal, build 9) và `Hexer-0.1.dmg.sha256`. Đã tải về kiểm: checksum khớp, chữ ký hợp lệ, `minos 15.0`.
-  - **README:**
-    - Thêm `README.md` (tiếng Anh): ảnh chính đổi theo giao diện sáng/tối (`<picture>`), tính năng, ảnh chụp, build, CLI, cấu trúc dự án.
-    - Ảnh nằm trong `docs/images`, chụp từ app thật bằng `-HexerSnapshotShadow` trên dữ liệu của chính dự án (binary Hexer, Intel Hex dựng từ binary đó, ảnh đĩa FAT "HEXER").
-    - Dựng lại ảnh: chạy lại các lệnh chụp (xem cờ ở §2), rồi thu ảnh về chiều dài nhất 1600 px bằng `sips -Z 1600`.
-    - Repo chưa có LICENSE nên README không ghi license.
-  - **Video giới thiệu quay thao tác thật** (người dùng yêu cầu: không dùng ảnh tĩnh, không đưa video lên GitHub):
-    - Kịch bản `App/DemoScript.swift` (cờ `-HexerDemo DIR`): bấm byte, gõ đè hex rồi ⌘Z, ⌘F + Find All + ▼, đổi Big/Little endian, mở Checksums, import Intel Hex vào tab mới, mở vùng gập rồi gập lại, đổi sáng/tối.
-    - Toạ độ nút SwiftUI lấy qua modifier `.demoAnchor(_:)` (chỉ ghi khi đang chạy demo). Cửa sổ demo đặt `ignoresMouseEvents` để con trỏ thật không gây hover/tooltip.
-    - Quay bằng `Scripts/record_demo.swift`, ghép bằng `Scripts/make_promo.swift`; mọi thứ nằm trong `build/promo/` (đã bị `.gitignore`).
-    - Bài học: `SCStream.startCapture` (async) treo nếu tiến trình không chạy `NSApplication` run loop; dùng bản completion handler trong `nsapp.run()`.
-  - **Sửa lỗi phát hiện khi quay:** chọn một khối lớn hoặc mở ngăn Checksums làm cửa sổ tự nở rộng (1280 → 1344/1396 pt), vì SwiftUI tính chiều rộng lý tưởng của các trường status bar, cột bảng và ô "Expected result" vào kích thước tối thiểu của cửa sổ.
-    - Trường status bar giờ co lại được (Block co trước) và cắt giữa.
-    - Chiều rộng lý tưởng của cột bảng Search Results/Checksums nhỏ lại.
-    - Ô "Expected result" dùng `ViewThatFits` (240 → 140 → ẩn).
-    - Kiểm: 1280 pt giữ nguyên 1280 ở mọi trạng thái. Ngăn Checksums vẫn nâng chiều rộng tối thiểu lên khoảng 1270 pt (tiếng Anh) và 1300 pt (tiếng Việt), so với 1166 pt khi không mở ngăn (xem §6).
-- **Phiên 4 (2026-10-24):**
-  - **Hiện bảng Open ngay khi mở app** (theo yêu cầu của người dùng). Trước đây `applicationShouldOpenUntitledFile` trả `false`, nên app mở lên không có cửa sổ nào, phải bấm Dock mới hiện bảng Open.
-    - Giờ mở app không kèm tệp thì bảng Open hiện ngay, app đứng trước. Bấm Dock lúc không còn cửa sổ vẫn hiện bảng như cũ (xem §3 "Các quyết định chính").
-    - Mở kèm tệp (`open -a Hexer file`) hoặc chạy có cờ `-Hexer…` thì không hiện bảng. Khi macOS khôi phục cửa sổ cũ, AppKit cũng không gọi tới bảng này (chưa thử trực tiếp).
-    - Kiểm: mở `build/Hexer.app` qua `open` (bảng "Open" hiện, Hexer là app đứng trước); mở kèm tệp; chạy `-HexerSnapshot` và `-HexerImport`. Kịch bản bấm Dock (lúc đang mở bảng, và sau khi Cancel) được thử trên một app mẫu cùng logic, có tự bấm Cancel, vì Terminal không có quyền Accessibility để gửi phím.
-    - Canvas không đổi, vì bảng Open là bảng của hệ thống. DESIGN.md §4 có thêm dòng mô tả lúc mở app.
-  - **CI của commit `1eab47a` lỗi ở `AttachedImageTests.readWriteAndCloneOnARawDevice`:** `openFailed(path: "/dev/rdisk7", code: 13)`, tức EACCES. Lỗi xảy ra ngay sau khi `isOurWritableImage()` đã thấy node ghi được (`access` R/W = 0). Commit này chỉ sửa app; test đó đã đạt hai lần trên runner ở `c5e8d9c` (CI và Release).
-    - Không tái hiện được trên máy này: 40 vòng gắn/gỡ nhanh (luôn dùng lại `rdisk4`) và 8 lần chạy suite đều đạt; quyền node là uid 501, 0640 ngay từ lúc gắn. Chưa rõ nguyên nhân trên runner. Log đầy đủ cần đăng nhập, annotation không có thêm thông tin.
-    - Test giờ mở thiết bị qua `AttachedImage.openRaw(writable:)` (`TestSupport.swift`): EACCES/EPERM được thử lại trong 5 s, mở được sau khi thử lại thì in `AttachedImage: … opened after N permission retries`. Lỗi kéo dài thì báo uid/gid/mode của node, uid của test và uid của console. **Nếu lỗi lặp lại, đọc các số đó trong annotation trước khi đoán tiếp.** Code sản phẩm không đổi, vì app gặp EACCES thì đã hỏi quyền qua `authopen`.
-    - Đã thử cả hai nhánh bằng test tạm (`chmod 000` lên node của chính mình): khôi phục quyền sau 1 s thì mở được sau 10 lần thử; để nguyên thì báo `node: uid 501, gid 20, mode 0`.
-  - **Release `v0.1.1`** (theo yêu cầu của người dùng): tag annotated "Hexer 0.1.1" trên `138b70a` (CI đạt), đã push và workflow Release đã chạy. Quy tắc đặt tên tag và cách phát hành đã được thêm vào CLAUDE.md (mục "Phát hành"); ví dụ trong §2 và trong chú thích của `release.yml` đã sửa cho khớp.
-    - Kết quả: https://github.com/letrucdev/hexer/releases/tag/v0.1.1, gồm `Hexer-0.1.1.dmg` (6,5 MB) và `Hexer-0.1.1.dmg.sha256`. Workflow mất khoảng 6 phút (test 3 phút, release 2 phút). Đã tải về kiểm: checksum khớp, chữ ký hợp lệ, `CFBundleShortVersionString` 0.1.1, build 12, universal (x86_64 + arm64), `minos 15.0`.
-    - Script theo dõi workflow đầu tiên bị lỗi cú pháp Python (`\"` trong phần `{…}` của f-string, viết ngay trong `python3 -c '…'`), nên lặp im lặng đến hết giờ. Khi theo dõi Actions, để phần Python trong một tệp riêng, chạy thử một lần ở foreground, và cho script dừng khi lỗi liên tiếp.
-  - **Ghi chú release có phần thay đổi** (theo yêu cầu của người dùng): thêm `CHANGELOG.md` (mục 0.1.1 và 0.1, tiếng Anh + tiếng Việt), `Scripts/release_notes.sh`, chỗ `@CHANGES@` trong `Distribution/release-notes.md`, và job `notes` trong `release.yml`. Quy tắc nằm trong CLAUDE.md (mục "Phát hành").
-    - Đã thử script: có mục, bản đầu tiên (không có link so sánh), thiếu mục (dừng, exit 1, thông báo `error:` nên `ci_run.sh` đưa ra annotation), và `0.1` không khớp nhầm `0.1.1`. YAML đọc được bằng Ruby; workflow mới **chưa chạy thật** (chỉ chạy khi có tag mới).
-    - Release `v0.1.1` đã đăng trước thay đổi này nên chưa có phần thay đổi. Sửa trên GitHub cần đăng nhập (máy này không có `gh`).
-  - **Màn hình chào lần đầu** (theo yêu cầu của người dùng: giới thiệu app, animation bắt mắt, chuyển cảnh mượt, chỉ hiện lần đầu). Mô tả ở DESIGN.md §6.9 và board `Welcome.dc.html` trên canvas (version 20). Có thêm mục Help ▸ Welcome to Hexer để xem lại.
-    - Lời giới thiệu viết theo nguyên tắc của skill `design:ux-copy` (mỗi trang một ý, nút bắt đầu bằng động từ và khớp kết quả: nút cuối là "Open a File…" vì nó mở bảng Open). Thêm 18 chuỗi tiếng Việt.
-    - Kiểm bằng ảnh chụp cửa sổ: 4 trang ở sáng, tối và tiếng Việt; chuỗi khung hình lúc đổi trang (vòng lan, trang trượt, phần tử nổi lần lượt).
-    - Kiểm luồng:
-      - `open build/Hexer.app` khi chưa có khoá thì hiện màn hình chào (app đứng trước) và đặt khoá; lần mở sau hiện bảng Open.
-      - `-HexerWelcomeEnd skip|open|close` lúc mở app đều dẫn tới bảng Open.
-      - ← → Return Esc thử bằng sự kiện phím gửi vào chính app (đoạn mã thử tạm, đã gỡ): ← → lật trang, Return đi tiếp rồi mở bảng Open ở trang cuối, Esc đóng.
-    - Đã xoá lại khoá `WelcomeShown` sau khi thử.
-    - Reduce Motion không kiểm trên máy này vì phải đổi cài đặt hệ thống của người dùng; đã kiểm trên máy ảo ở phiên 5 và tìm ra một lỗi crash.
-    - Hiệu năng: xem §3 "Màn hình chào lần đầu". Bản đầu tốn 25–40% CPU; sau khi chuyển nền sang Core Animation và bỏ nội suy ở hình minh hoạ còn 0–6%.
-- **Phiên 5 (2026-10-24):**
-  - **Cài MCP `utm`** (theo yêu cầu của người dùng; https://github.com/neverprepared/mcp-utm, commit `5f6bab5`, chỉ gọi `osascript` tới UTM và `arp -a`).
-    - Cài vào venv `~/.local/share/mcp-utm` từ mã nguồn GitHub đã đọc qua, không lấy từ PyPI. Máy không có `uv`.
-    - Phải ghim `mcp<2` (hiện là 1.30.0): package chỉ ghi `mcp>=1.9`, mà mcp 2.x đã bỏ `mcp.server.fastmcp`, nên server dừng ngay lúc khởi động.
-    - Đăng ký bằng `claude mcp add utm -- ~/.local/share/mcp-utm/bin/mcp-utm`, scope local (chỉ cho project này). Tools có từ phiên Claude Code mới; trong phiên này phải gọi server qua stdio bằng một script Python tạm.
-  - **Kiểm màn hình chào trên máy ảo macOS 15.0** (theo yêu cầu của người dùng). Máy ảo `macOS_15` được bật bằng MCP, IP `192.168.64.2`.
-    - Chụp 4 trang ở giao diện sáng, tối và tiếng Việt: bố cục khớp với macOS 27, không có chữ bị cắt. Chuyển trang (vòng lan, trượt, blur, phần tử nổi lần lượt) chạy đúng.
-    - **Luồng lúc mở app:**
-      - Chưa có khoá `WelcomeShown` thì hiện màn hình chào và đặt khoá; lần mở sau hiện thẳng bảng Open.
-      - Skip, nút đóng, Esc ở trang cuối và Open a File… đều dẫn tới bảng Open.
-    - **Luồng từ Help ▸ Welcome to Hexer:** Skip và nút đóng không mở bảng Open; Open a File… thì mở. Chọn menu hai lần vẫn chỉ có một cửa sổ.
-    - **Điều khiển:** ← → lật trang, Return đi tiếp; chấm trang, Back và Continue hoạt động; cây Accessibility có nhãn "Page n of 4".
-    - **Lỗi crash khi bật Reduce Motion (đã sửa):**
-      - App crash (`EXC_BREAKPOINT` trong `dispatch_assert_queue`) ngay lần đổi trang đầu tiên, 3/3 lần.
-      - Nguyên nhân: SwiftUI animate trên luồng render (`renderFromAsyncDisplayLink`) và resolve màu `NSColor.dynamic(light:dark:)`. Provider của màu đó mặc định là MainActor, nên runtime kiểm executor và trap.
-      - Sửa: thêm `nonisolated` vào `NSColor.dynamic` (`HexTheme.swift`). Lỗi có từ commit đầu, nên có thể xảy ra ở bất cứ chỗ nào SwiftUI resolve màu `HexTheme` ngoài main thread, không riêng màn hình chào.
-      - Sau khi sửa: 3 lần lật hết 4 trang rồi lùi lại, không crash. Với Reduce Motion, trang cross-fade và hình minh hoạ hiện ngay trạng thái cuối.
-    - **CPU** (`ps -o time`, đo 6 s sau khi trang ổn định):
-      - Máy ảo, trang 1–4: 7,3%, 5,3%, 1,8%, 0,7%.
-      - Máy này: trang 1 là 6,7–8% (đo 12 s cho kết quả 8%), trang 2 là 6,8%.
-      - Trang đầu cao hơn con số 0–2% ghi ở §3. Chưa tìm nguyên nhân; có thể là hàng giải mã "Hexer" chạy lại (1,2 s ở 20 Hz, mỗi 10 s) cộng với timer loé byte.
-    - **Cách điều khiển máy ảo:** lúc đầu dùng các công cụ tạm, sau đó gộp vào `Scripts/vm_test.sh` (theo yêu cầu của người dùng): `start`, `capture`, `burst`, `keys`, `press`, `menu`, `close`, `ax`, và `shot` giờ cắt ảnh theo cửa sổ Hexer.
-      - Trong máy ảo không có quyền Screen Recording, nên `-HexerSnapshot` báo lỗi. Vì vậy script chụp cửa sổ UTM rồi cắt theo khung cửa sổ Hexer (`vm_agent frame`, đọc qua Accessibility nên bắt được cả bảng Open).
-      - Màn hình máy ảo là 1512×908 pt (`vm_agent screen`). Cửa sổ UTM có lúc đổi cỡ, nên tỉ lệ tính từ kích thước ảnh chụp, giả định màn hình máy ảo phủ hết chiều ngang cửa sổ UTM.
-      - Phím gửi bằng `CGEvent.postToPid`. Nút, menu và cây Accessibility đi qua AX API. Quyền Accessibility của phiên SSH là của `/usr/libexec/sshd-keygen-wrapper` (đã kiểm trong TCC.db của máy ảo).
-      - Đã thử từng lệnh trên máy ảo: `start`, `deploy`, `selftest`, `shot`, `capture` (cả bảng Open), `burst`, `keys` (cả `cmd+.` đóng bảng Open), `press`, `menu`, `close`, `ax`.
-      - Dễ vấp khi viết script: `screencapture` không ghi được vào tên tệp bắt đầu bằng dấu chấm. `/bin/sh` (bash 3.2) hiểu dấu `'` trong `"${x:+…}"` là mở chuỗi.
-    - Đã trả máy ảo về như cũ: xoá `com.apple.universalaccess reduceMotion` và `WelcomeShown` (cả hai đều chưa có từ trước). Máy ảo vẫn đang chạy.
-  - Kiểm: `Scripts/test.sh` 166 test đạt, `Scripts/crosscheck.sh` 281/281, `Scripts/bundle.sh` không có warning. Canvas và DESIGN.md không đổi, vì giao diện không đổi.
-  - **Commit và push** (theo yêu cầu của người dùng), gồm 4 commit trên `main`: `4a1fb12` màn hình chào (phần làm từ phiên 4, lúc đó chưa commit; HANDOFF.md của commit này chỉ có ghi chú về màn hình chào), `55d233e` sửa crash, `5d1dd69` công cụ máy ảo kèm nhật ký phiên này, `7d26647` CHANGELOG 0.2.0.
-  - **Release `v0.2.0`** (theo yêu cầu của người dùng: "tạo releases mới nếu cần"). Bản này có tính năng mới, nên tăng số giữa.
-    - Mục `## 0.2.0` trong CHANGELOG.md chỉ ghi màn hình chào. Bản sửa crash không được ghi: crash chỉ gặp ở màn hình chào, vốn mới có trong bản này, nên người dùng 0.1.1 không thấy gì khác.
-    - CI của `5d1dd69` đạt (run 40090906595), rồi mới đặt tag annotated "Hexer 0.2.0" trên `7d26647`.
-    - Workflow Release đạt ở cả ba job notes, test, release (run 40091189598). Đây là lần đầu job `notes` chạy thật.
-    - Kết quả: https://github.com/letrucdev/hexer/releases/tag/v0.2.0, gồm `Hexer-0.2.0.dmg` (6,8 MB) và `Hexer-0.2.0.dmg.sha256`. Đã tải DMG về kiểm, SHA-256 khớp.
-    - Ghi chú release mở đầu bằng phần thay đổi (tiếng Anh và tiếng Việt), có link so sánh với v0.1.1 và dòng SHA-256.
-- **Phiên 6 (2026-10-24):**
-  - **Video giới thiệu mới, có nhạc nền** (theo yêu cầu của người dùng: có con trỏ, có thao tác, animation bắt mắt, chuyển cảnh mượt, nhạc hợp nội dung). Không có skill render video nào, nên nâng cấp pipeline sẵn có thay vì thêm Remotion hay ffmpeg.
-    - **Kịch bản quay** (`App/DemoScript.swift`): 8 chương, mỗi chương ghi `caption` kèm `id`, rồi dừng 0,7 s cho phần chuyển cảnh. Thêm 2 chương:
-      - "Read machine code": mở popover kiểu dữ liệu, chọn Hex, tìm `FD 7B BF A9`, bấm vào byte tìm được, cuộn Data Inspector xuống phần Disassembly (ARM64 hiện `stp x29, x30, [sp, #-0x10]!`).
-      - "See the shape of your data": mở cửa sổ Statistics giữa cửa sổ chính, quét con trỏ qua biểu đồ (cập nhật `hovered`), chọn cột cao nhất rồi bấm nút đóng. Khung cửa sổ đã lưu (`NSWindow Frame HexerStatisticsWindow`) được trả lại sau đó.
-      - Byte order gộp vào chương đầu. Badge phím có thêm kiểu (`shortcut`, `typing`, `menu`).
-    - **Thay đổi trong code app (chỉ phục vụ demo, giao diện không đổi):** thêm `demoAnchor` "Find type", "Find field", "Find data type" (FindBar) và "Statistics plot" (một `Color.clear` không nhận click, đặt trên vùng vẽ của biểu đồ). `StatisticsWindowController.model` bỏ `private`. Anchor ở cửa sổ khác (popover, Statistics) được đổi toạ độ qua `NSHostingView` của cửa sổ đó.
-    - **Compositor** (`Scripts/make_promo.swift`, viết lại):
-      - Mỗi chương dài số nguyên beat (120 BPM). Bản quay trong chương được tua nhanh hoặc chậm vài phần trăm cho khớp; chương cuối giữ khung cuối đến hết ô nhịp.
-      - Mấy khung cuối của bản quay trống vì app thoát ngay sau `end`, nên chương cuối dừng ở `end - 0.05`.
-      - Camera là lò xo theo các sự kiện `focus` (zoom nhân 1,25 vì cửa sổ chiếm nhiều khung hơn). Khi zoom, cửa sổ luôn phủ kín khung bên dưới caption đã thu gọn.
-      - Chỉ báo chia sẻ trên cửa sổ Statistics có animation mở/đóng, nên mỗi khung được dò tìm màu (117, 117, 223), tức xanh có R≈G, khác chữ offset xanh của app. Chỉ dò khi cửa sổ đang mở, rồi phủ màu thanh tiêu đề và đèn giao thông lấy từ ảnh sạch.
-    - **Nhạc** (`Scripts/make_music.py`): Am7 Fmaj7 G ở phần mở đầu, rồi vòng Fmaj7 G Em7 Am7, kết ở Cmaj9. Riser và drop khi cửa sổ hạ cánh (6,0 s), whoosh trước mỗi chương, breakdown 2 ô nhịp ở giữa, tiếng click, gõ phím và menu khớp thời điểm trong bản quay.
-      - Không nghe được nên kiểm bằng số đo. Bản đầu nặng sub (20–60 Hz chiếm −2,8 dB, trên 6 kHz chỉ −28,8 dB), đã cân lại còn −6,9 / −4,6 / −4,2 / −13,5 / −17,2 dB (các dải 20–60, 60–250, 250–2k, 2–6k, 6–20k Hz).
-      - Độ lớn: intro −17,7 dB RMS, groove −14,2, breakdown −16,4; đỉnh −1 dBFS.
-    - Kiểm bằng khung hình trích từ video: mở đầu, lúc cửa sổ trồi lên và hạ cánh, từng chuyển chương, popover, Disassembly, Statistics (vá đèn đúng cả trong lúc animation), firmware, sáng/tối, lưới tính năng, kết thúc. Bản tiếng Việt hiển thị dấu đúng, caption và ô tính năng vừa khung.
-    - Kiểm: `Scripts/test.sh` 166 test đạt, `Scripts/crosscheck.sh` 281/281, `Scripts/bundle.sh` không có warning mới. Canvas và DESIGN.md không đổi, vì giao diện không đổi.
-    - **Chưa làm:** người dùng chưa nghe nhạc thật. Nếu muốn đổi tempo, hợp âm hay độ dài, sửa `make_music.py` rồi chạy lại `make_promo.swift` (không cần quay lại).
-  - **Sửa theo góp ý của người dùng** ("zoom chưa mượt", "thao tác quá nhanh", "nhạc to, tiết tấu nhanh", muốn nhạc êm như video giới thiệu sản phẩm của Apple):
-    - **Zoom:** bỏ camera lò xo. Mỗi sự kiện `focus` thành một lần trượt smootherstep (vào 1,6 s, ra 1,5 s). Zoom nội suy theo log và quanh điểm đứng yên trên màn hình. Vị trí được kẹp ở hai đầu, không kẹp từng khung, nên không còn giật khi cửa sổ chạm mép. Đã kiểm bằng quỹ đạo từng khung: mép cửa sổ không đổi hướng giữa chừng, gia tốc không nhảy.
-    - **Thao tác chậm lại** (bản quay 57 → 102 s, video 74 → 120 s):
-      - `chapter` dừng 1,4 s; `focus` giờ là async và chờ camera xong mới thao tác tiếp.
-      - Con trỏ đi 0,6–1,3 s, dừng một nhịp rồi mới click. Gõ hex 0,22 s mỗi ký tự. Các pause sau kết quả dài hơn khoảng 1,5 lần.
-      - Trong compositor, con trỏ đi theo cung nhẹ, trừ khi quét biểu đồ (`straight`). Lắc 3D khi đổi chương nhẹ hơn (6°) và chậm hơn. Caption giữ mở 3 s rồi mới thu gọn.
-    - **Nhạc mới** (`make_music.py` viết lại), 80 BPM, D trưởng: Gmaj9 A6/9 ở phần mở đầu, rồi Dmaj9 Bm9 (hoặc F#m7) Gmaj9 A6/9, kết Dmaj9.
-      - Nhạc cụ: electric piano FM rải hợp âm, pad saw lọc ấm, mallet có echo ping-pong, bass sine, beat half-time rất nhẹ (kick, snap, shaker). Hall 3,6 s.
-      - Mỗi chương có "swell" (echo đảo ngược) và một tiếng chuông. Có đoạn nghỉ 2 ô nhịp ở giữa.
-      - Đo được: chương −20,2 dB RMS (trước −14,2), đỉnh −7 dBFS. Phổ ấm: 250–2k là −1,3 dB, 2–6k là −19,5 dB, trên 6k là −26,2 dB. Âm lượng chỉnh bằng `TARGET_RMS_DB`.
-    - **Lỗi gặp khi quay lại:**
-      - Hai click "Byte order" không được ghi: anchor được đo trước khi bật `isRecording`, và lúc ghi hay không tuỳ thời điểm. `DemoAnchors.isRecording` giờ bật ngay từ khi app khởi động với `-HexerDemo`.
-      - Một lần `record_demo` quay nhầm một cửa sổ phụ 502×314 của Hexer. Trước đây chọn đúng chỉ nhờ thứ tự liệt kê. Giờ script chọn cửa sổ lớn nhất và in danh sách cửa sổ.
-    - Kiểm: test 166 đạt, crosscheck 281/281, bundle đạt. Đã render lại cả hai bản (EN, VI). Người dùng vẫn chưa nghe bản nhạc mới.
-  - **Commit và push** lên `main` (theo yêu cầu của người dùng), một commit gồm công cụ video, kịch bản demo và HANDOFF. Video không commit (`build/` bị `.gitignore`).
-- **Phiên 7 (2026-10-25):**
-  - **Tự cập nhật** (theo yêu cầu của người dùng: "tôi muốn tính năng auto update"). Người dùng chọn ký bản cập nhật bằng Ed25519 (thay vì chỉ dựa vào HTTPS + SHA-256), chấp nhận thêm một secret trên GitHub.
-    - Tự viết thay vì dùng Sparkle: không có Xcode, Sparkle cần nhúng framework và các XPC service rồi ký lại, chưa chắc chạy với app ký ad hoc, và không có tiếng Việt. CryptoKit đã có sẵn Ed25519.
-    - **Core** (`HexerCore/Update`): `AppVersion` (thứ tự SemVer, "0.1" = 0.1.0), `UpdateFeed` (đọc JSON release của GitHub, chọn bản mới nhất), `ReleaseNotes` (mục "What's new"/"Có gì mới" theo ngôn ngữ), `UpdateSignature` (Ed25519), `AppBundleInstaller` (kiểm Info.plist, kiểm quyền, `RENAME_SWAP`), `UpdateError`. 16 test, có một vector ký bằng OpenSSL 4.
-    - **Platform:** `Downloads` (session ephemeral, có tiến độ, giới hạn kích thước), `MountedDiskImage` (hdiutil), `CodeSignature` (Security framework), `UpdateStaging` (ghép các bước kiểm rồi chép app ra). 6 test, có test dựng DMG chứa app ký ad hoc rồi cài thật: chữ ký sai phiên bản hoặc sai khoá, app bị sửa sau khi ký, sai bundle ID, sai phiên bản.
-    - **App:** `SoftwareUpdate` (lịch kiểm, trạng thái, cài khi thoát, relaunch), cửa sổ Software Update, phần Software Update trong Settings ▸ General, menu Hexer ▸ Check for Updates…, lỗi tiếng Việt trong `ErrorMessages.swift`, 46 chuỗi mới trong `vi.py`, cờ `-HexerUpdate…`.
-    - **CLI và phát hành:** `hexer-cli update keygen|public-key|sign|verify`; `Scripts/sign_update.sh`; `release.yml` kiểm secret ở job `notes`, ký DMG sau `make_dmg.sh` và đính kèm `.sig`. Crosscheck thêm 6 check so chữ ký hai chiều với OpenSSL (bỏ qua nếu `openssl` không có Ed25519, như LibreSSL 3.3 của macOS).
-    - **Khoá thật:** tạo bằng `hexer-cli update keygen` vào tệp tạm 0600, đưa vào Keychain bằng `security add-generic-password`, xoá tệp bằng `rm -P`; khoá bí mật không in ra màn hình. Đã kiểm khoá trong Keychain sinh đúng khoá công khai trong Info.plist; `sign_update.sh` với khoá thật ký và kiểm được DMG 0.1 universal (đã xoá `.sig` thử), với khoá sai hoặc không có khoá thì dừng với thông báo `error:`.
-    - **Thử trọn luồng trên máy này:** bản sao app có bundle ID `com.nongdandev.hexer.e2e` (để không đụng cài đặt thật), phiên bản 0.2.9, khoá thử riêng; DMG 0.3.0 ký bằng khoá thử; feed `file://`. Kết quả: kiểm → tải → xác minh → sẵn sàng → relaunch: bundle đổi thành 0.3.0, code signature hợp lệ, tiến trình mới chạy từ cùng đường dẫn, thư mục tạm đã xoá. Install on Quit: đổi thành 0.3.0 khi thoát, không mở lại. Chữ ký làm cho 0.3.1: báo lỗi, app giữ 0.2.9. Thư mục không ghi được: hiện cảnh báo và nút Download…. Lần mở đầu không kiểm; sau một ngày (`UpdateChecksSince` lùi về trước) thì tự kiểm và hiện cửa sổ. Feed GitHub thật: "up to date", vì các release cũ chưa có `.sig`. Đã xoá domain `com.nongdandev.hexer.e2e` và các bản sao.
-    - **Lỗi tìm thấy khi chụp và đã sửa:** nút "Open Download Page" bị cắt chữ khi có ba nút (đổi thành "Download…"); thông báo không có quyền ghi hiện cả đường dẫn dài (giờ chỉ tên thư mục, theo `displayName`); khung What's New thừa chỗ trống khi chỉ có một dòng; lần mở đầu ghi "Last checked" dù chưa kiểm (tách khoá `UpdateChecksSince`).
-    - Gắn DMG không kiểm checksum (`-noverify`, 2,3 s → 0,18 s), vì chữ ký Ed25519 đã phủ toàn bộ tệp.
-    - **CI treo ở bước Unit tests** (commit `433d847` và `28f901d`, hơn 14 phút so với 3 phút bình thường; không có log vì `test.sh` chỉ in khi xong). Nghi `MountedDiskImage` đọc stdout và stderr của `hdiutil attach` tới EOF: `hdiutil` sinh `diskimages-helper -uuid … -post-exec 4`, sống tới khi gỡ ảnh đĩa; nếu nó giữ pipe thì EOF không bao giờ tới. Trên máy này helper chuyển 0/1/2 sang `/dev/null` (xem bằng `lsof`) nên không treo; trên runner chưa chứng minh được. Đã loại giả thuyết TCC: app mở qua LaunchServices đọc DMG không bị hỏi quyền "ổ tháo rời".
-      - Sửa: `HexerPlatform/Subprocess.swift` chờ tiến trình thoát (không chờ EOF), dừng nó sau 120 s; `MountedDiskImage` và `ditto` trong `UpdateStaging` dùng nó, các test mới cũng vậy. 5 test, có test tái hiện tiến trình con giữ pipe (`(sleep 30 &)`).
-      - CI của `02e2e64`: hết treo (mọi test DMG đạt), nhưng test giữ pipe mất 13,4 s trên runner (1,2 s ở máy này, kể cả khi CPU bị dồn tải). Bản đầu đọc bằng `readabilityHandler` + `availableData`, mà `availableData` chặn khi pipe trống, và gỡ handler thì phải đợi handler đang chạy. Giờ đọc bằng `DispatchSourceRead` trên fd `O_NONBLOCK`, không có lệnh nào chặn.
-      - `test.sh` có giới hạn thời gian và báo cáo khi treo (xem §2). Đã thử với `TEST_TIMEOUT=6`: liệt kê `hdiutil create`, hai `diskimages-helper`, và stack dừng ở `Subprocess.run` ← `MountedDiskImage.hdiutil` ← `UpdateStaging.stage`. Ảnh đĩa của test bị dừng giữa chừng vẫn còn gắn (`hdiutil info`); gỡ bằng `hdiutil detach`.
-    - Chụp kiểm: mọi trạng thái của cửa sổ ở tối, sáng và tiếng Việt; Settings ▸ General ở tối (tiếng Anh) và sáng (tiếng Việt). Cửa sổ rộng cố định 520 pt nên không có trường hợp cửa sổ hẹp. Trong ảnh chụp, cửa sổ không phải cửa sổ chính (app chạy từ terminal), nên nút mặc định chưa tô xanh.
-    - Canvas version 22: board mới `Update.dc.html`, thêm phần Software Update vào `Settings.dc.html`, thêm Check for Updates… vào `MenusVI.dc.html`. DESIGN.md: §1, §6.6, §6.8, §6.10 mới, §7. README: thêm dòng "Updates itself". CLAUDE.md (mục Phát hành): secret, không đổi khoá công khai, kiểm thêm `.sig` trên trang release.
-    - **Sửa phiên bản của bản build trên máy** (người dùng báo: "phiên bản ở trong app đang không đúng với phiên bản trên github releases"). `bundle.sh` trước đây giữ `0.1` của `Resources/Info.plist`, nên About và cửa sổ cập nhật ghi 0.1 dù code đã sau 0.2.0; trình cập nhật còn báo "0.1 là bản mới nhất" vì bỏ qua 0.2.0 (chưa có `.sig`). Giờ `bundle.sh` lấy `$VERSION`, nếu không có thì lấy tag gần nhất: bản build ở máy ghi 0.2.0, kiểm với GitHub thật báo "Phiên bản 0.2.0 là bản mới nhất hiện có". Đã thử `VERSION=9.9.9 Scripts/bundle.sh` (ra 9.9.9).
-  - **Release `v0.3.0`** (theo yêu cầu của người dùng): CI của `60504fa` đạt, tag annotated "Hexer 0.3.0", workflow Release đạt (job `notes` đã thấy secret). https://github.com/letrucdev/hexer/releases/tag/v0.3.0 có `Hexer-0.3.0.dmg` (7,2 MB), `.sha256`, `.sig`. Đã tải về kiểm: SHA-256 khớp, chữ ký Ed25519 hợp lệ với khoá trong Info.plist, app 0.3.0 build 25, universal, `minos 15.0`, code signature hợp lệ. Ghi chú release có phần thay đổi tiếng Anh/tiếng Việt và link so sánh với v0.2.0.
-    - Chưa thử tự cập nhật thật từ GitHub (người dùng bảo tạm dừng). Cách thử: chép `build/Hexer.app` (bản build ở máy ghi phiên bản theo tag gần nhất) ra thư mục khác, sửa `CFBundleShortVersionString` thành bản cũ hơn bản trên GitHub, ký lại ad hoc, chạy `-HexerUpdateCheck 1 -HexerUpdateInstall 1 -HexerUpdateRelaunch 1`. Nhánh lỗi 403 (hết hạn mức API) đã thử với GitHub thật: hiện đúng thông báo tiếng Việt.
-  - **Icon** (người dùng báo: "app của tôi bị mất icon", và muốn DMG có icon):
-    - App không mất icon: `build/Hexer.app`, `/Applications/Hexer.app` và app trong DMG 0.3.0 đều có `AppIcon.icns`, và `NSWorkspace` trả về đúng icon. Nhưng Launch Services giữ nhiều bản ghi `com.nongdandev.hexer` ở đường dẫn đã xoá: chỗ gắn DMG khi kiểm release, `build/dmg/Hexer.app` của `make_dmg.sh`, `/Volumes/Hexer 0.1`, thư mục tạm của bản cập nhật. Chỉ cần gắn DMG (kể cả `-nobrowse`) hay chép app là có bản ghi. Khi macOS chọn trúng một bản ghi như vậy (Dock, Spotlight, Open With), icon hiện trống. Đã gỡ các bản ghi cũ trên máy này (`lsregister -u`) và đăng ký lại hai bản thật (`lsregister -f`).
-    - Sửa: `HexerPlatform/LaunchServicesRecords.forget` (chạy `lsregister -u`). `UpdateStaging` quên app trên volume trước khi gỡ DMG; khi cài xong, `SoftwareUpdate` quên bản ở thư mục tạm và gọi `LSRegisterURL` cho app đã cài; xoá thư mục tạm cũng quên bản sao trong đó. `make_dmg.sh` quên bản sao trong `build/dmg`. Đã thử trọn luồng cập nhật: chỉ còn bản ghi của app đã cài.
-    - **Icon của DMG:** volume của DMG 0.3.0 hiện icon ổ đĩa mặc định, vì `hdiutil create -srcfolder` không chép cờ custom icon của thư mục (`GetFileInfo -a` ra `c` thường), nên `SetFile` trong `make_dmg.sh` chưa bao giờ có tác dụng. Giờ tạo ảnh UDRW, gắn ghi được, `SetFile -a C` trên volume, rồi `hdiutil convert` sang UDZO. Kiểm: cờ `C`, icon của volume là icon Hexer. Icon của chính tệp `.dmg` vẫn là icon chung của macOS: icon riêng của một tệp nằm trong extended attribute, mà tải qua HTTP thì mất.
-    - Còn lại: `NSIRD_Hexer_Be4Lxy` trong `TemporaryItems` (bản cập nhật đã chuẩn bị của bản thử bị `kill`, bundle ID `.e2e`, đã gỡ khỏi Launch Services) không xoá được từ sandbox; macOS tự dọn khi khởi động lại.
-  - **Release `v0.3.1`** (theo yêu cầu của người dùng): icon của volume DMG và việc quên bản ghi Launch Services. CI của `c6396ec` đạt, tag annotated "Hexer 0.3.1", workflow Release đạt (khoảng 8 phút). https://github.com/letrucdev/hexer/releases/tag/v0.3.1 có `Hexer-0.3.1.dmg` (6,1 MB), `.sha256`, `.sig`. Đã tải về kiểm: SHA-256 khớp, chữ ký hợp lệ, app 0.3.1 build 27, universal, `minos 15.0`, code signature hợp lệ, thư mục gốc của volume có cờ `C` và hiện icon Hexer.
-    - Lúc hết hạn mức API thì kiểm CI bằng badge (`/actions/workflows/ci.yml/badge.svg?branch=main`, chỉ cho biết lần chạy xong gần nhất trên `main`) và chờ release bằng link tải `.sig` (404 cho tới khi đăng). Cả hai không tính vào hạn mức.
-    - Lần cập nhật 0.3.0 → 0.3.1 do code của 0.3.0 chạy, nên vẫn để lại bản ghi Launch Services ở chỗ gắn DMG và thư mục tạm; từ 0.3.1 trở đi thì không. Chưa thử cập nhật thật 0.3.0 → 0.3.1 (người dùng đã bảo tạm dừng phần thử): dùng app trong `Hexer-0.3.0.dmg` của trang release, chép ra thư mục khác rồi chạy `-HexerUpdateCheck 1 -HexerUpdateInstall 1 -HexerUpdateRelaunch 1`.
-- **Phiên 8 (2026-10-25):**
-  - **Canh giữa các cửa sổ riêng** (người dùng báo: "các dialog trong mục tools khi mở lên không hiện chính giữa"). Đo bằng `CGWindowListCopyWindowInfo` trên màn hình 1512 × 982:
-    - Cả 5 cửa sổ Tools (Open Disk, Clone Disk, Split, Concatenate, Wipe) và Software Update có mép trái ở x = 756, đúng giữa màn hình: `center()` chạy khi cửa sổ còn cỡ 0, trước khi `NSHostingController` đưa cỡ nội dung. Sửa bằng `NSWindow.centerAtContentSize()` (mới, `App/NSWindow+Centering.swift`).
-    - Settings lệch 10 pt sang phải và thấp hơn: canh theo cỡ mặc định 500 × 500 của `NSTabViewController`. Giờ canh sau `showWindow` lần đầu; `openSettings(pane:)` chọn pane trước rồi mới hiện, để canh đúng theo pane đó.
-    - Statistics lần mở đầu nằm ở góc dưới trái (`contentRect` gốc 0,0, không `center()`). Giờ canh giữa trước `setFrameAutosaveName`, nên lần đầu ở giữa, các lần sau vẫn theo vị trí đã lưu. Đã thử bằng cách tạm xoá khoá `NSWindow Frame HexerStatisticsWindow` rồi ghi lại giá trị cũ.
-    - About, Acknowledgements và màn hình chào vốn đã ở giữa. Alert và bảng Open/Save do hệ thống đặt.
-  - **Help ▸ Hexer Help không mở được cửa sổ trợ giúp** (tìm thấy khi đo): action `showHelp:` được `NSApplication` xử lý trước app delegate, nên hiện "Help isn't available for Hexer". Đổi thành `showHexerHelp:`. Khi đã mở được, cửa sổ cao 2613 pt (vượt màn hình) vì hosting controller lấy chiều cao lý tưởng của bảng lệnh; giờ `sizingOptions = []`, cỡ 560 × 600, tối thiểu 420 × 320.
-  - Kiểm: mọi cửa sổ trên có tâm ngang x = 756 ở sáng, tối và tiếng Việt; chụp từng cửa sổ (`screencapture -l`), nội dung không bị cắt. Các cửa sổ này có cỡ cố định hoặc tự chọn, nên không có trường hợp cửa sổ hẹp. Canvas không đổi: board chỉ vẽ cửa sổ, không vẽ vị trí trên màn hình. DESIGN.md: §2 mục 9.
-  - `Scripts/test.sh`: 193 test đều đạt (HexerCore 139, HexerDisasm 12, HexerPlatform 42). `Scripts/crosscheck.sh`: 287/287. `Scripts/bundle.sh`: không có warning mới, 668 khoá đều có tiếng Việt.
-  - **Menu File có hai mục Open Recent** (thấy trong Hexer Help, người dùng bảo sửa luôn). AppKit tự chèn một Open Recent sau Open… ("Mở mục gần đây", bản dịch của hệ thống), ngoài mục tự dựng trong `MainMenu.swift` sau Open Disk Image… ("Mở gần đây"). Dump menu bằng code tạm: mục của AppKit có delegate `NSDocumentControllerSubMenuDelegate`, còn mục tự dựng không có delegate, chỉ có Clear Menu và chưa bao giờ hiện tệp nào. AppKit chỉ nhận ra mục có sẵn qua tên menu riêng (`_setMenuName:`, API private), nên bỏ hẳn mục tự dựng và hai khoá dịch "Open Recent", "Clear Menu" (còn 666 khoá).
-    - Kiểm trên máy ảo macOS 15: AppKit cũng chèn đúng một mục sau Open…; mở File ▸ Open Recent bằng AppleScript qua SSH (`osascript` + System Events, ăn theo quyền Accessibility của `sshd-keygen-wrapper`) đọc được `firmware.hex`, dấu phân cách, Clear Menu. Chạy app qua SSH phải dùng `open -n -W --stdout FILE …` (chạy thẳng binary thì treo, vì không ở trong phiên đồ hoạ). Máy ảo vẫn đang bật.
-    - Canvas version 23: `MenusVI` đặt Open Recent ngay sau Open…, thêm Welcome to Hexer vào menu Help (trước đây thiếu), số khoá 666. DESIGN.md §6.8, §7.
-    - Kiểm lại với code cuối: test 193/193, crosscheck 287/287, `bundle.sh` đạt (666 khoá). Đoạn dump menu tạm đã gỡ.
-  - Commit `c826d0c` (theo yêu cầu của người dùng), CI đạt.
-  - **Release `v0.3.2`** (theo yêu cầu của người dùng): mục 0.3.2 trong CHANGELOG (commit `9555e69`), tag annotated "Hexer 0.3.2", workflow Release đạt (khoảng 7 phút, theo dõi bằng API mỗi 75 s). https://github.com/letrucdev/hexer/releases/tag/v0.3.2 có `Hexer-0.3.2.dmg` (6,1 MB), `.sha256`, `.sig` và phần thay đổi tiếng Anh/tiếng Việt. Đã tải về kiểm: SHA-256 khớp, chữ ký hợp lệ với khoá trong Info.plist, app 0.3.2 build 30, universal, `minos 15.0`, code signature hợp lệ, volume có cờ `C`. Đã gỡ bản ghi Launch Services của app trên volume trước khi tháo DMG.
-- **Phiên 9 (2026-10-25):**
-  - **Kênh cập nhật không phụ thuộc GitHub** (người dùng hỏi "ngoài cách này còn có cách nào khác?", rồi chọn "linh hoạt và tránh phụ thuộc vào 1 nền tảng và bị rate limit, bị chặn", Cloudflare R2, bản cầu nối, tên miền `r2.dev` tạm, lưu cả manifest lẫn DMG trên R2).
-    - **Lõi:** `UpdateManifest` (`update.json`, format 1, 10 bản mới nhất, chữ ký nằm ngay trong manifest, nhiều `urls` cho một DMG). `UpdateRelease` giờ có `diskImageURLs` và `signature: String`; bỏ hẳn phần đọc JSON của GitHub API và `UpdateSignatureSource`. `AWSSignatureV4` (SigV4 cho API S3, CryptoKit) để workflow không cần `aws`/`wrangler`.
-    - **App:** `HexerUpdateFeedURL` → mảng `HexerUpdateFeedURLs`; `SoftwareUpdate` thử từng feed rồi từng URL tải. Bỏ header của GitHub API. Chuỗi lỗi 403/429 đổi thành "The update server has had too many requests…" (có tiếng Việt).
-    - **CLI:** `update manifest`, `update download [--if-missing-ok]`, `update upload [--content-type] [--cache-control]`; khoá từ `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`, region `AWS_REGION` (mặc định `auto`).
-    - **Phát hành:** `Scripts/publish_update.sh`, `release.yml` thêm bước "Publish to the update server" trước `gh release create` và kiểm 3 secret `UPDATE_S3_*` + địa chỉ giữ chỗ ở job `notes`; GitHub Release vẫn có `.dmg`, `.sha256`, `.sig` (cho 0.3.x) và thêm `update.json` (nguồn dự phòng). CLAUDE.md mục Phát hành, CHANGELOG mục 0.4.0.
-    - **Kiểm:** test 201/201 (HexerCore 147, gồm `UpdateManifestTests` và `AWSSignatureV4Tests` với hai ví dụ GET/PUT trong tài liệu S3 của Amazon, chữ ký khớp từng byte); crosscheck 287/287; `bundle.sh` đạt (667 khoá; phải chạy `python3 -I Scripts/l10n/vi.py` sau khi sửa `vi.py`, bundle không tự sinh). App thật với manifest `file://` (bản 9.9.9, URL đầu không tồn tại, chữ ký giả): checking → available → downloading (qua URL thứ hai) → failed "signature is not valid", đúng như mong đợi. `hexer-cli update download` với khoá giả tới S3 thật: 403 `InvalidAccessKeyId` (header đúng dạng). Ảnh chụp trạng thái failedCheck ở tối (tiếng Anh) và sáng (tiếng Việt): chuỗi mới hiện đúng; bố cục không đổi nên canvas và DESIGN.md giữ nguyên.
-    - Người dùng đã tạo bucket và gửi địa chỉ `https://pub-78e377a21a0d499cb607f4ad3d0c899d.r2.dev`; đã ghi vào `Info.plist`, build lại đạt. Người dùng thêm 3 secret `UPDATE_S3_*`.
-  - **Release `v0.4.0`** (theo yêu cầu của người dùng, 2026-10-26): commit `ed4bb8b` (code + CHANGELOG 0.4.0), CI đạt, tag annotated "Hexer 0.4.0", workflow Release đạt ngay lần đầu (3 job `notes`, `test`, `release`). Kiểm: `update.json` trên R2 (`Cache-Control: public, max-age=300`) có đúng một bản 0.4.0 với hai `urls` (R2 rồi GitHub); `Hexer-0.4.0.dmg` trên R2 (6,1 MB, `immutable`) có SHA-256 `a8a9f590…` khớp `.sha256` trên GitHub; chữ ký trong manifest hợp lệ với khoá trong app (`hexer-cli update verify`); app trong DMG là 0.4.0, universal, codesign hợp lệ, `HexerUpdateFeedURLs[0]` trỏ R2. Trang release có `.dmg`, `.sha256`, `.sig` và `update.json` (giống hệt bản trên R2). Bản build cục bộ (code mới, phiên bản 0.3.2 vì build trước khi có tag) chạy `-HexerUpdateFeed <R2> -HexerUpdateCheck 1`: checking → available, cửa sổ hiện "Hexer 0.4.0 is available" với đúng ghi chú của CHANGELOG. Khi kiểm thì `-HexerQuit 1` phải đi kèm `-HexerSnapshot … -HexerSnapshotDelay 8`, vì không có `-HexerUpdateInstall` thì app thoát ngay trước khi kiểm xong (và stdout không kịp flush nếu bị kill).
+Condensed: only work done, decisions and lessons that are still useful. How things work now is in §2–§3; for per-run details see `git log`.
+
+- **Session 1–2 (2026-10-23):** analyzed HxD64.exe with REA (38 DFM forms), planned 10 phases, finished phases 1–9 and the phase 10 findings. Rebalanced the sidebar/inspector per HIG macOS 27 (system panes edge to edge, 3-group toolbar, 36 pt glass bars), redrew the canvas, fixed Settings, wrote DESIGN.md and HANDOFF.md.
+- **Session 3 (2026-10-24):**
+  - **Safety:** `NSAlert.addDestructiveButton` for every irreversible action; the alert for opening a disk for writing defaults to Open Read-only. Core errors translated to Vietnamese via `App/ErrorMessages.swift`.
+  - **Folding undefined sections:** `RowMap` (with a test against a naive computation on random input); grid/caret/compare/inspector all go through it (see §3). A 6 GB sparse file opens normally.
+  - **CLI:** added `edit`, `split`, `concat`, `disks`, `selftest`; crosscheck compares against `split`, `cat`, `perl`, `diskutil`, `dd`.
+  - **Real light mode:** the "transparent toolbar" came only from the `-NSRequiresAquaSystemAppearance` flag; check light mode with real light mode. Find bar in a narrow window with Vietnamese: the capsule label is always one line, the search field shrinks to 90 pt.
+  - **macOS 15:** lowered the deployment target; glass gathered into `barGlass`/`barGlassID`/`GlassGroup`. Checked on the UTM macOS 15.0 VM (`Scripts/vm_test.sh`): selftest, edit/save, `disks read` matches `dd`, all main windows. Fixed the window subtitle and the "edited" dot not showing. Accepted difference: in a narrow window the macOS 15 sidebar/inspector take up space.
+  - **DMG, CI, release `v0.1`:** `make_dmg.sh` and the install guides; `ci.yml`, `release.yml`. CI failed `DiskEnumeratorTests` because the runner's disks have no `busProtocol` (test relaxed). The Gatekeeper dialog was not tried on the VM.
+  - **README** (screenshots from the real app in `docs/images`; rebuild with `-HexerSnapshotShadow` then `sips -Z 1600`) and the **promo video** (see session 6). Lesson: `SCStream.startCapture` (async) hangs if the process is not running the `NSApplication` run loop; use the completion-handler version inside `nsapp.run()`.
+  - **Window auto-expanding** when selecting a large block or opening the Checksums drawer: SwiftUI counted the ideal width of the status bar field, table columns and the "Expected result" field into the minimum size. Fixed (the field can shrink, `ViewThatFits`); the Checksums drawer still raises the minimum to about 1270 pt (§6).
+- **Session 4 (2026-10-24):**
+  - Opening the app without a file shows the Open panel immediately (§3).
+  - **CI flake `AttachedImageTests.readWriteAndCloneOnARawDevice`:** `openFailed(code: 13)` (EACCES) right after the node became writable, seen only once on the runner, not reproducible on this machine. The test now opens via `AttachedImage.openRaw(writable:)` (retries EACCES/EPERM for 5 s, prints the retry count). **If the failure recurs, read the uid/gid/mode in the annotation before guessing further.** Product code unchanged.
+  - **Release `v0.1.1`**; tag and release rules went into CLAUDE.md. Lesson: when writing a workflow-monitoring script, keep the Python part in a separate file, test it in the foreground, and stop on consecutive errors (a script with a syntax error once looped silently until the timeout).
+  - **Release notes with a changes section:** `CHANGELOG.md`, `Scripts/release_notes.sh`, the `notes` job (ran for real at v0.2.0).
+  - **First-run welcome screen** (DESIGN.md §6.9, canvas version 20; Help ▸ Welcome to Hexer to view again). Copy written with the `design:ux-copy` skill. The first version cost 25–40% CPU; moving the background to Core Animation and dropping interpolation in the illustrations brought it to 0–6% (§3).
+- **Session 5 (2026-10-24):**
+  - **`utm` MCP** installed in the venv `~/.local/share/mcp-utm` from the GitHub source (`neverprepared/mcp-utm`, commit `5f6bab5`), registered with `claude mcp add utm` (local scope). Must pin `mcp<2` (mcp 2.x removed `mcp.server.fastmcp`).
+  - **macOS 15 VM:** checked the welcome screen in light/dark/Vietnamese, the flow at app launch and from the Help menu, keys and Accessibility. `Scripts/vm_test.sh` bundles the control tools. The VM has no Screen Recording, so the script captures the UTM window and crops to the Hexer frame (read via Accessibility); keys are sent with `CGEvent.postToPid`. Pitfalls: `screencapture` does not write to a file name starting with a dot; `/bin/sh` (bash 3.2) treats `'` inside `"${x:+…}"` as opening a string.
+  - **Crash with Reduce Motion on (fixed):** SwiftUI animates on the render thread and resolves the `NSColor.dynamic` color; the default provider is MainActor so it trapped. Added `nonisolated` (§2 "Gotchas").
+  - Welcome screen CPU: VM pages 1–4 are 7.3 / 5.3 / 1.8 / 0.7%; on this machine page 1 is 7–8%, higher than the 0–2% noted in §3 (cause unknown; suspect the "Hexer" decode row and the byte-flash timer).
+  - **Release `v0.2.0`** (welcome screen).
+- **Session 6 (2026-10-24): promo video with music** (commands in the §2 table).
+  - The `DemoScript` has 8 chapters (added "Read machine code" and "See the shape of your data"); `chapter` pauses 1.4 s, async `focus` waits for the camera to finish. Anchors exist only for the demo: "Find type", "Find field", "Find data type", "Statistics plot".
+  - Compositor: each chapter is a whole number of beats; the camera is smootherstep glides (spring dropped because it jittered), zoom is logarithmic around the rest point, position clamped at both ends; the purple share indicator on the Statistics window is detected per frame and patched.
+  - Music (`make_music.py`): 80 BPM, D major, FM piano, pad, mallet, sine bass, very light half-time beat; chapters −20.2 dB RMS, peak −7 dBFS, tuned with `TARGET_RMS_DB`. It cannot be listened to here so it was verified by measurements; **the user has not heard the new music yet.** To change tempo, chords or length, edit `make_music.py` and rerun `make_promo.swift` (no re-recording needed).
+  - Recording bugs: `DemoAnchors.isRecording` must be on from app launch; `record_demo` picks the largest Hexer window (it once recorded a secondary window by mistake).
+- **Session 7 (2026-10-25):**
+  - **Self-update** (§3 "Self-update"). Hand-written instead of Sparkle (no Xcode; Sparkle needs an embedded framework/XPC and re-signing, may not work with ad-hoc signing, no Vietnamese). The user chose Ed25519 signing and added the `HEXER_UPDATE_KEY` secret. The real key was created with `hexer-cli update keygen`, put in the Keychain, never printed. Tested the full flow with an app copy with bundle ID `com.nongdandev.hexer.e2e`, version 0.2.9, its own test key, a 0.3.0 DMG signed with the test key, and a `file://` feed (check → download → verify → relaunch; Install on Quit; wrong signature rejected; unwritable folder shows Download…). The DMG is attached without checksum verification (`-noverify`) because the signature already covers the whole file.
+  - **CI hung at the Unit tests step** (over 14 minutes): suspect `hdiutil attach` spawns a `diskimages-helper` that holds the pipe, so reading to EOF never finishes. Fix: `HexerPlatform/Subprocess.swift` waits for the process to exit (not for EOF), reads with `DispatchSourceRead` on an `O_NONBLOCK` fd, and stops after 120 s. `test.sh` has a time limit and reports on hangs (§2); test disk images interrupted midway stay attached; detach them with `hdiutil detach`.
+  - **Version of local builds** comes from the latest tag (§2, `bundle.sh`); before, it wrote `0.1`, so the update window reported wrongly.
+  - **Icon:** the app does not lose its icon; Launch Services keeps records of `com.nongdandev.hexer` at deleted paths (DMG mount point, `build/dmg`, temp folders) and sometimes picks one. Added `LaunchServicesRecords.forget` (`lsregister -u`) to `UpdateStaging`, `SoftwareUpdate`, `make_dmg.sh`. DMG volume icon: `hdiutil create -srcfolder` does not copy the custom-icon flag, so `make_dmg.sh` creates a UDRW image, `SetFile -a C`, then `convert`s to UDZO. The `.dmg` file's own icon is still generic (the extended attribute is lost when downloaded over HTTP).
+  - **Releases `v0.3.0`, `v0.3.1`** (downloaded and checked checksum, signature, universal, `minos 15.0`). When the GitHub API quota ran out, CI was checked with the badge (`/actions/workflows/ci.yml/badge.svg?branch=main`) and release was awaited via the `.sig` download link (404 until posted); neither counts against the quota. A real 0.3.0 → 0.3.1 update has not been tried: copy the app from the 0.3.0 DMG to another folder, then run `-HexerUpdateCheck 1 -HexerUpdateInstall 1 -HexerUpdateRelaunch 1`.
+- **Session 8 (2026-10-25):**
+  - **Centering the dedicated windows:** the 5 Tools windows and Software Update were off because `center()` ran while the window was still size 0; Settings was off by 10 pt; Statistics first appeared at the bottom-left corner. Fixed with `NSWindow.centerAtContentSize()` (§2). Measured with `CGWindowListCopyWindowInfo`. DESIGN.md §2 item 9.
+  - **Help ▸ Hexer Help** did not open because `showHelp:` clashes with `NSApplication` (renamed `showHexerHelp:`); the help window was once 2613 pt tall (now `sizingOptions = []`, 560 × 600).
+  - **File had two Open Recent items:** AppKit inserts one itself; the hand-built one had no delegate and never showed files. Removed the hand-built item and two translation keys. Checked on the macOS 15 VM with AppleScript over SSH; running the app over SSH needs `open -n -W --stdout FILE …`. Canvas version 23.
+  - **Release `v0.3.2`.**
+- **Session 9 (2026-10-25/26):**
+  - **Update channel independent of GitHub** (the user wanted to avoid rate limits and dependence on one platform; chose Cloudflare R2, a bridge release, temporary `r2.dev` domain, storing both manifest and DMG). `UpdateManifest`, `AWSSignatureV4`, `hexer-cli update manifest|download|upload`, `Scripts/publish_update.sh`, `HexerUpdateFeedURLs` (§2–§3). Removed the GitHub API reading from the app entirely.
+  - Tested with a `file://` manifest (first URL broken, fake signature): checking → available → downloading via the second URL → failed "signature is not valid". `hexer-cli update download` with a fake key against the real S3: 403 `InvalidAccessKeyId`.
+  - **Release `v0.4.0`:** the workflow passed on the first try. Verified: `update.json` on R2 has exactly one version with two `urls` (R2 then GitHub), the DMG on R2 matches the `.sha256` on GitHub, the signature is valid with the key in the app, the release page has `.dmg`, `.sha256`, `.sig`, `update.json`. A local build run with `-HexerUpdateFeed <R2> -HexerUpdateCheck 1` saw "Hexer 0.4.0 is available". For this kind of check, `-HexerQuit 1` must go with `-HexerSnapshot … -HexerSnapshotDelay 8`, otherwise the app quits before the check finishes.
+- **Session 10 (2026-10-26):** compacted this file (session log condensed from ~220 to ~50 lines, two long table rows shortened) and translated HANDOFF.md, CLAUDE.md and DESIGN.md to English to save tokens in later sessions. The Vietnamese UI translations, the Vietnamese table in DESIGN.md §7 and the bilingual CHANGELOG format are unchanged. Error messages in `sign_update.sh` and `publish_update.sh` and the README now point to the English section names.

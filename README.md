@@ -118,7 +118,7 @@ Run `hexer-cli help` for every command: `dump`, `find`, `replace`, `checksum`, `
 | `Hexer` | The app: AppKit document lifecycle, SwiftUI views and a CoreText hex grid. |
 | `HexerCLI` | `hexer-cli`. |
 
-The design notes ([DESIGN.md](DESIGN.md)) and the engineering handbook ([HANDOFF.md](HANDOFF.md)) are written in Vietnamese.
+The design notes ([DESIGN.md](DESIGN.md)) and the engineering handbook ([HANDOFF.md](HANDOFF.md)) are written in English.
 
 ## Acknowledgements
 
