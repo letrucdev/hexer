@@ -3,6 +3,28 @@
 Each version's section opens its release notes on GitHub, in English and Vietnamese. Write it for
 people who use Hexer, before tagging the release (see CLAUDE.md, "Phát hành").
 
+## 0.5.0 — 2026-10-26
+
+### What's new
+- Typing Vietnamese with OpenKey, Unikey or EVKey in the Decoded text column works in Overwrite mode: "a" then "s" turns the byte into "á". Before, the tool's correction deleted a byte and Hexer asked whether to change the file size.
+- In imported files with folded undefined sections, right-click inside a section you opened and choose Fold Section to fold just that one again.
+- Moving with ↑ and ↓ past a folded section keeps the caret in its column. Before, it jumped to the start of the row.
+- File ▸ Print folds undefined sections like the editor, so a printout no longer runs to pages of "??".
+- Opening Search Results, Checksums or Compare below the grid no longer makes the window wider. Their tabs look like standard macOS tabs.
+- If Hexer is in a folder you can't change, such as an administrator's Applications folder, it still installs updates: it asks for an administrator's name and password when it quits. Before, it could only open the download page.
+- If you choose Relaunch to install an update and then cancel when Hexer asks to save your changes, Hexer no longer reopens itself the next time you quit.
+- Common system errors, such as "Permission denied" or "No space left on device", appear in Vietnamese when Hexer is in Vietnamese.
+
+### Có gì mới
+- Gõ tiếng Việt bằng OpenKey, Unikey hay EVKey ở cột Văn bản giải mã giờ dùng được ở chế độ Ghi đè: gõ "a" rồi "s" biến byte đó thành "á". Trước đây lần sửa chữ của bộ gõ xoá mất một byte, và Hexer hỏi có muốn đổi kích thước tệp không.
+- Trong tệp nhập có các vùng chưa xác định được gập lại, bấm chuột phải vào một vùng bạn đã mở rồi chọn Gập vùng này để chỉ gập lại vùng đó.
+- Di chuyển bằng ↑ và ↓ qua một vùng đã gập giờ giữ con trỏ ở đúng cột. Trước đây con trỏ nhảy về đầu hàng.
+- Tệp ▸ In… gập các vùng chưa xác định giống trình soạn thảo, nên bản in không còn kéo dài nhiều trang toàn "??".
+- Mở Kết quả tìm kiếm, Tổng kiểm tra hay So sánh bên dưới lưới không còn làm cửa sổ rộng ra. Các thẻ của chúng trông như thẻ chuẩn của macOS.
+- Nếu Hexer nằm trong thư mục bạn không có quyền thay đổi, chẳng hạn thư mục Ứng dụng của quản trị viên, Hexer vẫn cài được bản cập nhật: nó hỏi tên và mật khẩu quản trị viên khi thoát. Trước đây Hexer chỉ mở được trang tải về.
+- Nếu bạn chọn Mở lại để cài bản cập nhật rồi bấm Huỷ khi Hexer hỏi lưu thay đổi, Hexer không còn tự mở lại vào lần thoát sau.
+- Các lỗi hệ thống thường gặp, như "Không có quyền truy cập" hay "Thiết bị hết chỗ trống", giờ hiện bằng tiếng Việt khi Hexer dùng tiếng Việt.
+
 ## 0.4.1 — 2026-10-26
 
 ### What's new
