@@ -76,6 +76,9 @@ final class EditorSession {
     let jobs = JobCenter()
     /// The user agreed to edits that change the file size (asked once per document).
     @ObservationIgnored var sizeChangeConfirmed = false
+    /// What each piece of text typed in Overwrite mode replaced, newest last, while the typing
+    /// run is open; Backspace puts the last one back (see `deleteBackward`).
+    @ObservationIgnored var overwrittenByTyping: [(offset: UInt64, typed: Int, original: [UInt8])] = []
 
     init(document: HexDocument, buffer: EditableBuffer) {
         self.document = document
@@ -130,7 +133,10 @@ final class EditorSession {
     var caretByte: UInt64 { selection.isEmpty ? selection.caret : selection.range.lowerBound }
 
     func setSelection(_ s: Selection, nibble: Int = 0, scroll: Bool = true) {
-        if s != selection { buffer.breakCoalescing() }
+        if s != selection {
+            buffer.breakCoalescing()
+            overwrittenByTyping.removeAll()
+        }
         selection = s.clamped(to: buffer.length)
         self.nibble = nibble
         if scroll { editorView?.scrollToVisible(offset: selection.caret) }

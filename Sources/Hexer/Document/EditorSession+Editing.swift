@@ -55,6 +55,7 @@ extension EditorSession {
         guard isEditable else { NSSound.beep(); return }
         let before = selection
         let p = caretByte
+        overwrittenByTyping.removeAll()
         perform {
             if mode == .insert && nibble == 0 {
                 guard confirmSizeChange() else { return }
@@ -102,14 +103,40 @@ extension EditorSession {
                     guard !buffer.isFixedSize || p < buffer.length else { NSSound.beep(); return }
                     if !buffer.isFixedSize { guard confirmSizeChange() else { return } }
                 }
+                let replaced = buffer.snapshot().bytes(p..<min(p + UInt64(bytes.count), buffer.length))
                 try buffer.overwrite(bytes, at: p, name: L("Typing"), selectionBefore: before,
                                      selectionAfter: Selection(caret: min(p + UInt64(bytes.count), buffer.isFixedSize ? buffer.length : .max)),
                                      coalesceKey: "typing")
+                if before.isEmpty {
+                    let typed = buffer.isFixedSize ? replaced.count : bytes.count
+                    overwrittenByTyping.append((p, typed, replaced))
+                }
             }
             selection = after.clamped(to: buffer.length)
             nibble = 0
         }
         editorView?.scrollToVisible(offset: selection.caret)
+    }
+
+    /// In Overwrite mode, Backspace during a typing run puts back what the last typed text
+    /// replaced and steps back onto it, instead of deleting a byte. Vietnamese input methods
+    /// (Telex: "a" + "s" → "á") retype a character by sending Backspace and the new one, so
+    /// without this each accent would ask to change the file size.
+    private func untypeLast() -> Bool {
+        guard mode == .overwrite, selection.isEmpty, let last = overwrittenByTyping.last,
+              buffer.undoStack.last?.coalesceKey == "typing",
+              last.offset + UInt64(last.typed) == selection.caret else { return false }
+        let before = selection
+        let after = Selection(caret: last.offset)
+        perform {
+            try buffer.apply(L("Typing"), replacing: last.offset..<last.offset + UInt64(last.typed), with: buffer.addPieces(last.original),
+                             selectionBefore: before, selectionAfter: after, coalesceKey: "typing")
+            selection = after
+            nibble = 0
+            overwrittenByTyping.removeLast()
+        }
+        editorView?.scrollToVisible(offset: selection.caret)
+        return true
     }
 
     // MARK: Deleting
@@ -125,6 +152,7 @@ extension EditorSession {
 
     func deleteBackward() {
         guard selection.isEmpty else { deleteSelection(); return }
+        if untypeLast() { return }
         let p = selection.caret
         guard p > 0 else { NSSound.beep(); return }
         guard isEditable, confirmSizeChange() else { if !isEditable { NSSound.beep() }; return }
