@@ -5,13 +5,14 @@
 #   Scripts/make_dmg.sh              universal release build (arm64 + x86_64), then the disk image
 #   Scripts/make_dmg.sh --no-build   package the existing build/Hexer.app
 #
-# The app is signed ad hoc unless SIGN_IDENTITY is set (see bundle.sh); with a Developer ID the
-# disk image is signed too. Without notarization, macOS blocks the first launch; the guides say how
-# to allow it.
+# The app is signed ad hoc unless SIGN_IDENTITY is set (never with the local "Hexer Development"
+# certificate bundle.sh picks by itself, which means nothing on other Macs); with a Developer ID
+# the disk image is signed too. Without notarization, macOS blocks the first launch; the guides
+# say how to allow it.
 set -eu
 cd "$(dirname "$0")/.."
 
-[ "${1:-}" = "--no-build" ] || UNIVERSAL=1 Scripts/bundle.sh
+[ "${1:-}" = "--no-build" ] || SIGN_IDENTITY=${SIGN_IDENTITY:--} UNIVERSAL=1 Scripts/bundle.sh
 APP=build/Hexer.app
 [ -d "$APP" ] || { echo "no $APP; run without --no-build"; exit 1; }
 codesign --verify --strict "$APP"

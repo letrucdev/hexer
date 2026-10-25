@@ -28,7 +28,8 @@
 #   selftest               passes
 set -u
 cd "$(dirname "$0")/.." || exit 1
-HXD=/Users/nongdandev/Downloads/HxD/HxD64.exe
+# The HxD build to compare on; skipped (with a note) when the file is missing, as on CI.
+HXD=${HXD:-$HOME/Downloads/HxD/HxD64.exe}
 export LC_ALL=C
 
 echo "Building hexer-cli (release)..."

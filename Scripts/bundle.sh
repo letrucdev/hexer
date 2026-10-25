@@ -6,7 +6,9 @@
 #   UNIVERSAL=1 Scripts/bundle.sh  arm64 + x86_64
 #   Scripts/bundle.sh --run [args…]  build, then run in the foreground (logs in the terminal)
 #
-# SIGN_IDENTITY selects a signing identity; the default is ad-hoc ("-"), suitable for this Mac.
+# SIGN_IDENTITY selects a signing identity. Unset, the build uses the self-signed "Hexer Development"
+# certificate when the keychain has one (Scripts/dev_identity.sh creates it), so the app keeps its
+# identity, and its permissions, from build to build; without one it is signed ad hoc ("-").
 set -e
 cd "$(dirname "$0")/.."
 
@@ -54,13 +56,21 @@ if [ ! -d Resources/Icon/AppIcon.iconset ]; then
 fi
 iconutil -c icns Resources/Icon/AppIcon.iconset -o "$APP/Contents/Resources/AppIcon.icns"
 
-SIGN_IDENTITY=${SIGN_IDENTITY:--}
-if [ "$SIGN_IDENTITY" = "-" ]; then
-    codesign --force --sign - --entitlements Resources/Hexer.entitlements "$APP"
-else
+DEV_IDENTITY="Hexer Development"
+if [ -z "${SIGN_IDENTITY:-}" ]; then
+    if security find-certificate -c "$DEV_IDENTITY" >/dev/null 2>&1; then SIGN_IDENTITY=$DEV_IDENTITY; else SIGN_IDENTITY=-; fi
+fi
+case "$SIGN_IDENTITY" in
+-|"$DEV_IDENTITY")
+    # Ad hoc, or the local certificate: no hardened runtime or timestamp, as for a development build.
+    codesign --force --sign "$SIGN_IDENTITY" --entitlements Resources/Hexer.entitlements "$APP"
+    ;;
+*)
     codesign --force --sign "$SIGN_IDENTITY" --options runtime --timestamp \
         --entitlements Resources/Hexer.entitlements "$APP"
-fi
+    ;;
+esac
+echo "Signed as ${SIGN_IDENTITY}"
 codesign --verify --strict "$APP"
 echo "Built $APP"
 
