@@ -11,8 +11,8 @@ enum DebugLaunchArguments {
     /// Whether any `-Hexer…` flag was given.
     static var isScripted: Bool { ProcessInfo.processInfo.arguments.contains { $0.hasPrefix("-Hexer") } }
 
-    /// `-HexerUpdateFeed URL`: the release list to check for updates instead of GitHub's (HTTPS, or
-    /// a file whose releases may point at local files). Updates are still verified with the key in
+    /// `-HexerUpdateFeed URL`: the update manifest to check instead of the app's feeds (HTTPS, or a
+    /// file whose releases may point at local files). Updates are still verified with the key in
     /// Info.plist.
     static var updateFeed: URL? {
         let args = ProcessInfo.processInfo.arguments
@@ -317,11 +317,10 @@ enum DebugLaunchArguments {
             - Hexer tìm phiên bản mới mỗi ngày một lần và cài khi bạn đồng ý. Chọn Hexer ▸ Kiểm tra cập nhật… để tìm ngay.
             - Mục Cài đặt ▸ Chung có thêm phần Cập nhật phần mềm: tắt việc kiểm tra hằng ngày, hoặc nhận cả bản thử nghiệm.
             """
-        let base = URL(string: "https://github.com/letrucdev/hexer/releases/download/v0.3.0/Hexer-0.3.0.dmg")!
         let release = UpdateRelease(version: AppVersion("0.3.0")!, notes: notes,
                                     pageURL: URL(string: "https://github.com/letrucdev/hexer/releases/tag/v0.3.0")!,
-                                    diskImageURL: base, diskImageSize: 6_900_000,
-                                    signatureURL: base.appendingPathExtension("sig"), isPrerelease: false)
+                                    diskImageURLs: [URL(string: "https://github.com/letrucdev/hexer/releases/download/v0.3.0/Hexer-0.3.0.dmg")!],
+                                    diskImageSize: 6_900_000, signature: "", isPrerelease: false)
         switch name {
         case "checking": return .checking
         case "upToDate": return .upToDate

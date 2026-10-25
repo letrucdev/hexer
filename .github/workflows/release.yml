@@ -1,8 +1,9 @@
 # Pushing a version tag (vX.Y.Z, e.g. v0.1.1; v0.2.0-beta.1 makes a pre-release) runs the tests,
-# builds the universal disk image and publishes it with its SHA-256 and its update signature (.sig,
-# which the app checks before updating itself) on the repository's Releases page. The notes open with
-# the version's section of CHANGELOG.md; without one, or without the HEXER_UPDATE_KEY secret, nothing
-# else runs.
+# builds the universal disk image, signs it for the app's updater, publishes it to the update server
+# (an S3-compatible bucket, Cloudflare R2: the image and update.json, which the app reads) and then
+# on the repository's Releases page with its SHA-256, its signature (.sig) and a copy of update.json
+# (the app's fallback feed). The notes open with the version's section of CHANGELOG.md; without one,
+# or without the HEXER_UPDATE_KEY and UPDATE_S3_* secrets, nothing else runs.
 #
 #   git tag -a v0.1.1 -m "Hexer 0.1.1" && git push origin v0.1.1
 name: Release
@@ -26,14 +27,24 @@ jobs:
       - name: Changes from CHANGELOG.md
         run: Scripts/ci_run.sh Scripts/release_notes.sh "${GITHUB_REF_NAME#v}"
 
-      - name: Update signing key
+      - name: Update signing key and update server
         env:
           HEXER_UPDATE_KEY: ${{ secrets.HEXER_UPDATE_KEY }}
+          UPDATE_S3_URL: ${{ secrets.UPDATE_S3_URL }}
+          UPDATE_S3_ACCESS_KEY_ID: ${{ secrets.UPDATE_S3_ACCESS_KEY_ID }}
+          UPDATE_S3_SECRET_ACCESS_KEY: ${{ secrets.UPDATE_S3_SECRET_ACCESS_KEY }}
         run: |
           if [ -z "$HEXER_UPDATE_KEY" ]; then
             echo "::error::The HEXER_UPDATE_KEY secret is missing. Add the update signing key under Settings > Secrets and variables > Actions (HANDOFF.md, \"Khoá ký bản cập nhật\")."
             exit 1
           fi
+          if [ -z "$UPDATE_S3_URL" ] || [ -z "$UPDATE_S3_ACCESS_KEY_ID" ] || [ -z "$UPDATE_S3_SECRET_ACCESS_KEY" ]; then
+            echo "::error::An UPDATE_S3_URL, UPDATE_S3_ACCESS_KEY_ID or UPDATE_S3_SECRET_ACCESS_KEY secret is missing. Add the update server's bucket address and API token under Settings > Secrets and variables > Actions (HANDOFF.md, \"Máy chủ cập nhật\")."
+            exit 1
+          fi
+          case "$(plutil -extract HexerUpdateFeedURLs.0 raw -o - Resources/Info.plist)" in
+            *REPLACE*) echo "::error::HexerUpdateFeedURLs in Resources/Info.plist still has the placeholder address; put the update server's public address there."; exit 1 ;;
+          esac
 
   test:
     needs: notes
@@ -66,16 +77,27 @@ jobs:
           HEXER_UPDATE_KEY: ${{ secrets.HEXER_UPDATE_KEY }}
         run: Scripts/ci_run.sh Scripts/sign_update.sh "$VERSION"
 
-      - name: Publish the release
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Release notes
         run: |
           DMG="build/Hexer-$VERSION.dmg"
           (cd build && shasum -a 256 "Hexer-$VERSION.dmg") > "$DMG.sha256"
           PREVIOUS=$(git describe --tags --abbrev=0 "$GITHUB_REF_NAME^" 2>/dev/null || true)
           Scripts/release_notes.sh "$VERSION" "$PREVIOUS" > build/release-notes.md
           echo "SHA-256: \`$(cut -d' ' -f1 "$DMG.sha256")\`" >> build/release-notes.md
+
+      - name: Publish to the update server
+        env:
+          UPDATE_S3_URL: ${{ secrets.UPDATE_S3_URL }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.UPDATE_S3_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.UPDATE_S3_SECRET_ACCESS_KEY }}
+        run: Scripts/ci_run.sh Scripts/publish_update.sh "$VERSION" build/release-notes.md
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          DMG="build/Hexer-$VERSION.dmg"
           PRERELEASE=""
           case "$VERSION" in *-*) PRERELEASE="--prerelease" ;; esac
-          gh release create "$GITHUB_REF_NAME" "$DMG" "$DMG.sha256" "$DMG.sig" \
+          gh release create "$GITHUB_REF_NAME" "$DMG" "$DMG.sha256" "$DMG.sig" build/update.json \
             --title "Hexer $VERSION" --notes-file build/release-notes.md --verify-tag $PRERELEASE

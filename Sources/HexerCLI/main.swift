@@ -62,6 +62,18 @@ let usage = """
           installing it). The private key comes from FILE or $HEXER_UPDATE_KEY.
       update verify (--public-key KEY | --app APP) DMG VERSION SIGNATURE_FILE
           Prints "valid", or fails, for a signature; --app takes the key from APP's Info.plist.
+      update manifest --version V --dmg DMG --signature-file SIG --page URL --notes-file FILE
+                      --url URL [--url URL …] [--prerelease] [--previous FILE] [-o OUT]
+          The update manifest (update.json) with this release added to --previous's releases (the
+          newest ten are kept); --url is a place to download DMG from, most preferred first.
+          Prints it, or writes OUT.
+      update download [--if-missing-ok] URL [-o OUT]
+          An object of the update server, an S3-compatible bucket (Cloudflare R2), through its S3
+          API: URL is https://ACCOUNT.r2.cloudflarestorage.com/BUCKET/KEY, the API token comes
+          from $AWS_ACCESS_KEY_ID and $AWS_SECRET_ACCESS_KEY, the region from $AWS_REGION (default
+          auto). With --if-missing-ok a missing object is not an error (nothing is written).
+      update upload [--content-type TYPE] [--cache-control VALUE] FILE URL
+          Puts FILE at URL, with the same access (see Scripts/publish_update.sh).
       bench [--runs N] FILE
           Best-of-N timings: sequential read, CRC-32, SHA-256, find of DE AD BE EF.
       selftest

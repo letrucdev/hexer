@@ -175,7 +175,7 @@ private func hexOffset(_ offset: UInt64) -> String { "0x" + String(offset, radix
     fileprivate var localizedText: String {
         switch self {
         case .serverStatus(let status): L("The update server answered with status %lld.", status)
-        case .rateLimited: L("GitHub has had too many requests from this network. Try again in an hour.")
+        case .rateLimited: L("The update server has had too many requests from this network. Try again in an hour.")
         case .invalidFeed: L("The list of releases could not be read.")
         case .tooLarge: L("The download is larger than an update of Hexer can be.")
         case .invalidPublicKey: L("This copy of Hexer has no valid key to check updates with.")

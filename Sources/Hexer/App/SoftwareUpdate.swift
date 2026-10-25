@@ -3,7 +3,8 @@ import HexerCore
 import HexerPlatform
 import Observation
 
-/// Finds new releases on GitHub, then downloads, verifies and installs one when the user agrees.
+/// Finds new releases in the update feeds (tried in turn, so one host being slow, blocked or out of
+/// requests doesn't stop updates), then downloads, verifies and installs one when the user agrees.
 ///
 /// Checks run a few seconds after launch and then hourly, at most once a day (none on the first
 /// launch). A verified update waits in a temporary folder on the app's volume and replaces the app
@@ -41,7 +42,7 @@ final class SoftwareUpdate {
     /// The running version; nil when it can't be updated (no version, feed or key, e.g. `swift run`).
     let currentVersion: AppVersion?
     @ObservationIgnored private let defaults = UserDefaults.standard
-    @ObservationIgnored private let feedURL: URL?
+    @ObservationIgnored private let feedURLs: [URL]
     @ObservationIgnored private let publicKey: String?
     @ObservationIgnored private let bundleURL = Bundle.main.bundleURL
     @ObservationIgnored private var work: Task<Void, Never>?
@@ -55,11 +56,12 @@ final class SoftwareUpdate {
         includesBetas = defaults.bool(forKey: Keys.betas)
         lastCheck = defaults.object(forKey: Keys.lastCheck) as? Date
         let info = Bundle.main.infoDictionary ?? [:]
-        let feed = DebugLaunchArguments.updateFeed ?? (info["HexerUpdateFeedURL"] as? String).flatMap(URL.init(string:))
+        let feeds = DebugLaunchArguments.updateFeed.map { [$0] }
+            ?? (info["HexerUpdateFeedURLs"] as? [String] ?? []).compactMap(URL.init(string:))
         let key = info["HexerUpdatePublicKey"] as? String
         let version = (info["CFBundleShortVersionString"] as? String).flatMap(AppVersion.init)
-        let complete = Bundle.main.bundleIdentifier != nil && feed != nil && key?.isEmpty == false
-        feedURL = feed
+        let complete = Bundle.main.bundleIdentifier != nil && !feeds.isEmpty && key?.isEmpty == false
+        feedURLs = feeds
         publicKey = key
         currentVersion = complete ? version : nil
     }
@@ -107,19 +109,15 @@ final class SoftwareUpdate {
     /// A check the user asked for shows every outcome and offers a skipped version again; an
     /// automatic one only speaks up when there is an update.
     private func check(userInitiated: Bool) {
-        guard let currentVersion, let feedURL else { return }
+        guard let currentVersion, !feedURLs.isEmpty else { return }
+        let feedURLs = feedURLs
         work?.cancel()
         if userInitiated { phase = .checking }
         let skipped = userInitiated ? nil : defaults.string(forKey: Keys.skipped).flatMap(AppVersion.init)
         let betas = includesBetas || currentVersion.isPrerelease
         work = Task {
             do {
-                var request = URLRequest(url: feedURL)
-                request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-                request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
-                request.setValue("Hexer/\(currentVersion)", forHTTPHeaderField: "User-Agent")
-                let data = try await Downloads.data(request, maxBytes: 8 << 20)
-                let releases = try UpdateFeed.releases(fromGitHubJSON: data, allowingFileURLs: feedURL.isFileURL)
+                let releases = try await Self.releases(from: feedURLs, userAgent: "Hexer/\(currentVersion)")
                 try Task.checkCancellation()
                 lastCheck = .now
                 if let release = UpdateFeed.newest(in: releases, after: currentVersion, includingPrereleases: betas, skipping: skipped) {
@@ -133,6 +131,26 @@ final class SoftwareUpdate {
                 phase = userInitiated ? .failed(error.displayMessage, release: nil) : .idle
             }
         }
+    }
+
+    /// The releases of the first feed that answers with a readable manifest; when none does, the
+    /// last feed's error (so a blocked first host doesn't hide why the others failed).
+    private static func releases(from feeds: [URL], userAgent: String) async throws -> [UpdateRelease] {
+        var failure: Error = UpdateError.invalidFeed
+        for feed in feeds {
+            do {
+                var request = URLRequest(url: feed)
+                request.setValue("application/json", forHTTPHeaderField: "Accept")
+                request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+                let data = try await Downloads.data(request, maxBytes: 8 << 20)
+                return try UpdateManifest.releases(from: data, allowingFileURLs: feed.isFileURL)
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                failure = error
+            }
+        }
+        throw failure
     }
 
     // MARK: Installing
@@ -155,18 +173,29 @@ final class SoftwareUpdate {
         work = Task {
             do {
                 let folder = try stagingFolder()
-                let signature = String(decoding: try await Downloads.data(URLRequest(url: release.signatureURL), maxBytes: 4096),
-                                       as: UTF8.self)
                 let image = folder.appendingPathComponent(UpdateRelease.diskImageName(release.version.description))
-                try await Downloads.file(URLRequest(url: release.diskImageURL), to: image, maxBytes: 512 << 20) { received, expected in
-                    Task { @MainActor in
-                        guard case .downloading = SoftwareUpdate.shared.phase else { return }
-                        SoftwareUpdate.shared.phase = .downloading(release, received: received, expected: expected)
+                // Each place the image is offered in turn; the signature is checked on whichever delivers.
+                var failure: Error = UpdateError.invalidFeed
+                var downloaded = false
+                for url in release.diskImageURLs where !downloaded {
+                    do {
+                        try await Downloads.file(URLRequest(url: url), to: image, maxBytes: 512 << 20) { received, expected in
+                            Task { @MainActor in
+                                guard case .downloading = SoftwareUpdate.shared.phase else { return }
+                                SoftwareUpdate.shared.phase = .downloading(release, received: received, expected: expected)
+                            }
+                        }
+                        downloaded = true
+                    } catch is CancellationError {
+                        throw CancellationError()
+                    } catch {
+                        failure = error
                     }
                 }
+                if !downloaded { throw failure }
                 phase = .verifying(release)
                 staged = try await Task.detached {
-                    let staged = try UpdateStaging.stage(diskImage: image, signature: signature, version: release.version.description,
+                    let staged = try UpdateStaging.stage(diskImage: image, signature: release.signature, version: release.version.description,
                                                          publicKey: publicKey, replacing: bundleURL, bundleIdentifier: identifier,
                                                          in: folder)
                     try? FileManager.default.removeItem(at: image)

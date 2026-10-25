@@ -295,8 +295,8 @@ VI = {
     "Click to show": "Bấm để hiện",
     # Errors from HexerCore and HexerPlatform (App/ErrorMessages.swift)
     "The update server answered with status %lld.": "Máy chủ cập nhật trả về mã %lld.",
-    "GitHub has had too many requests from this network. Try again in an hour.":
-        "GitHub đã nhận quá nhiều yêu cầu từ mạng này. Hãy thử lại sau một giờ.",
+    "The update server has had too many requests from this network. Try again in an hour.":
+        "Máy chủ cập nhật đã nhận quá nhiều yêu cầu từ mạng này. Hãy thử lại sau một giờ.",
     "The list of releases could not be read.": "Không đọc được danh sách phiên bản.",
     "The download is larger than an update of Hexer can be.": "Tệp tải về lớn hơn mức một bản cập nhật Hexer có thể có.",
     "This copy of Hexer has no valid key to check updates with.": "Bản Hexer này không có khoá hợp lệ để kiểm tra bản cập nhật.",

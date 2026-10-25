@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import Testing
 @testable import HexerCore
@@ -26,77 +27,6 @@ import Testing
         #expect(v("0.1") < v("0.1.1") && v("0.1.1") < v("0.2.0-beta.1") && v("0.2.0-beta.1") < v("0.2.0"))
         #expect(v("0.10.0") > v("0.9.9"))
         #expect(!(v("0.2") < v("0.2.0")) && !(v("0.2.0") < v("0.2")))
-    }
-}
-
-@Suite struct UpdateFeedTests {
-    /// The shape of GitHub's `GET /repos/letrucdev/hexer/releases`, trimmed to the fields Hexer
-    /// reads plus a few it ignores.
-    static func feed(_ releases: [[String: Any]]) -> Data {
-        try! JSONSerialization.data(withJSONObject: releases)
-    }
-
-    static func release(_ tag: String, prerelease: Bool = false, draft: Bool = false, signed: Bool = true,
-                        host: String = "https://github.com", body: String = "") -> [String: Any] {
-        let version = AppVersion(tag)?.description ?? tag
-        let base = "\(host)/letrucdev/hexer/releases/download/\(tag)/Hexer-\(version).dmg"
-        var assets: [[String: Any]] = [
-            ["name": "Hexer-\(version).dmg", "size": 6_782_206, "content_type": "application/x-apple-diskimage",
-             "browser_download_url": base, "digest": "sha256:69c7"],
-            ["name": "Hexer-\(version).dmg.sha256", "size": 82, "browser_download_url": base + ".sha256"],
-        ]
-        if signed { assets.append(["name": "Hexer-\(version).dmg.sig", "size": 89, "browser_download_url": base + ".sig"]) }
-        return ["tag_name": tag, "name": "Hexer \(version)", "draft": draft, "prerelease": prerelease, "body": body,
-                "html_url": "https://github.com/letrucdev/hexer/releases/tag/\(tag)", "published_at": "2026-10-24T11:51:40Z",
-                "assets": assets]
-    }
-
-    @Test func readsSignedReleasesOnly() throws {
-        let data = Self.feed([
-            Self.release("v0.4.0", draft: true),
-            Self.release("v0.3.1", signed: false),
-            Self.release("v0.3.0-beta.1", prerelease: true),
-            Self.release("v0.2.1", host: "http://github.com"),
-            Self.release("v0.2.0"),
-            Self.release("nightly"),
-        ])
-        let releases = try UpdateFeed.releases(fromGitHubJSON: data)
-        #expect(releases.map(\.version.description) == ["0.3.0-beta.1", "0.2.0"])
-        let r = releases[1]
-        #expect(r.diskImageURL.absoluteString == "https://github.com/letrucdev/hexer/releases/download/v0.2.0/Hexer-0.2.0.dmg")
-        #expect(r.signatureURL.lastPathComponent == "Hexer-0.2.0.dmg.sig")
-        #expect(r.pageURL.absoluteString == "https://github.com/letrucdev/hexer/releases/tag/v0.2.0")
-        #expect(r.diskImageSize == 6_782_206 && !r.isPrerelease && releases[0].isPrerelease)
-    }
-
-    @Test func fileURLsOnlyWhenAllowed() throws {
-        let data = Self.feed([Self.release("v1.0.0", host: "file:///tmp/feed")])
-        #expect(try UpdateFeed.releases(fromGitHubJSON: data).isEmpty)
-        #expect(try UpdateFeed.releases(fromGitHubJSON: data, allowingFileURLs: true).count == 1)
-    }
-
-    @Test func rejectsWhatIsNotAReleaseList() {
-        for text in ["", "{}", "{\"message\": \"API rate limit exceeded\"}", "[{\"tag\": 1}]"] {
-            #expect(throws: UpdateError.invalidFeed) { try UpdateFeed.releases(fromGitHubJSON: Data(text.utf8)) }
-        }
-    }
-
-    @Test func picksTheNewestUpdate() throws {
-        let releases = try UpdateFeed.releases(fromGitHubJSON: Self.feed([
-            Self.release("v0.2.0"), Self.release("v0.3.0-beta.2", prerelease: true), Self.release("v0.2.1"), Self.release("v0.1.1"),
-        ]))
-        func newest(_ current: String, betas: Bool = false, skipping: String? = nil) -> String? {
-            UpdateFeed.newest(in: releases, after: AppVersion(current)!, includingPrereleases: betas,
-                              skipping: skipping.flatMap(AppVersion.init))?.version.description
-        }
-        #expect(newest("0.1.1") == "0.2.1")
-        #expect(newest("0.1.1", betas: true) == "0.3.0-beta.2")
-        #expect(newest("0.2.1") == nil)
-        #expect(newest("0.3.0-beta.1", betas: true) == "0.3.0-beta.2")
-        #expect(newest("0.3.0") == nil && newest("0.3.0", betas: true) == nil)
-        // Skipping the newest offers nothing; a newer release than the skipped one comes back.
-        #expect(newest("0.1.1", skipping: "0.2.1") == nil)
-        #expect(newest("0.1.1", betas: true, skipping: "0.2.1") == "0.3.0-beta.2")
     }
 }
 
@@ -294,5 +224,146 @@ import Testing
         try makeBundle(at: app)
         chmod(dir.path, 0o555)
         #expect(throws: UpdateError.notWritable(path: dir.path)) { try AppBundleInstaller.checkReplaceable(app) }
+    }
+}
+
+@Suite struct UpdateManifestTests {
+    static func entry(_ version: String, urls: [String] = ["https://cdn.example.com/Hexer-0.3.2.dmg", "https://github.com/x/Hexer-0.3.2.dmg"],
+                      signature: String = "c2ln", prerelease: Bool = false) -> UpdateManifest.Entry {
+        UpdateManifest.Entry(version: version, prerelease: prerelease, page: "https://github.com/letrucdev/hexer/releases/tag/v\(version)",
+                             notes: "## \(version)", size: 6_782_206, sha256: "ab", signature: signature, urls: urls)
+    }
+
+    static func manifest(_ entries: [UpdateManifest.Entry]) throws -> Data {
+        try UpdateManifest(releases: entries).encoded()
+    }
+
+    @Test func readsMirrorsAndSignature() throws {
+        let releases = try UpdateManifest.releases(from: Self.manifest([Self.entry("0.3.2")]))
+        let r = try #require(releases.first)
+        #expect(releases.count == 1 && r.version.description == "0.3.2")
+        #expect(r.diskImageURLs.map(\.host) == ["cdn.example.com", "github.com"])
+        #expect(r.diskImageURL.host == "cdn.example.com")
+        #expect(r.signature == "c2ln" && r.diskImageSize == 6_782_206 && !r.isPrerelease)
+        #expect(r.pageURL.absoluteString == "https://github.com/letrucdev/hexer/releases/tag/v0.3.2")
+    }
+
+    @Test func leavesOutReleasesThatCantBeInstalled() throws {
+        let releases = try UpdateManifest.releases(from: Self.manifest([
+            Self.entry("0.4.0", signature: ""),
+            Self.entry("0.3.9", urls: ["http://cdn.example.com/a.dmg"]),
+            Self.entry("not-a-version"),
+            Self.entry("0.3.5", urls: ["http://cdn.example.com/a.dmg", "https://cdn.example.com/a.dmg"]),
+            Self.entry("0.3.4-beta.1"),
+            Self.entry("0.3.3", prerelease: true),
+        ]))
+        #expect(releases.map(\.version.description) == ["0.3.5", "0.3.4-beta.1", "0.3.3"])
+        #expect(releases[0].diskImageURLs.count == 1 && releases[1].isPrerelease && releases[2].isPrerelease)
+    }
+
+    @Test func fileURLsOnlyWhenAllowed() throws {
+        let data = try Self.manifest([Self.entry("1.0.0", urls: ["file:///tmp/feed/Hexer-1.0.0.dmg"])])
+        #expect(try UpdateManifest.releases(from: data).isEmpty)
+        #expect(try UpdateManifest.releases(from: data, allowingFileURLs: true).count == 1)
+    }
+
+    @Test func rejectsWhatIsNotAManifest() {
+        for text in ["", "{}", #"{"format":2,"releases":[]}"#, "<html>", "[]", #"{"message": "API rate limit exceeded"}"#] {
+            #expect(throws: UpdateError.invalidFeed) { try UpdateManifest.releases(from: Data(text.utf8)) }
+        }
+    }
+
+    @Test func picksTheNewestUpdate() throws {
+        let releases = try UpdateManifest.releases(from: Self.manifest([
+            Self.entry("0.2.0"), Self.entry("0.3.0-beta.2"), Self.entry("0.2.1"), Self.entry("0.1.1"),
+        ]))
+        func newest(_ current: String, betas: Bool = false, skipping: String? = nil) -> String? {
+            UpdateFeed.newest(in: releases, after: AppVersion(current)!, includingPrereleases: betas,
+                              skipping: skipping.flatMap(AppVersion.init))?.version.description
+        }
+        #expect(newest("0.1.1") == "0.2.1")
+        #expect(newest("0.1.1", betas: true) == "0.3.0-beta.2")
+        #expect(newest("0.2.1") == nil)
+        #expect(newest("0.3.0-beta.1", betas: true) == "0.3.0-beta.2")
+        #expect(newest("0.3.0") == nil && newest("0.3.0", betas: true) == nil)
+        // Skipping the newest offers nothing; a newer release than the skipped one comes back.
+        #expect(newest("0.1.1", skipping: "0.2.1") == nil)
+        #expect(newest("0.1.1", betas: true, skipping: "0.2.1") == "0.3.0-beta.2")
+    }
+
+    @Test func addingKeepsTheNewestAndReplacesTheSameVersion() throws {
+        var data: Data?
+        for version in ["0.3.0", "0.3.2", "0.3.1", "0.3.2"] {
+            data = try UpdateManifest.adding(Self.entry(version, signature: "sig-\(version)-\(data?.count ?? 0)"), to: data).encoded()
+        }
+        let manifest = try JSONDecoder().decode(UpdateManifest.self, from: #require(data))
+        #expect(manifest.releases.map(\.version) == ["0.3.2", "0.3.1", "0.3.0"])
+        #expect(manifest.releases[0].signature.hasPrefix("sig-0.3.2-"))
+
+        var many: Data?
+        for minor in 0..<15 { many = try UpdateManifest.adding(Self.entry("0.\(minor).0"), to: many).encoded() }
+        let kept = try JSONDecoder().decode(UpdateManifest.self, from: #require(many)).releases.map(\.version)
+        #expect(kept.count == UpdateManifest.maxReleases && kept.first == "0.14.0" && kept.last == "0.5.0")
+    }
+
+    @Test func addingToUnreadableManifestStartsOver() {
+        let manifest = UpdateManifest.adding(Self.entry("0.3.2"), to: Data("garbage".utf8))
+        #expect(manifest.releases.map(\.version) == ["0.3.2"])
+    }
+
+    @Test func encodesStablyWithPlainSlashes() throws {
+        let text = String(decoding: try Self.manifest([Self.entry("0.3.2")]), as: UTF8.self)
+        #expect(text.hasPrefix("{\n  \"format\" : 1,\n  \"releases\" : [") && text.hasSuffix("}\n"))
+        #expect(text.contains("https://cdn.example.com/Hexer-0.3.2.dmg") && !text.contains("\\/"))
+    }
+}
+
+@Suite struct AWSSignatureV4Tests {
+    /// The examples of the S3 developer guide, "Signature Calculations in the Authorization Header".
+    static let credentials = AWSSignatureV4.Credentials(accessKeyID: "AKIAIOSFODNN7EXAMPLE",
+                                                        secretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY")
+    static let date = Date(timeIntervalSince1970: 1_369_353_600) // 2013-05-24T00:00:00Z
+
+    @Test func signsAGetLikeAmazonsExample() throws {
+        var request = URLRequest(url: URL(string: "https://examplebucket.s3.amazonaws.com/test.txt")!)
+        request.setValue("bytes=0-9", forHTTPHeaderField: "Range")
+        try AWSSignatureV4.sign(&request, payloadSHA256: AWSSignatureV4.emptyPayloadSHA256, credentials: Self.credentials,
+                                region: "us-east-1", date: Self.date)
+        #expect(request.value(forHTTPHeaderField: "x-amz-date") == "20130524T000000Z")
+        #expect(request.value(forHTTPHeaderField: "x-amz-content-sha256") == AWSSignatureV4.emptyPayloadSHA256)
+        #expect(request.value(forHTTPHeaderField: "Authorization") == """
+            AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7EXAMPLE/20130524/us-east-1/s3/aws4_request, \
+            SignedHeaders=host;range;x-amz-content-sha256;x-amz-date, \
+            Signature=f0e8bdb87c964420e857bd35b5d6ed310bd44f0170aba48dd91039c6036bdb41
+            """)
+    }
+
+    @Test func signsAPutLikeAmazonsExample() throws {
+        var request = URLRequest(url: URL(string: "https://examplebucket.s3.amazonaws.com/test$file.text")!)
+        request.httpMethod = "PUT"
+        request.setValue("Fri, 24 May 2013 00:00:00 GMT", forHTTPHeaderField: "Date")
+        request.setValue("REDUCED_REDUNDANCY", forHTTPHeaderField: "x-amz-storage-class")
+        let payload = AWSSignatureV4.hex(SHA256.hash(data: Data("Welcome to Amazon S3.".utf8)))
+        #expect(payload == "44ce7dd67c959e0d3524ffac1771dfbba87d2b6b4b4e99e42034a8b803f8b072")
+        try AWSSignatureV4.sign(&request, payloadSHA256: payload, credentials: Self.credentials, region: "us-east-1", date: Self.date)
+        #expect(AWSSignatureV4.canonicalPath(request.url!) == "/test%24file.text")
+        #expect(request.value(forHTTPHeaderField: "Authorization")?.hasSuffix(
+            "SignedHeaders=date;host;x-amz-content-sha256;x-amz-date;x-amz-storage-class, "
+            + "Signature=98ad721746da40c64f1a55b78f14c238d841ea1380cd77a1b5971af0ece108bd") == true)
+    }
+
+    @Test func canonicalizesPathsAndQueries() {
+        let url = URL(string: "https://host.example/a%20b/c~d.json?z=2&a=x%2Fy&a=1&empty")!
+        #expect(AWSSignatureV4.canonicalPath(url) == "/a%20b/c~d.json")
+        #expect(AWSSignatureV4.canonicalQuery(url) == "a=1&a=x%2Fy&empty=&z=2")
+        #expect(AWSSignatureV4.canonicalPath(URL(string: "https://host.example")!) == "/")
+        #expect(AWSSignatureV4.canonicalQuery(URL(string: "https://host.example/k")!) == "")
+    }
+
+    @Test func rejectsARequestWithoutAHost() {
+        var request = URLRequest(url: URL(string: "file:///tmp/x")!)
+        #expect(throws: URLError.self) {
+            try AWSSignatureV4.sign(&request, payloadSHA256: AWSSignatureV4.emptyPayloadSHA256, credentials: Self.credentials, region: "auto")
+        }
     }
 }

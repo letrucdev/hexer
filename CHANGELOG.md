@@ -3,6 +3,14 @@
 Each version's section opens its release notes on GitHub, in English and Vietnamese. Write it for
 people who use Hexer, before tagging the release (see CLAUDE.md, "Phát hành").
 
+## 0.4.0 — 2026-10-25
+
+### What's new
+- Hexer now checks for updates on its own update server (on Cloudflare) and downloads them from there, with the GitHub release as a fallback. Before, every check went to GitHub's API, which allows 60 requests an hour per network: on a busy network, or after watching a build, Check for Updates… could fail with "GitHub has had too many requests", and where GitHub is slow or blocked, updates didn't arrive at all. Hexer 0.3.x finds this version through GitHub as usual; from here on, updates come from the new server.
+
+### Có gì mới
+- Hexer giờ kiểm tra và tải bản cập nhật từ máy chủ cập nhật riêng (đặt trên Cloudflare), còn trang phát hành trên GitHub là nguồn dự phòng. Trước đây mỗi lần kiểm tra đều gọi API của GitHub, vốn chỉ cho 60 lần mỗi giờ trên một mạng: ở mạng đông người, hoặc sau khi theo dõi một bản build, Kiểm tra cập nhật… có thể báo "GitHub đã nhận quá nhiều yêu cầu", còn ở nơi GitHub chậm hoặc bị chặn thì không nhận được bản cập nhật. Hexer 0.3.x vẫn tìm thấy bản này qua GitHub như trước; từ bản này trở đi, bản cập nhật đến từ máy chủ mới.
+
 ## 0.3.2 — 2026-10-25
 
 ### What's new

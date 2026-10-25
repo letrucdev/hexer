@@ -44,8 +44,11 @@
 	<string>0.1</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
-	<key>HexerUpdateFeedURL</key>
-	<string>https://api.github.com/repos/letrucdev/hexer/releases?per_page=30</string>
+	<key>HexerUpdateFeedURLs</key>
+	<array>
+		<string>https://pub-78e377a21a0d499cb607f4ad3d0c899d.r2.dev/update.json</string>
+		<string>https://github.com/letrucdev/hexer/releases/latest/download/update.json</string>
+	</array>
 	<key>HexerUpdatePublicKey</key>
 	<string>qQH58WYIAJxTACG1jnB/eweAvWnoo3oMkTYQWfKo+MI=</string>
 	<key>LSApplicationCategoryType</key>

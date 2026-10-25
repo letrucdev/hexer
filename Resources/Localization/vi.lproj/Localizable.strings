@@ -107,7 +107,6 @@
 "Choose where to save" = "Chọn nơi lưu";
 "Choose…" = "Chọn…";
 "Clear" = "Xoá";
-"Clear Menu" = "Xoá menu";
 "Click a bar to keep it selected." = "Bấm vào một cột để giữ lựa chọn.";
 "Click to show" = "Bấm để hiện";
 "Click to switch between Insert and Overwrite (⌘I)" = "Bấm để chuyển giữa Chèn và Ghi đè (⌘I)";
@@ -261,7 +260,6 @@
 "From" = "Từ";
 "General" = "Chung";
 "Generate Checksums" = "Tạo tổng kiểm tra";
-"GitHub has had too many requests from this network. Try again in an hour." = "GitHub đã nhận quá nhiều yêu cầu từ mạng này. Hãy thử lại sau một giờ.";
 "Go" = "Đi";
 "Go to Bookmark" = "Tới dấu trang";
 "Go to Offset" = "Đi tới vị trí";
@@ -389,7 +387,6 @@
 "Open Download Page" = "Mở trang tải về";
 "Open File…" = "Mở tệp…";
 "Open Read-only" = "Mở chỉ đọc";
-"Open Recent" = "Mở gần đây";
 "Open a File…" = "Mở tệp…";
 "Open a file (⌘O)" = "Mở một tệp (⌘O)";
 "Open as read-only" = "Mở ở chế độ chỉ đọc";
@@ -580,6 +577,7 @@
 "The size of this data cannot change." = "Không thể thay đổi kích thước dữ liệu này.";
 "The startup disk can't be written." = "Không thể ghi vào ổ đĩa khởi động.";
 "The update server answered with status %lld." = "Máy chủ cập nhật trả về mã %lld.";
+"The update server has had too many requests from this network. Try again in an hour." = "Máy chủ cập nhật đã nhận quá nhiều yêu cầu từ mạng này. Hãy thử lại sau một giờ.";
 "The update’s signature is not valid, so it was not installed." = "Chữ ký của bản cập nhật không hợp lệ nên bản cập nhật không được cài.";
 "These defaults apply to newly opened documents. The View menu changes the current window." = "Các giá trị mặc định này áp dụng cho tài liệu mở sau. Menu Hiển thị thay đổi cửa sổ hiện tại.";
 "This copy of Hexer has no valid key to check updates with." = "Bản Hexer này không có khoá hợp lệ để kiểm tra bản cập nhật.";

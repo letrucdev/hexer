@@ -4,7 +4,7 @@ import Foundation
 public enum UpdateError: Error, Equatable, LocalizedError {
     /// The update server answered with an HTTP status other than 200.
     case serverStatus(Int)
-    /// GitHub refused the request because too many came from this network (HTTP 403 or 429).
+    /// The host refused the request because too many came from this network (HTTP 403 or 429).
     case rateLimited
     /// The list of releases could not be read.
     case invalidFeed
@@ -32,7 +32,7 @@ public enum UpdateError: Error, Equatable, LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .serverStatus(let status): "The update server answered with status \(status)."
-        case .rateLimited: "GitHub has had too many requests from this network. Try again in an hour."
+        case .rateLimited: "The update server has had too many requests from this network. Try again in an hour."
         case .invalidFeed: "The list of releases could not be read."
         case .tooLarge: "The download is larger than an update of Hexer can be."
         case .invalidPublicKey: "This copy of Hexer has no valid key to check updates with."
