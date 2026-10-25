@@ -2,7 +2,7 @@
 
 This document describes Hexer's design as drawn on Claude Design and as implemented in the running app. When changing UI, update **all three**: source code, canvas, and this file.
 
-- **Canvas (source of truth):** https://claude.ai/artifact/JBSgQBQpVLtMWto8QECZgb (version 22, 2026-10-25)
+- **Canvas (source of truth):** https://claude.ai/artifact/JBSgQBQpVLtMWto8QECZgb (version 24, 2026-10-26)
 - **Platform:** designed for macOS 27 "Golden Gate" with Liquid Glass; runs on macOS 15 and later (see §11). SwiftUI + AppKit, no Xcode.
 - **UI languages:** English (source keys) and Vietnamese
 - **Technical handoff:** see [HANDOFF.md](HANDOFF.md)
@@ -123,7 +123,7 @@ Invalid values in the inspector (`Invalid`) use the regular font in tertiary col
   - Modified bytes in bold red. The caret has an accent underline; the other column shows a ghost caret (outline).
   - An undefined region that fully covers 2 or more rows is folded into one row (see §6.5).
   - No glass in the grid.
-- **Drawer:** 3 small segmented tabs (selected tab has accent background). On the right, a secondary section:
+- **Drawer:** 3 segmented tabs (an AppKit `NSSegmentedControl` with the macOS 27 `tabs` role, `Views/SegmentedTabs.swift`; the selected tab looks like the system's, as in the toolbar's mode picker). The header row has `minWidth: 0`, so opening the drawer never widens the window (the grid sets the minimum, 1166 pt). On the right, a secondary section:
   - Search Results: "159 matches" + Clear.
   - Checksums: "Expected result" field (240 pt, 140 pt when narrow, hidden when narrower) + Refresh.
   - Close button at the end.
@@ -146,7 +146,7 @@ Invalid values in the inspector (`Invalid`) use the regular font in tertiary col
 | `GlassCapsuleButtonStyle` (`.glassCapsule`, `.glassCapsuleProminent`) | All text buttons on glass bars: height 36, padding 16, capsule. Prominent = accent tint, for the primary action (Find All, Replace All). |
 | `GlassBarIconButton` | 28 × 28 icon button, borderless, always has `help` (tooltip) and an accessibility label. |
 | Group capsule | Related buttons share one capsule (▲▼; Replace ⇄ + Close ✕). Use `GlassEffectContainer` + `glassEffectID` so the Replace row "grows" out of the Find row. |
-| Segmented | Mode picker: toolbar size. Drawer tabs: small, selected tab has accent background. Inspector LE/BE: small. The `hex · dec · oct` base picker: small segmented; changing the base converts the entered value on the spot. |
+| Segmented | Mode picker: toolbar size (a value selection). Drawer tabs: regular size, AppKit with the `tabs` role (`SegmentedTabs`), since they switch views. Inspector LE/BE: small. The `hex · dec · oct` base picker: small segmented; changing the base converts the entered value on the spot. |
 | Number field (`NumberField`) | Mono font, round border, red text when not a valid number; the default button is disabled until valid. |
 | `SheetScaffold` | Headline title → content as a grid with right-aligned labels → Cancel + default button at the right corner. |
 | `ToolFooter` | Cancel + primary button. While running: 180 progress bar + % + Stop. Errors show as a sheet on that same window. |
@@ -232,8 +232,9 @@ Invalid values in the inspector (`Invalid`) use the regular font in tertiary col
   - It is not glass; it is grid content.
 - Rows that contain defined bytes display normally, with the gaps shown as `??`.
 - Click a fold row to expand that region. Go to Offset, Find, a bookmark or the sidebar leading into a folded region expands it automatically.
-- ↑ ↓ and Page Up/Down follow the on-screen rows; on reaching a fold row the caret sits on its first hidden byte and the fold row gets a 2 pt accent outline. Home/End do nothing on a fold row.
-- View ▸ Fold Undefined Sections (on by default) toggles folding for the whole document; turning it back on re-folds regions that were expanded.
+- ↑ ↓ and Page Up/Down follow the on-screen rows; on reaching a fold row the caret sits on its first hidden byte and the fold row gets a 2 pt accent outline; the next data row gets the caret back in the column it had before the fold row. Home/End do nothing on a fold row.
+- View ▸ Fold Undefined Sections (on by default) toggles folding for the whole document; turning it back on re-folds regions that were expanded. Right-clicking inside an expanded region shows **Fold Section** at the top of the grid's context menu, which folds just that region.
+- File ▸ Print folds the same rows (at the printed row width): one line per fold with its offset and "▸  1,808 undefined bytes". Export never folds.
 - The two compare windows scroll by byte, so they stay aligned even when the two sides fold differently.
 
 ### 6.6 Settings (⌘,)
@@ -322,22 +323,26 @@ The full list is in `App/MainMenu.swift` and the `MenusVI` artboard.
 |---|---|---|
 | Checking (only when the user clicked) | Checking for updates… + indeterminate progress bar | Cancel |
 | Update available | Hexer X is available · You have version Y… · What's New box (list from CHANGELOG, max 150 pt then scrolls) + Release Notes on GitHub link | Skip This Version (left) · Remind Me Later · **Install Update** |
-| Cannot self-replace (app is translocated, or no write permission to the folder) | as above + a warning line with a yellow triangle icon, naming only the folder | Skip This Version · Remind Me Later · **Download…** (opens the release page) |
+| Cannot self-replace (app is translocated) | as above + a warning line with a yellow triangle icon | Skip This Version · Remind Me Later · **Download…** (opens the release page) |
+| Needs an administrator (the user can't write to the app or its folder, e.g. an administrator's Applications) | as "Update available" + a secondary line with a lock icon: "Installing in this folder needs an administrator’s name and password." | Skip This Version · Remind Me Later · **Install Update** |
 | Downloading | Downloading Hexer X… + progress bar + "2.5 MB of 6.9 MB" | Cancel (returns to "Update available") |
 | Verifying | Verifying Hexer X… + an explanatory sentence + indeterminate bar | Cancel |
-| Ready | Hexer X is ready to install · Relaunch… or install on quit; if there are unsaved documents, add the line "Before quitting, Hexer asks whether to save your changes." | Install on Quit · **Relaunch** |
+| Ready | Hexer X is ready to install · Relaunch… or install on quit; when an administrator is needed, a lock line says Hexer asks for the password when it quits; if there are unsaved documents, add the line "Before quitting, Hexer asks whether to save your changes." | Install on Quit · **Relaunch** |
 | Up to date | Hexer is up to date · Version X is the newest version available. | **OK** |
 | Error | Couldn't check for updates / Couldn't install the update + error message (text selectable) | Open Download Page (for install-time errors) · **OK** |
 
 - **Closing the window** = Remind Me Later; while downloading or verifying it cancels; once ready, the update is still installed on quit.
+- **Relaunch** reviews unsaved documents like Quit; cancelling that review keeps Hexer running, with the update still staged for the next quit and no relaunch pending.
+- **Administrator:** the password prompt is the system's (AppleScript `do shell script … with administrator privileges`, run in-process), shown while Hexer quits; cancelling it leaves the old version in place.
 - **When it shows:** the automatic check never shows anything unless there is a new version; if the (modal) Open panel is open at that moment, it waits for the panel to close before showing. Check for Updates… and Check Now show every result, including skipped versions.
 - **What's New** takes the "What's new" / "Có gì mới" section from the release notes (i.e. the version's entry in CHANGELOG.md), per the UI language; inline markdown (bold, code, links) is rendered.
 
 ## 7. Localization
 
 - Keys are the English strings in `Text("…")`, `L("…")` and APIs that take `LocalizedStringKey`. Translations are in `Scripts/l10n/vi.py`, which generates `Resources/Localization/vi.lproj/Localizable.strings`.
-- `Scripts/l10n_audit.swift` runs in `bundle.sh` and fails the build if any string is untranslated. The audit also covers the helpers `field(…)`, `fact(…)`, `group(…)`, `GlassBarIconButton(_, "…")`, the `placeholder:` parameter and both branches of `Text(condition ? "A" : "B")`. There are currently 666 keys, all translated.
-- Errors from HexerCore/HexerPlatform (English; the CLI uses them verbatim) are translated in the app layer in `App/ErrorMessages.swift`; `AppDelegate.application(_:willPresentError:)` applies to every `presentError`, while `NSAlert(error:)` and the find bar's error label use `error.localizedForDisplay` / `error.displayMessage`. The errno description (`strerror`) stays in the system's English.
+- `Scripts/l10n_audit.swift` runs in `bundle.sh` and fails the build if any string is untranslated. The audit also covers the helpers `field(…)`, `fact(…)`, `group(…)`, `GlassBarIconButton(_, "…")`, the `placeholder:` parameter and both branches of `Text(condition ? "A" : "B")`. There are currently 705 keys, all translated.
+- Errors from HexerCore/HexerPlatform (English; the CLI uses them verbatim) are translated in the app layer in `App/ErrorMessages.swift`; `AppDelegate.application(_:willPresentError:)` applies to every `presentError`, while `NSAlert(error:)` and the find bar's error label use `error.localizedForDisplay` / `error.displayMessage`. The errno description (`strerror`) goes through `L(…)` too: the 35 common ones ("Permission denied", "No space left on device"…) have translations in `vi.py` (section "System error descriptions"); rarer ones stay English.
+- Numbers ("6,905,856 bytes") follow the system's **Region** setting (`Locale.current`), as Apple's apps do, not the UI language: a Mac set to Vietnamese language and the United States region shows "6,905,856"; with the Vietnam region "6.905.856". This is by design.
 - Do not translate technical type names: Int32, UTF-8, GUID, FILETIME, x86-64, ARM64, Little-endian/Big-endian.
 - Agreed translations (the Vietnamese column is data, keep as is):
 
