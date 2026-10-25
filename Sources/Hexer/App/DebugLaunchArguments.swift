@@ -112,23 +112,6 @@ enum DebugLaunchArguments {
             }
             return
         }
-        if let dir = value("-HexerDemo") {
-            // The promotional tour: opens the file given on the command line, then runs DemoScript.
-            Task { @MainActor in
-                let controller = NSDocumentController.shared
-                for _ in 0..<40 where controller.documents.isEmpty { try? await Task.sleep(for: .milliseconds(100)) }
-                if controller.documents.isEmpty, let path = files.first {
-                    _ = try? await controller.openDocument(withContentsOf: URL(fileURLWithPath: path), display: true)
-                }
-                guard let document = controller.documents.first as? HexDocument else { return }
-                if let size = value("-HexerWindowSize")?.split(separator: "x").compactMap({ Double($0) }), size.count == 2 {
-                    document.windowControllers.first?.window?.setContentSize(NSSize(width: size[0], height: size[1]))
-                }
-                await DemoScript.run(dir: URL(fileURLWithPath: dir), document: document,
-                                     firmware: value("-HexerDemoFirmware").map { URL(fileURLWithPath: $0) })
-            }
-            return
-        }
         if let name = value("-HexerOpenDisk") {
             // Opens a raw disk read-only (e.g. an attached test image), then snapshots it.
             // -HexerOpenDiskWritable asks for write access, but only on disk images.

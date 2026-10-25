@@ -28,7 +28,6 @@ struct InspectorView: View {
                 .labelsHidden()
                 .controlSize(.small)
                 .fixedSize()
-                .demoAnchor("Byte order")
                 Toggle("Hex", isOn: $hexIntegers)
                     .controlSize(.small)
                     .help("Show integers in hexadecimal")

@@ -29,12 +29,10 @@ struct FindBar: View {
                     .frame(height: GlassBar.height)
                     .barGlass()
                     .barGlassID("nav", in: glass)
-                    .demoAnchor("Find navigation")
                     Button("Find All", action: session.findAll)
                         .buttonStyle(.glassCapsuleProminent)
                         .disabled(find.query.pattern.isEmpty || find.isSearching)
                         .barGlassID("all", in: glass)
-                        .demoAnchor("Find All")
                     HStack(spacing: 0) {
                         iconButton("arrow.left.arrow.right", find.showsReplace ? "Hide Replace" : "Show Replace") {
                             withAnimation(.bouncy) { find.showsReplace.toggle() }
@@ -106,7 +104,6 @@ struct FindBar: View {
             .buttonStyle(.borderless)
             .fixedSize()
             .help("Data type and search options")
-            .demoAnchor("Find type")
             .popover(isPresented: $find.showsOptions, arrowEdge: .bottom) {
                 FindOptions(find: find, editorEncoding: session.encoding)
             }
@@ -114,7 +111,6 @@ struct FindBar: View {
         .padding(.leading, 12)
         .padding(.trailing, 8)
         .frame(height: GlassBar.height)
-        .demoAnchor("Find field")
         .barGlass()
         .overlay {
             if find.error != nil { Capsule().strokeBorder(.red, lineWidth: 1.5) }
@@ -191,7 +187,6 @@ struct FindOptions: View {
             .pickerStyle(.segmented)
             .labelsHidden()
             .fixedSize()
-            .demoAnchor("Find data type")
             Group {
                 switch find.query.dataType {
                 case .text: textOptions
