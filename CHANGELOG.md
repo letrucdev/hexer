@@ -3,6 +3,14 @@
 Each version's section opens its release notes on GitHub, in English and Vietnamese. Write it for
 people who use Hexer, before tagging the release (see CLAUDE.md, "Phát hành").
 
+## 0.4.1 — 2026-10-26
+
+### What's new
+- Typing hex digits in the hex column changes the bytes. Before, nothing happened when you typed there with the keyboard (typing in the Decoded text column worked).
+
+### Có gì mới
+- Gõ chữ số hex ở cột hex giờ sửa được byte. Trước đây gõ bằng bàn phím ở cột này không có tác dụng gì (gõ ở cột Văn bản giải mã thì vẫn được).
+
 ## 0.4.0 — 2026-10-25
 
 ### What's new
