@@ -10,6 +10,8 @@ final class HexCanvasView: NSView {
     private var lastDragPoint: NSPoint = .zero
     /// IME composition in progress in the text column.
     var markedText: NSAttributedString?
+    /// The column to keep while moving with ↑/↓ and Page Up/Down, with the caret it was set for.
+    var rowMoveColumn: (caret: UInt64, column: UInt64)?
 
     override var isFlipped: Bool { true }
     override var acceptsFirstResponder: Bool { true }
@@ -331,7 +333,28 @@ final class HexCanvasView: NSView {
     }
 
     override func menu(for event: NSEvent) -> NSMenu? {
-        MainMenu.contextMenu()
+        let menu = MainMenu.contextMenu()
+        if let start = unfoldedSection(at: convert(event.locationInWindow, from: nil)) {
+            let item = NSMenuItem(title: L("Fold Section"), action: #selector(foldSection(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = NSNumber(value: start)
+            menu.insertItem(item, at: 0)
+            menu.insertItem(.separator(), at: 1)
+        }
+        return menu
+    }
+
+    /// The first byte of the undefined section under `point`, if it was opened from its fold row.
+    private func unfoldedSection(at point: NSPoint) -> UInt64? {
+        guard let session, session.foldsUndefinedSections, !session.unfoldedSections.isEmpty,
+              let (offset, _, fold) = hit(point), fold == nil else { return nil }
+        return session.undefinedSections().first { $0.contains(offset) && session.unfoldedSections.contains($0.lowerBound) }?.lowerBound
+    }
+
+    /// Folds an opened section again (the grid's context menu).
+    @objc private func foldSection(_ sender: NSMenuItem) {
+        guard let start = (sender.representedObject as? NSNumber)?.uint64Value else { return }
+        editor?.fold(sectionAt: start)
     }
 
     override func resetCursorRects() {

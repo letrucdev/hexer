@@ -144,11 +144,18 @@ enum DebugLaunchArguments {
                 if let go = value("-HexerGoTo"), let s = document.session {
                     s.setSelection(Selection(caret: NumberBase.hexadecimal.parse(go) ?? 0))
                 }
+                if flag("-HexerFoldSection"), let s = document.session, let editor = s.editorView {
+                    // Folds the opened section holding the caret again, as the grid's context menu does.
+                    if let section = s.undefinedSections().first(where: { $0.contains(s.selection.caret) }) {
+                        editor.fold(sectionAt: section.lowerBound)
+                    }
+                }
                 if let action = value("-HexerAction") { NSApp.sendAction(Selector(action), to: nil, from: nil) }
                 if let shot = value("-HexerSnapshot"), let window = document.windowControllers.first?.window {
                     try? await Task.sleep(for: .milliseconds(1200))
                     snapshot(window, to: URL(fileURLWithPath: shot))
                 }
+                if let pdf = value("-HexerPrintPDF") { printToPDF(document, at: pdf) }
                 if flag("-HexerQuit") { NSApp.terminate(nil) }
             }
             return
@@ -240,15 +247,7 @@ enum DebugLaunchArguments {
                     }
                 }
             }
-            if let pdf = value("-HexerPrintPDF") {
-                let settings: [NSPrintInfo.AttributeKey: Any] = [.jobDisposition: NSPrintInfo.JobDisposition.save,
-                                                                  .jobSavingURL: URL(fileURLWithPath: pdf)]
-                if let operation = try? doc.printOperation(withSettings: settings) {
-                    operation.showsPrintPanel = false
-                    operation.showsProgressPanel = false
-                    operation.run()
-                }
-            }
+            if let pdf = value("-HexerPrintPDF") { printToPDF(doc, at: pdf) }
             if flag("-HexerSave") {
                 s.sizeChangeConfirmed = true
                 doc.save(nil)
@@ -277,6 +276,8 @@ enum DebugLaunchArguments {
                 let front = opensWindow ? NSApp.orderedWindows.first { $0.isVisible && $0.sheetParent == nil } : nil
                 if let window = front ?? doc.windowControllers.first?.window {
                     print("HexerWindowID \(window.windowNumber)")
+                    // The smallest content size SwiftUI allows, to find what widens the window.
+                    print("HexerWindowMinSize \(Int(window.contentMinSize.width))x\(Int(window.contentMinSize.height))")
                     snapshot(window, to: URL(fileURLWithPath: path))
                 }
             }
@@ -287,6 +288,16 @@ enum DebugLaunchArguments {
                 NSApp.terminate(nil)
             }
         }
+    }
+
+    /// File ▸ Print without panels, saved as a PDF (`-HexerPrintPDF path`).
+    private static func printToPDF(_ document: HexDocument, at path: String) {
+        let settings: [NSPrintInfo.AttributeKey: Any] = [.jobDisposition: NSPrintInfo.JobDisposition.save,
+                                                          .jobSavingURL: URL(fileURLWithPath: path)]
+        guard let operation = try? document.printOperation(withSettings: settings) else { return }
+        operation.showsPrintPanel = false
+        operation.showsProgressPanel = false
+        operation.run()
     }
 
     /// A phase of the Software Update window with a sample release (version 0.3.0).

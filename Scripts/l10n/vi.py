@@ -292,7 +292,25 @@ VI = {
     "Last checked": "Lần kiểm tra gần nhất", "Never": "Chưa bao giờ", "Check Now": "Kiểm tra ngay",
     # Folded undefined sections
     "Fold Undefined Sections": "Gập các vùng chưa xác định", "%@ undefined bytes": "%@ byte chưa xác định",
-    "Click to show": "Bấm để hiện",
+    "Click to show": "Bấm để hiện", "Fold Section": "Gập vùng này",
+    # System error descriptions (strerror), used in the error messages below
+    "Operation not permitted": "Thao tác không được phép", "No such file or directory": "Không có tệp hoặc thư mục này",
+    "Input/output error": "Lỗi vào/ra", "Bad file descriptor": "Bộ mô tả tệp không hợp lệ",
+    "Cannot allocate memory": "Không cấp phát được bộ nhớ", "Permission denied": "Không có quyền truy cập",
+    "Resource busy": "Tài nguyên đang bận", "File exists": "Tệp đã tồn tại",
+    "Operation not supported by device": "Thiết bị không hỗ trợ thao tác này", "Not a directory": "Không phải thư mục",
+    "Is a directory": "Là một thư mục", "Invalid argument": "Đối số không hợp lệ",
+    "Too many open files in system": "Hệ thống mở quá nhiều tệp", "Too many open files": "Mở quá nhiều tệp",
+    "File too large": "Tệp quá lớn", "No space left on device": "Thiết bị hết chỗ trống", "Illegal seek": "Di chuyển vị trí không hợp lệ",
+    "Read-only file system": "Hệ thống tệp chỉ đọc", "Resource temporarily unavailable": "Tài nguyên tạm thời không sẵn sàng",
+    "Operation not supported": "Thao tác không được hỗ trợ", "Operation timed out": "Thao tác quá thời gian chờ",
+    "Too many levels of symbolic links": "Quá nhiều cấp liên kết tượng trưng", "File name too long": "Tên tệp quá dài",
+    "Directory not empty": "Thư mục không trống", "Disc quota exceeded": "Vượt hạn mức đĩa",
+    "Stale NFS file handle": "Tệp NFS không còn hiệu lực", "Inappropriate file type or format": "Kiểu hoặc định dạng tệp không phù hợp",
+    "Device not configured": "Thiết bị chưa được cấu hình", "Interrupted system call": "Lời gọi hệ thống bị ngắt",
+    "Cross-device link": "Liên kết giữa hai thiết bị", "No such device": "Không có thiết bị này",
+    "Value too large to be stored in data type": "Giá trị quá lớn cho kiểu dữ liệu",
+    "Authentication error": "Lỗi xác thực", "Operation canceled": "Thao tác đã bị huỷ",
     # Errors from HexerCore and HexerPlatform (App/ErrorMessages.swift)
     "The update server answered with status %lld.": "Máy chủ cập nhật trả về mã %lld.",
     "The update server has had too many requests from this network. Try again in an hour.":
@@ -311,6 +329,11 @@ VI = {
     "Hexer can’t replace itself in “%@” because you don’t have permission to change it.":
         "Hexer không tự thay thế được trong “%@” vì bạn không có quyền thay đổi thư mục này.",
     "Replacing “%@” failed: %@.": "Không thay thế được “%@”: %@.",
+    "Installing with administrator rights failed: %@": "Cài đặt bằng quyền quản trị viên thất bại: %@",
+    "Installing in this folder needs an administrator’s name and password.":
+        "Cài vào thư mục này cần tên và mật khẩu của quản trị viên.",
+    "Installing in this folder needs an administrator’s name and password, which Hexer asks for when it quits.":
+        "Cài vào thư mục này cần tên và mật khẩu của quản trị viên; Hexer sẽ hỏi khi thoát.",
     "The disk image could not be opened: %@": "Không mở được ảnh đĩa: %@",
     "The code signature of “%@” is not valid (%lld).": "Chữ ký mã của “%@” không hợp lệ (%lld).",
     "Enter a value to search for.": "Nhập giá trị cần tìm.",

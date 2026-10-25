@@ -52,13 +52,17 @@ extension HexCanvasView: NSTextInputClient, NSMenuItemValidation {
         guard let session, let editor else { return }
         let map = editor.rowMap
         let caret = session.selection.caret
+        // The column the caret had before it landed on a fold row (or a short last row) is the
+        // one it gets back on the next data row.
+        let column = rowMoveColumn.flatMap { $0.caret == caret ? $0.column : nil } ?? caret % map.bytesPerRow
         let target = Int64(clamping: map.visualRow(of: caret)) + delta
         guard target >= 0 else { return move(to: 0, extend: extend) }
         guard target < Int64(clamping: map.rowCount) else { return move(to: session.length, extend: extend) }
         switch map.row(at: UInt64(target)) {
-        case .data(let row): move(to: row * map.bytesPerRow + caret % map.bytesPerRow, extend: extend)
+        case .data(let row): move(to: row * map.bytesPerRow + column, extend: extend)
         case .fold: move(to: map.offset(ofVisualRow: UInt64(target)), extend: extend)
         }
+        rowMoveColumn = (session.selection.caret, column)
     }
 
     private var bpr: Int64 { Int64(editor?.layoutInfo.bytesPerRow ?? 16) }

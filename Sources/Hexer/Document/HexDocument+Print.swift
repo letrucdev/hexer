@@ -30,9 +30,18 @@ extension HexDocument {
         let columns = Int(info.imageablePageBounds.width / charWidth)
         while layout.bytesPerRow > 1 && Self.printedRowWidth(layout) > columns { layout.bytesPerRow /= 2 }
 
+        // Undefined sections fold as on screen (at the printed row width), each to one line.
+        var folds: [Range<UInt64>] = []
+        if session.foldsUndefinedSections {
+            let map = RowMap(length: session.length, bytesPerRow: layout.bytesPerRow,
+                             sections: session.undefinedSections(), unfolded: session.unfoldedSections)
+            folds = map.folds.map { $0.rows.lowerBound * map.bytesPerRow..<$0.rows.upperBound * map.bytesPerRow }
+        }
         let snapshot = session.snapshot()
         let text = try ExportText.collect { sink in
-            try FormattedExporter.export(snapshot, range: range, format: .editorView, layout: layout, to: sink)
+            try FormattedExporter.export(snapshot, range: range, format: .editorView, layout: layout, folds: folds,
+                                         foldLine: { "▸  " + L("%@ undefined bytes", ($0.upperBound - $0.lowerBound).formatted()) },
+                                         to: sink)
         }
         let view = NSTextView(frame: NSRect(x: 0, y: 0, width: info.imageablePageBounds.width, height: 100))
         view.font = font

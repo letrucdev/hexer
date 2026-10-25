@@ -207,6 +207,13 @@ final class HexEditorView: NSView {
         updateGeometry()
         canvas.needsDisplay = true
     }
+
+    /// Folds the opened section starting at `start` again, keeping the top of the view in place.
+    func fold(sectionAt start: UInt64) {
+        guard session.unfoldedSections.remove(start) != nil else { return }
+        updateGeometry()
+        canvas.needsDisplay = true
+    }
 }
 
 /// A flipped, transparent view used as the scroll view's document.

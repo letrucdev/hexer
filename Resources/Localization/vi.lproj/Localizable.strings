@@ -46,8 +46,10 @@
 "Analysis" = "Phân tích";
 "AnsiChar" = "Ký tự ANSI";
 "Ask for each name" = "Hỏi tên từng phần";
+"Authentication error" = "Lỗi xác thực";
 "Back" = "Quay lại";
 "Backward" = "Lùi";
+"Bad file descriptor" = "Bộ mô tả tệp không hợp lệ";
 "Before quitting, Hexer asks whether to save your changes." = "Trước khi thoát, Hexer sẽ hỏi bạn có lưu các thay đổi không.";
 "Beginning of the file" = "Đầu tệp";
 "Big endian" = "Big-endian";
@@ -74,6 +76,7 @@
 "Calculate checksums and statistics, or compare two files." = "Tính tổng kiểm tra và thống kê, hoặc so sánh hai tệp.";
 "Calculating checksums" = "Đang tính tổng kiểm tra";
 "Cancel" = "Huỷ";
+"Cannot allocate memory" = "Không cấp phát được bộ nhớ";
 "Cannot open “%@”: %@." = "Không mở được “%@”: %@.";
 "Case sensitive" = "Phân biệt hoa thường";
 "Change Size" = "Đổi kích thước";
@@ -144,6 +147,7 @@
 "Count" = "Số lần";
 "Counting bytes" = "Đang đếm byte";
 "Creates %lld parts." = "Tạo %lld phần.";
+"Cross-device link" = "Liên kết giữa hai thiết bị";
 "Current offset (+ or −)" = "Vị trí hiện tại (+ hoặc −)";
 "Custom" = "Tuỳ chỉnh";
 "Custom CRC" = "CRC tuỳ chỉnh";
@@ -165,16 +169,19 @@
 "Decoded text" = "Văn bản giải mã";
 "Delete" = "Xoá";
 "Destination: %@" = "Đích: %@";
+"Device not configured" = "Thiết bị chưa được cấu hình";
 "Difference at %@ · %@ bytes" = "Khác biệt tại %@ · %@ byte";
 "Differs from the expected result" = "Khác với kết quả mong đợi";
 "Digests" = "Mã băm";
 "Direction" = "Hướng";
+"Directory not empty" = "Thư mục không trống";
 "Disassembly" = "Hợp ngữ";
 "Disassembly (ARM64)" = "Hợp ngữ (ARM64)";
 "Disassembly (x86-16)" = "Hợp ngữ (x86-16)";
 "Disassembly (x86-32)" = "Hợp ngữ (x86-32)";
 "Disassembly (x86-64)" = "Hợp ngữ (x86-64)";
 "Disassembly by Capstone %@ (BSD license)." = "Dịch ngược bằng Capstone %@ (giấy phép BSD).";
+"Disc quota exceeded" = "Vượt hạn mức đĩa";
 "Disk" = "Ổ đĩa";
 "Disk image" = "Ảnh đĩa";
 "Disk image file" = "Tệp ảnh đĩa";
@@ -225,6 +232,9 @@
 "F6: next difference" = "F6: khác biệt tiếp theo";
 "FILETIME" = "FILETIME";
 "File" = "Tệp";
+"File exists" = "Tệp đã tồn tại";
+"File name too long" = "Tên tệp quá dài";
+"File too large" = "Tệp quá lớn";
 "File:" = "Tệp:";
 "Files of many gigabytes open at once." = "Tệp nặng nhiều gigabyte vẫn mở ngay lập tức.";
 "Fill" = "Điền";
@@ -253,6 +263,7 @@
 "Fit to window width" = "Vừa chiều rộng cửa sổ";
 "Float" = "Số thực";
 "Floating point" = "Số thực";
+"Fold Section" = "Gập vùng này";
 "Fold Undefined Sections" = "Gập các vùng chưa xác định";
 "Font" = "Phông chữ";
 "Format" = "Định dạng";
@@ -288,12 +299,15 @@
 "Hide maximum" = "Ẩn giá trị lớn nhất";
 "Hide results" = "Ẩn kết quả";
 "However this is necessary, since the chosen data stream has a fixed size." = "Hai mẫu phải dài bằng nhau vì luồng dữ liệu đang chọn có kích thước cố định.";
+"Illegal seek" = "Di chuyển vị trí không hợp lệ";
 "Import" = "Nhập";
 "Import Intel Hex and S-Record, or export as C, Java, HTML and more." = "Nhập Intel Hex và S-Record, hoặc xuất ra C, Java, HTML và nhiều định dạng khác.";
+"Inappropriate file type or format" = "Kiểu hoặc định dạng tệp không phù hợp";
 "Include beta versions" = "Nhận cả bản thử nghiệm (beta)";
 "Initial value" = "Giá trị đầu";
 "Initial value:" = "Giá trị đầu:";
 "Input" = "Đầu vào";
+"Input/output error" = "Lỗi vào/ra";
 "Insert" = "Chèn";
 "Insert Bytes" = "Chèn byte";
 "Insert Bytes…" = "Chèn byte…";
@@ -303,6 +317,9 @@
 "Inspector options" = "Tuỳ chọn trình kiểm tra";
 "Install Update" = "Cài bản cập nhật";
 "Install on Quit" = "Cài khi thoát";
+"Installing in this folder needs an administrator’s name and password, which Hexer asks for when it quits." = "Cài vào thư mục này cần tên và mật khẩu của quản trị viên; Hexer sẽ hỏi khi thoát.";
+"Installing in this folder needs an administrator’s name and password." = "Cài vào thư mục này cần tên và mật khẩu của quản trị viên.";
+"Installing with administrator rights failed: %@" = "Cài đặt bằng quyền quản trị viên thất bại: %@";
 "Integer" = "Số nguyên";
 "Integers" = "Số nguyên";
 "Intel Hex" = "Intel Hex";
@@ -311,7 +328,10 @@
 "Intel Hex (32-bit)" = "Intel Hex (32 bit)";
 "Intel Hex…" = "Intel Hex…";
 "Internal" = "Gắn trong";
+"Interrupted system call" = "Lời gọi hệ thống bị ngắt";
 "Invalid" = "Không hợp lệ";
+"Invalid argument" = "Đối số không hợp lệ";
+"Is a directory" = "Là một thư mục";
 "Its volumes are unmounted first. Writing to a disk cannot be undone, and the undo history is cleared afterwards." = "Các ổ đĩa logic sẽ được tháo trước. Ghi vào ổ đĩa không thể hoàn tác, và lịch sử hoàn tác sẽ bị xoá sau đó.";
 "Its volumes will be unmounted. Changes are written only when you save, but a mistake can destroy the data on the disk." = "Các ổ đĩa logic của nó sẽ bị tháo. Thay đổi chỉ được ghi khi bạn lưu, nhưng một sai sót có thể huỷ dữ liệu trên ổ đĩa.";
 "Keep Current Version" = "Giữ phiên bản hiện tại";
@@ -360,7 +380,11 @@
 "No further lines permitted after EOF record." = "Không được có thêm dòng nào sau bản ghi EOF.";
 "No license files were found in the app bundle." = "Không tìm thấy tệp giấy phép trong gói ứng dụng.";
 "No more differences" = "Hết khác biệt";
+"No space left on device" = "Thiết bị hết chỗ trống";
+"No such device" = "Không có thiết bị này";
+"No such file or directory" = "Không có tệp hoặc thư mục này";
 "Not Comparing" = "Chưa so sánh";
+"Not a directory" = "Không phải thư mục";
 "Not found" = "Không tìm thấy";
 "Notifications" = "Thông báo";
 "Number base" = "Hệ cơ số";
@@ -396,6 +420,11 @@
 "Opening %@ was cancelled." = "Đã huỷ việc mở %@.";
 "Opens the release’s page on GitHub" = "Mở trang của phiên bản này trên GitHub";
 "Open…" = "Mở…";
+"Operation canceled" = "Thao tác đã bị huỷ";
+"Operation not permitted" = "Thao tác không được phép";
+"Operation not supported" = "Thao tác không được hỗ trợ";
+"Operation not supported by device" = "Thiết bị không hỗ trợ thao tác này";
+"Operation timed out" = "Thao tác quá thời gian chờ";
 "Other" = "Khác";
 "Other bytes show as a dot in the text column. Searching and copying are not affected." = "Các byte khác hiện thành dấu chấm ở cột văn bản. Không ảnh hưởng tới tìm kiếm và sao chép.";
 "Output" = "Đầu ra";
@@ -419,6 +448,7 @@
 "Paste Overwrite" = "Dán ghi đè";
 "Pattern" = "Mẫu";
 "Pattern of pass %lld" = "Mẫu của lượt %lld";
+"Permission denied" = "Không có quyền truy cập";
 "Physical disks" = "Ổ đĩa vật lý";
 "Polynomial" = "Đa thức";
 "Polynomial:" = "Đa thức:";
@@ -439,6 +469,7 @@
 "Raw Data" = "Dữ liệu thô";
 "Raw access may ask for an administrator password. The startup disk can't be written." = "Truy cập trực tiếp có thể yêu cầu mật khẩu quản trị viên. Không thể ghi vào ổ đĩa khởi động.";
 "Read-only" = "Chỉ đọc";
+"Read-only file system" = "Hệ thống tệp chỉ đọc";
 "Reading at offset %@ failed: %@." = "Đọc tại vị trí %@ thất bại: %@.";
 "Reading or writing “%@” failed: %@." = "Đọc hoặc ghi “%@” thất bại: %@.";
 "Redo" = "Làm lại";
@@ -467,6 +498,8 @@
 "Replace…" = "Thay thế…";
 "Replacing “%@” failed: %@." = "Không thay thế được “%@”: %@.";
 "Reset" = "Đặt lại";
+"Resource busy" = "Tài nguyên đang bận";
+"Resource temporarily unavailable" = "Tài nguyên tạm thời không sẵn sàng";
 "Result width:" = "Độ rộng kết quả:";
 "Results" = "Kết quả";
 "Rich Text Format" = "Rich Text Format";
@@ -530,6 +563,7 @@
 "Split File" = "Tách tệp";
 "Split File…" = "Tách tệp…";
 "Splitting" = "Đang tách";
+"Stale NFS file handle" = "Tệp NFS không còn hiệu lực";
 "Start offset" = "Vị trí đầu";
 "Start offset:" = "Vị trí đầu:";
 "Statistics" = "Thống kê";
@@ -588,6 +622,9 @@
 "To" = "Đến";
 "To paste text, click in the text column first." = "Để dán văn bản, hãy bấm vào cột văn bản trước.";
 "Toggle Insert/Overwrite" = "Chuyển Chèn/Ghi đè";
+"Too many levels of symbolic links" = "Quá nhiều cấp liên kết tượng trưng";
+"Too many open files" = "Mở quá nhiều tệp";
+"Too many open files in system" = "Hệ thống mở quá nhiều tệp";
 "Tools" = "Công cụ";
 "Two hexadecimal digits in the range of %@-%@ were expected, but found “%@”." = "Cần hai chữ số hex trong khoảng %@-%@, nhưng gặp “%@”.";
 "Type" = "Kiểu";
@@ -608,6 +645,7 @@
 "Use File ▸ Save Selection As… to write large selections to a file." = "Hãy dùng Tệp ▸ Lưu vùng chọn thành… để ghi vùng chọn lớn ra tệp.";
 "Use Selection for Find" = "Dùng vùng chọn để tìm";
 "Value" = "Giá trị";
+"Value too large to be stored in data type" = "Giá trị quá lớn cho kiểu dữ liệu";
 "Value under the pointer" = "Giá trị dưới con trỏ";
 "Verifying Hexer %@…" = "Đang xác minh Hexer %@…";
 "Version %@ is the newest version available." = "Phiên bản %@ là bản mới nhất hiện có.";

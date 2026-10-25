@@ -483,6 +483,27 @@ private extension String {
         #expect(textOnly[2] == "00000000  MZ..")
     }
 
+    @Test func foldedRowsBecomeOneLine() throws {
+        // Rows 1–2 of 4 fold (as the editor folds undefined sections); a fold outside the range is ignored.
+        let s = snapshot((0..<0x40).map { UInt8($0) })
+        let text = try ExportText.collect {
+            try FormattedExporter.export(s, range: 0..<0x38, format: .editorView, folds: [0x10..<0x30, 0x40..<0x60],
+                                         foldLine: { "\($0.upperBound - $0.lowerBound) bytes hidden" }, to: $0)
+        }
+        let lines = text.components(separatedBy: "\r\n")
+        #expect(lines[2].hasPrefix("00000000  00 01 02"))
+        #expect(lines[3] == "00000010  32 bytes hidden")
+        #expect(lines[4].hasPrefix("00000030  30 31 32 33 34 35 36 37" + spaces(24)))
+        #expect(lines.count == 6)
+        // A range starting inside a fold shows only the hidden part it covers.
+        let partial = try ExportText.collect {
+            try FormattedExporter.export(s, range: 0x18..<0x34, format: .editorView, folds: [0x10..<0x30],
+                                         foldLine: { "\($0.upperBound - $0.lowerBound) bytes hidden" }, to: $0)
+        }.components(separatedBy: "\r\n")
+        #expect(partial[2] == "00000018  24 bytes hidden")
+        #expect(partial[3].hasPrefix("00000030  30 31 32 33"))
+    }
+
     @Test func undefinedBytes() throws {
         let s = snapshot([.data([0x41]), .gap(2), .data([0x42])])
         let lines = try export(s, 0..<4, .editorView).components(separatedBy: "\r\n")

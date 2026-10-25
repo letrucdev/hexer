@@ -91,16 +91,21 @@ public enum FormattedFormat: String, CaseIterable, Sendable {
 /// TeX output uses `\usepackage[ansinew]{inputenc}` like HxD, so non-ASCII text-column
 /// characters need the file to be written in Windows-1252.
 public enum FormattedExporter {
+    /// - Parameters:
+    ///   - folds: Row-aligned byte ranges (sorted, non-overlapping) whose rows are left out, as
+    ///     the editor folds undefined sections; each is replaced by one line holding its offset
+    ///     and the text of `foldLine` for the bytes left out.
     public static func export(_ snapshot: ByteSnapshot, range: Range<UInt64>, format: FormattedFormat,
                               layout: ExportLayout = .init(), style: ExportStyle = .init(), title: String = "",
+                              folds: [Range<UInt64>] = [], foldLine: (Range<UInt64>) -> String = { _ in "" },
                               isCancelled: () -> Bool = { false }, progress: (Double) -> Void = { _ in },
                               to sink: (String) throws -> Void) throws {
         let dialect = Dialect(format: format, layout: layout, style: style)
         try withoutActuallyEscaping(sink) { sink in
             var out = ChunkWriter(sink: sink)
             try out.write(dialect.documentStart(title: title))
-            try writeRows(snapshot, range: range, dialect: dialect, layout: layout, out: &out,
-                          isCancelled: isCancelled, progress: progress)
+            try writeRows(snapshot, range: range, dialect: dialect, layout: layout, folds: folds, foldLine: foldLine,
+                          out: &out, isCancelled: isCancelled, progress: progress)
             try out.write(dialect.documentEnd(fragmentMarkers: false))
             try out.flush()
         }
@@ -136,6 +141,7 @@ public enum FormattedExporter {
     // MARK: - Rows
 
     private static func writeRows(_ snapshot: ByteSnapshot, range: Range<UInt64>, dialect: Dialect, layout: ExportLayout,
+                                  folds: [Range<UInt64>] = [], foldLine: (Range<UInt64>) -> String = { _ in "" },
                                   out: inout ChunkWriter, isCancelled: () -> Bool, progress: (Double) -> Void) throws {
         let renderer = RowRenderer(layout: layout)
         try out.write(dialect.headerRow(dialect.escape(renderer.headerRow())))
@@ -192,8 +198,23 @@ public enum FormattedExporter {
             }
         }
 
-        try SpanReader.forEachSpan(snapshot, in: range, isCancelled: isCancelled, progress: progress) { offset, length, data in
-            try append(offset, length, data)
+        var cursor = range.lowerBound
+        for fold in folds where fold.overlaps(range) {
+            let hidden = max(cursor, fold.lowerBound)..<min(range.upperBound, fold.upperBound)
+            if cursor < hidden.lowerBound {
+                try SpanReader.forEachSpan(snapshot, in: cursor..<hidden.lowerBound, isCancelled: isCancelled, progress: progress) {
+                    try append($0, $1, $2)
+                }
+            }
+            try emit()
+            let line = dialect.offsetColumn(dialect.escape(renderer.offset(hidden.lowerBound))) + separator + dialect.escape(foldLine(hidden))
+            try out.write(line + dialect.lineBreak)
+            cursor = hidden.upperBound
+        }
+        if cursor < range.upperBound {
+            try SpanReader.forEachSpan(snapshot, in: cursor..<range.upperBound, isCancelled: isCancelled, progress: progress) {
+                try append($0, $1, $2)
+            }
         }
         try emit()
     }
