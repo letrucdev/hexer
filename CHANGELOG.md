@@ -3,6 +3,20 @@
 Each version's section opens its release notes on GitHub, in English and Vietnamese. Write it for
 people who use Hexer, before tagging the release (see CLAUDE.md, "Phát hành").
 
+## 0.6.0 — 2026-10-26
+
+### What's new
+- Rename the Data Inspector's types and change their order: in Settings ▸ Inspector, each type's ⋯ button has Rename…, Move Up and Move Down, within its group. The inspector and its Step as menu use your names and order. Restore Defaults puts everything back.
+- File ▸ Open Recent Disk Image lists the disk images you opened lately and reopens each one with the sector size you chose, without asking again. Clear Menu empties the list. Before, a disk image showed up in File ▸ Open Recent and reopened from there as an ordinary file, without its sector size.
+- A new document window now fills the screen (below the menu bar, beside the Dock) instead of opening at a smaller size.
+- In Settings ▸ General, Last checked shows the whole date and time; it used to be cut short.
+
+### Có gì mới
+- Đổi tên và đổi thứ tự các kiểu trong Trình kiểm tra dữ liệu: trong Cài đặt ▸ Trình kiểm tra, nút ⋯ của mỗi kiểu có Đổi tên…, Chuyển lên và Chuyển xuống, trong nhóm của kiểu đó. Trình kiểm tra và menu Bước theo dùng tên và thứ tự bạn đặt. Khôi phục mặc định đưa mọi thứ về như cũ.
+- Tệp ▸ Mở ảnh đĩa gần đây liệt kê các ảnh đĩa bạn mở gần đây và mở lại từng ảnh với kích thước sector bạn đã chọn, không hỏi lại. Xóa menu làm trống danh sách. Trước đây ảnh đĩa hiện trong Tệp ▸ Mở mục gần đây và mở lại từ đó thành tệp thường, mất kích thước sector.
+- Cửa sổ tài liệu mới giờ phủ kín màn hình (dưới thanh menu, cạnh Dock) thay vì mở ở kích thước nhỏ hơn.
+- Trong Cài đặt ▸ Chung, Lần kiểm tra gần nhất hiện đủ ngày giờ; trước đây bị cắt mất phần cuối.
+
 ## 0.5.0 — 2026-10-26
 
 ### What's new
