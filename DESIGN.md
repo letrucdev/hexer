@@ -2,7 +2,7 @@
 
 This document describes Hexer's design as drawn on Claude Design and as implemented in the running app. When changing UI, update **all three**: source code, canvas, and this file.
 
-- **Canvas (source of truth):** https://claude.ai/artifact/JBSgQBQpVLtMWto8QECZgb (version 24, 2026-10-26)
+- **Canvas (source of truth):** https://claude.ai/artifact/JBSgQBQpVLtMWto8QECZgb (version 25, 2026-10-26)
 - **Platform:** designed for macOS 27 "Golden Gate" with Liquid Glass; runs on macOS 15 and later (see §11). SwiftUI + AppKit, no Xcode.
 - **UI languages:** English (source keys) and Vietnamese
 - **Technical handoff:** see [HANDOFF.md](HANDOFF.md)
@@ -112,6 +112,7 @@ Invalid values in the inspector (`Invalid`) use the regular font in tertiary col
 ```
 
 - **On app launch:** if there is no document (no file opened with the app, no restored window), the app immediately shows the system Open panel, like TextEdit. Clicking the Dock icon when no window is left also shows this panel. The app never creates an empty window. Only on the **first** launch without a file does the welcome screen (§6.9) show instead of the Open panel.
+- **Window size:** every new document window opens filling the visible frame of the screen it opens on (below the menu bar, beside the Dock); it is not full-screen mode. Sizes are not remembered between windows and there is no cascading. A window that joins a tab group takes the group's frame. Tile and Compare arrange windows afterwards as before.
 - **Toolbar (3 groups):** navigation = Open, Save, Undo, Redo · principal = segmented Insert/Overwrite/Read-only (hidden while comparing) · primaryAction = Find, Go to Offset, Inspector. Title is the file name, subtitle is size and mode.
 - **Sidebar:**
   - *Bookmarks:* orange dot, offset, shortcut ⌃0–9. When empty, shows a hint line (wraps).
@@ -136,6 +137,7 @@ Invalid values in the inspector (`Invalid`) use the regular font in tertiary col
   - Header "Data Inspector" + ⋯ menu (Hex, Choose Types… opens Settings ▸ Inspector).
   - Segmented Little/Big endian + Hex checkbox.
   - Groups: Integers, Characters, Floating point, Date & time, Other (GUID), Disassembly (x86-16/32/64, ARM64).
+  - Rows follow the order and names set in Settings ▸ Inspector; the six group headings stay in fixed order. The "Step as" menu lists fixed-width types in the same order and with the same names.
   - Compact 12 pt rows. Double-click to edit; tooltip says "Double-click to edit".
   - Footer "Step as Int32 ▾" + 4 step buttons. No hidden button inside the pane (use the toolbar button).
 
@@ -248,7 +250,7 @@ Tabs on the toolbar, each with an icon and label; the window title is the pane n
   - Layout: Bytes per row 16, Fit to window width, Byte group size 1, Columns = Hex and Text.
   - Text and numbers: Text encoding = Windows (ANSI), Offset base = Hexadecimal, Lowercase hex digits.
   - Footer: "These defaults apply to newly opened documents…"
-- **Inspector:** Types shown (30 types, all on by default) + Reset.
+- **Inspector:** one section per category (Integers, Characters, Floating point, Date & time, Other, Disassembly); each row is the type's name (a renamed type shows its default name below it in caption/secondary), then a switch (all on by default) and a ⋯ menu, both centered on the row: Rename… (system alert with a text field; placeholder is the default name; empty = default name), Use Default Name, Move Up, Move Down (within the category only; also in the row's context menu and as VoiceOver actions). No drag to reorder: the grouped Form is not a table, so `.onMove` does nothing there. Last section: hint "Use a type’s ⋯ button to rename it or move it within its group." + Restore Defaults (resets order, names and shown types; disabled when nothing differs). Disassembly rows are listed by their short name (x86-16…), as in the inspector. Custom names are user text and are never translated.
 - **Export:** Line break determined by (Bytes per line / Characters per line = 80); Motorola S-Record 32 bytes/line; Intel Hex 32 bytes/line.
 
 ### 6.7 Tools
@@ -267,7 +269,7 @@ Tabs on the toolbar, each with an icon and label; the window title is the pane n
 - **Wipe Securely:** File; Method DoD 5220.22-M (3 passes) / Zero / Random; SSD/APFS warning; "Wipe and Delete" button + confirmation alert.
 
 ### 6.8 Menus and shortcuts
-Menu order: Hexer · File · Edit · Search · View · Analysis · Tools · Window · Help. Hexer menu: About Hexer, Check for Updates…, Settings… (⌘,), Services, Hide/Show, Quit. Open Recent right after Open… is an AppKit item (AppKit inserts it and fills the list, with the system's Vietnamese strings); do not build this item yourself in `MainMenu.swift`. Main shortcuts:
+Menu order: Hexer · File · Edit · Search · View · Analysis · Tools · Window · Help. Hexer menu: About Hexer, Check for Updates…, Settings… (⌘,), Services, Hide/Show, Quit. Open Recent right after Open… is an AppKit item (AppKit inserts it and fills the list, with the system's Vietnamese strings); do not build this item yourself in `MainMenu.swift`. **Open Recent Disk Image** sits right after Open Disk Image… and is built in `MainMenu.swift` (`App/RecentDiskImagesMenu.swift`): HxD's separate history list of images opened with Open Disk Image, most recent first, at most 10, one entry per file, each with the sector size it was opened with. It lists file names (a name that appears twice gets " — folder"), then a separator and Clear Menu; with no entries only Clear Menu shows, disabled. An entry's tooltip shows its full path and sector size. Choosing one reopens the image fixed-size with that sector size, without asking; a file that is gone shows the usual "could not be opened" alert and leaves the list. Disk images never enter Open Recent; raw disks have no recent list (as in HxD). Wipe Securely removes the file from the list. Main shortcuts:
 
 | Command | Key |
 |---|---|
