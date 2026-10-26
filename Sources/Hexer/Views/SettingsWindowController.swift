@@ -75,6 +75,9 @@ struct GeneralSettingsView: View {
                             Text(verbatim: update.lastCheck?.formatted(date: .abbreviated, time: .shortened) ?? L("Never"))
                             Button("Check Now") { update.checkForUpdates() }
                         }
+                        // At its ideal width: otherwise the grouped Form cuts the date short and
+                        // leaves the button short of the trailing edge the switches above end at.
+                        .fixedSize()
                     }
                 }
             }
