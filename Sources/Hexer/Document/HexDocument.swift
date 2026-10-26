@@ -68,6 +68,9 @@ final class HexDocument: NSDocument {
         buffer.onChange = { [weak self] _ in self?.bufferDidChange() }
     }
 
+    /// A file opened with Open Disk Image: it keeps its size and has a sector size. Not a raw disk.
+    var isDiskImage: Bool { disk == nil && source?.isFixedSize == true }
+
     /// Files to open as disk images, with their sector size (File ▸ Open Disk Image).
     static var pendingDiskImages: [URL: Int] = [:]
 

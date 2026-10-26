@@ -13,6 +13,18 @@ final class HexDocumentController: NSDocumentController {
 
     override func displayName(forType typeName: String) -> String? { L("Binary File") }
 
+    /// Disk images are listed in File ▸ Open Recent Disk Image (with their sector size) and not here:
+    /// reopened from the normal list they would open as plain, resizable files.
+    override func noteNewRecentDocument(_ document: NSDocument) {
+        guard (document as? HexDocument)?.isDiskImage != true else { return }
+        super.noteNewRecentDocument(document)
+    }
+
+    override func noteNewRecentDocumentURL(_ url: URL) {
+        guard (self.document(for: url) as? HexDocument)?.isDiskImage != true else { return }
+        super.noteNewRecentDocumentURL(url)
+    }
+
     override func runModalOpenPanel(_ openPanel: NSOpenPanel, forTypes types: [String]?) -> Int {
         openPanel.treatsFilePackagesAsDirectories = true
         openPanel.showsHiddenFiles = true

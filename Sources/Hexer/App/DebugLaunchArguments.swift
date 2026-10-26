@@ -112,6 +112,19 @@ enum DebugLaunchArguments {
             }
             return
         }
+        if let path = value("-HexerOpenDiskImage") {
+            // File ▸ Open Disk Image without the questions: -HexerDiskImageSectorSize n (default 512).
+            Task { @MainActor in
+                RecentDiskImagesMenu.open(URL(fileURLWithPath: path), sectorSize: value("-HexerDiskImageSectorSize").flatMap(Int.init) ?? 512)
+                try? await Task.sleep(for: .milliseconds(1500))
+                if let shot = value("-HexerSnapshot"), let window = NSApp.orderedWindows.first(where: \.isVisible) {
+                    print("HexerWindowID \(window.windowNumber)")
+                    snapshot(window, to: URL(fileURLWithPath: shot))
+                }
+                if flag("-HexerQuit") { NSApp.terminate(nil) }
+            }
+            return
+        }
         if let name = value("-HexerOpenDisk") {
             // Opens a raw disk read-only (e.g. an attached test image), then snapshots it.
             // -HexerOpenDiskWritable asks for write access, but only on disk images.
@@ -179,14 +192,17 @@ enum DebugLaunchArguments {
             let s = doc.session!
             if let n = value("-HexerBytesPerRow").flatMap(Int.init) { s.bytesPerRow = n }
             if let n = value("-HexerSectorSize").flatMap(Int.init) { s.sectorSize = n }
-            if let size = value("-HexerWindowSize")?.split(separator: "x").compactMap({ Double($0) }), size.count == 2,
-               let window = doc.windowControllers.first?.window {
-                window.setContentSize(NSSize(width: size[0], height: size[1]))
-            }
             if let e = value("-HexerEncoding").flatMap(TextEncoding.init(rawValue:)) { s.encoding = e }
             if let m = value("-HexerMode").flatMap(EditMode.init(rawValue:)) { s.mode = m }
             if flag("-HexerHideInspector") { s.showInspector = false }
             if let pane = value("-HexerDrawer").flatMap(DrawerPane.init(rawValue:)) { s.drawerPane = pane }
+            // After the panes are set: hiding the inspector lowers the window's minimum width only after
+            // a layout pass, and a narrower size asked for before that is clamped to the old minimum.
+            if let size = value("-HexerWindowSize")?.split(separator: "x").compactMap({ Double($0) }), size.count == 2,
+               let window = doc.windowControllers.first?.window {
+                try? await Task.sleep(for: .milliseconds(150))
+                window.setContentSize(NSSize(width: size[0], height: size[1]))
+            }
             if let go = value("-HexerGoTo") {
                 let offset = go == "end" ? s.length : (NumberBase.hexadecimal.parse(go) ?? 0)
                 s.setSelection(Selection(caret: offset))
@@ -261,6 +277,12 @@ enum DebugLaunchArguments {
             }
             if let pane = value("-HexerSettingsPane").flatMap(Int.init) {
                 AppDelegate.openSettings(pane: pane)
+                // -HexerInspectorRename int32 opens Settings ▸ Inspector's Rename alert for a type.
+                if let type = value("-HexerInspectorRename").flatMap(InspectorType.init(rawValue:)) {
+                    try? await Task.sleep(for: .milliseconds(500))
+                    InspectorSettingsModel.shared.draft = InspectorPreferences.shared.layout.customName(for: type) ?? ""
+                    InspectorSettingsModel.shared.renaming = type
+                }
             }
             if let action = value("-HexerAction"), let window = doc.windowControllers.first?.window {
                 // The app may not be active yet, so walk this window's responder chain directly.
@@ -275,6 +297,16 @@ enum DebugLaunchArguments {
                 let opensWindow = value("-HexerAction") != nil || value("-HexerSettingsPane") != nil
                 let front = opensWindow ? NSApp.orderedWindows.first { $0.isVisible && $0.sheetParent == nil } : nil
                 if let window = front ?? doc.windowControllers.first?.window {
+                    // -HexerSettingsScroll 0…1 scrolls the frontmost window's first vertical scroll
+                    // view (a Settings pane) to that fraction of its height before capturing.
+                    if let fraction = value("-HexerSettingsScroll").flatMap(Double.init),
+                       let scroll = firstScrollView(in: window.contentView), let document = scroll.documentView {
+                        let range = max(0, document.frame.height - scroll.contentView.bounds.height)
+                        let y = document.isFlipped ? range * fraction : range * (1 - fraction)
+                        scroll.contentView.scroll(to: NSPoint(x: 0, y: y))
+                        scroll.reflectScrolledClipView(scroll.contentView)
+                        try? await Task.sleep(for: .milliseconds(300))
+                    }
                     print("HexerWindowID \(window.windowNumber)")
                     // The smallest content size SwiftUI allows, to find what widens the window.
                     print("HexerWindowMinSize \(Int(window.contentMinSize.width))x\(Int(window.contentMinSize.height))")
@@ -282,12 +314,25 @@ enum DebugLaunchArguments {
                 }
             }
             if flag("-HexerQuit") {
-                if let window = doc.windowControllers.first?.window, let sheet = window.attachedSheet {
-                    window.endSheet(sheet)
+                // Close the Rename alert as Cancel (nothing is saved); a sheet left open would keep
+                // the app from quitting until someone clicks a button.
+                InspectorSettingsModel.shared.renaming = nil
+                try? await Task.sleep(for: .milliseconds(300))
+                for window in NSApp.windows {
+                    if let sheet = window.attachedSheet { window.endSheet(sheet) }
                 }
                 NSApp.terminate(nil)
             }
         }
+    }
+
+    /// The first scroll view under `view` whose content is taller than it (depth first).
+    private static func firstScrollView(in view: NSView?) -> NSScrollView? {
+        guard let view else { return nil }
+        if let scroll = view as? NSScrollView, let document = scroll.documentView,
+           document.frame.height > scroll.contentView.bounds.height { return scroll }
+        for child in view.subviews { if let found = firstScrollView(in: child) { return found } }
+        return nil
     }
 
     /// File ▸ Print without panels, saved as a PDF (`-HexerPrintPDF path`).

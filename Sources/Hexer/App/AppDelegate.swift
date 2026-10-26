@@ -90,10 +90,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         alert.addButton(withTitle: L("Open"))
         alert.addButton(withTitle: L("Cancel"))
         guard alert.runModal() == .alertFirstButtonReturn else { return }
-        HexDocument.pendingDiskImages[url.standardizedFileURL] = picker.selectedTag()
-        NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, error in
-            if let error { NSApp.presentError(error) }
-        }
+        RecentDiskImagesMenu.open(url, sectorSize: picker.selectedTag())
     }
 
     // MARK: Tools

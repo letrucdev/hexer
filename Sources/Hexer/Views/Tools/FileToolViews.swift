@@ -344,6 +344,9 @@ struct WipeFileView: View {
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         // Close any window showing the file first, so nothing writes it back.
         if let doc = NSDocumentController.shared.document(for: file) { doc.close() }
+        // Like HxD, the wiped file leaves the recent disk images. (The system's Open Recent hides
+        // files that are gone by itself.)
+        RecentDiskImagesMenu.shared.remove(file)
         let passes = model.passes
         controller.run(L("Wiping")) { job in
             try FileTools.wipe(file, passes: passes, isCancelled: { job.isCancelled }, progress: job.report)

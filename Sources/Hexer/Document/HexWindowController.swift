@@ -29,13 +29,20 @@ final class HexWindowController: NSWindowController, NSWindowDelegate, NSMenuIte
         window.setContentSize(NSSize(width: 1280, height: 820))
         super.init(window: window)
         window.delegate = self
-        shouldCascadeWindows = true
-        window.setFrameAutosaveName("HexerDocumentWindow")
         updateSubtitle()
         observeSession()
     }
 
     @available(*, unavailable) required init?(coder: NSCoder) { fatalError() }
+
+    /// A new document window fills the screen it opens on: its visible frame, below the menu bar and
+    /// beside the Dock. A window that joins a tab group takes the group's frame instead.
+    override func showWindow(_ sender: Any?) {
+        if let window, !window.isVisible, let screen = NSScreen.main ?? window.screen {
+            window.setFrame(screen.visibleFrame, display: false)
+        }
+        super.showWindow(sender)
+    }
 
     override func windowDidLoad() {
         super.windowDidLoad()

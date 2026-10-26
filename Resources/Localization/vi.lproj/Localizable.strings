@@ -110,6 +110,7 @@
 "Choose where to save" = "Chọn nơi lưu";
 "Choose…" = "Chọn…";
 "Clear" = "Xoá";
+"Clear Menu" = "Xóa menu";
 "Click a bar to keep it selected." = "Bấm vào một cột để giữ lựa chọn.";
 "Click to show" = "Bấm để hiện";
 "Click to switch between Insert and Overwrite (⌘I)" = "Bấm để chuyển giữa Chèn và Ghi đè (⌘I)";
@@ -341,6 +342,7 @@
 "Last sector" = "Sector cuối cùng";
 "Layout" = "Bố cục";
 "Leave out the most frequent byte so the other bars are readable" = "Bỏ byte xuất hiện nhiều nhất để dễ đọc các cột khác";
+"Leave the name empty to use “%@”." = "Để trống tên để dùng “%@”.";
 "Length" = "Độ dài";
 "Length:" = "Độ dài:";
 "Letters and digits" = "Chữ cái và chữ số";
@@ -362,6 +364,8 @@
 "Motorola S19" = "Motorola S19";
 "Motorola S28" = "Motorola S28";
 "Motorola S37" = "Motorola S37";
+"Move Down" = "Chuyển xuống";
+"Move Up" = "Chuyển lên";
 "Name" = "Tên";
 "Name of part %lld of %lld" = "Tên của phần %lld / %lld";
 "Naming" = "Đặt tên";
@@ -411,6 +415,7 @@
 "Open Download Page" = "Mở trang tải về";
 "Open File…" = "Mở tệp…";
 "Open Read-only" = "Mở chỉ đọc";
+"Open Recent Disk Image" = "Mở ảnh đĩa gần đây";
 "Open a File…" = "Mở tệp…";
 "Open a file (⌘O)" = "Mở một tệp (⌘O)";
 "Open as read-only" = "Mở ở chế độ chỉ đọc";
@@ -425,6 +430,7 @@
 "Operation not supported" = "Thao tác không được hỗ trợ";
 "Operation not supported by device" = "Thiết bị không hỗ trợ thao tác này";
 "Operation timed out" = "Thao tác quá thời gian chờ";
+"Options for %@" = "Tuỳ chọn cho %@";
 "Other" = "Khác";
 "Other bytes show as a dot in the text column. Searching and copying are not affected." = "Các byte khác hiện thành dấu chấm ở cột văn bản. Không ảnh hưởng tới tìm kiếm và sao chép.";
 "Output" = "Đầu ra";
@@ -490,6 +496,10 @@
 "Remind Me Later" = "Nhắc tôi sau";
 "Remove" = "Bớt";
 "Remove Bookmark" = "Xoá dấu trang";
+"Rename" = "Đổi tên";
+"Rename or move this type" = "Đổi tên hoặc di chuyển kiểu này";
+"Rename “%@”" = "Đổi tên “%@”";
+"Rename…" = "Đổi tên…";
 "Replace" = "Thay thế";
 "Replace All" = "Thay thế tất cả";
 "Replace this occurrence at %@?" = "Thay thế chỗ này tại %@?";
@@ -497,9 +507,9 @@
 "Replaced %lld occurrences" = "Đã thay thế %lld chỗ";
 "Replace…" = "Thay thế…";
 "Replacing “%@” failed: %@." = "Không thay thế được “%@”: %@.";
-"Reset" = "Đặt lại";
 "Resource busy" = "Tài nguyên đang bận";
 "Resource temporarily unavailable" = "Tài nguyên tạm thời không sẵn sàng";
+"Restore Defaults" = "Khôi phục mặc định";
 "Result width:" = "Độ rộng kết quả:";
 "Results" = "Kết quả";
 "Rich Text Format" = "Rich Text Format";
@@ -526,6 +536,7 @@
 "Sections" = "Phân đoạn";
 "Sector" = "Sector";
 "Sector size" = "Kích thước sector";
+"Sector size: %lld bytes" = "Kích thước sector: %lld byte";
 "Select" = "Chọn";
 "Select All" = "Chọn tất cả";
 "Select Block" = "Chọn khối";
@@ -631,7 +642,6 @@
 "Type hex pairs, spaces optional: 54 46 6F 72 6D. ⌘E with bytes selected in the hex column fills this in." = "Nhập từng cặp hex, khoảng trắng tuỳ ý: 54 46 6F 72 6D. ⌘E khi đang chọn byte ở cột hex sẽ tự điền.";
 "Type over bytes or insert new ones, with unlimited undo." = "Gõ đè lên byte hoặc chèn byte mới, hoàn tác không giới hạn.";
 "Typeface" = "Kiểu chữ";
-"Types shown" = "Kiểu được hiển thị";
 "Typing" = "Gõ phím";
 "UTF-8 code point" = "Điểm mã UTF-8";
 "Undefined regions from Intel Hex and S-Record imports and unreadable disk sectors appear here." = "Các vùng chưa xác định từ tệp Intel Hex, S-Record và các sector ổ đĩa không đọc được sẽ hiện ở đây.";
@@ -641,9 +651,11 @@
 "Unicode UTF-16 LE" = "Unicode UTF-16 LE";
 "Unsigned" = "Không dấu";
 "Usage" = "Phạm vi dùng";
+"Use Default Name" = "Dùng tên mặc định";
 "Use File ▸ Export to write it to a file instead." = "Hãy dùng Tệp ▸ Xuất để ghi ra tệp.";
 "Use File ▸ Save Selection As… to write large selections to a file." = "Hãy dùng Tệp ▸ Lưu vùng chọn thành… để ghi vùng chọn lớn ra tệp.";
 "Use Selection for Find" = "Dùng vùng chọn để tìm";
+"Use a type’s ⋯ button to rename it or move it within its group." = "Dùng nút ⋯ của một kiểu để đổi tên hoặc di chuyển nó trong nhóm.";
 "Value" = "Giá trị";
 "Value too large to be stored in data type" = "Giá trị quá lớn cho kiểu dữ liệu";
 "Value under the pointer" = "Giá trị dưới con trỏ";

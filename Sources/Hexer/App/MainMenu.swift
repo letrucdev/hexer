@@ -57,6 +57,7 @@ enum MainMenu {
             // NSDocumentController inserts Open Recent here and fills it; a hand-built one is never filled.
             item("Open Disk…", "openDisk:", "o", [.command, .option]),
             item("Open Disk Image…", "openDiskImage:"),
+            RecentDiskImagesMenu.shared.makeMenuItem(),
             sep,
             item("Close", "performClose:", "w"),
             item("Close All", "closeAllDocuments:", "w", [.command, .option]),

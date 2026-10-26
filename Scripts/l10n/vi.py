@@ -9,6 +9,8 @@ VI = {
     "About %@": "Giới thiệu về %@", "Settings…": "Cài đặt…", "Hide %@": "Ẩn %@",
     "Hide Others": "Ẩn các ứng dụng khác", "Show All": "Hiện tất cả", "Quit %@": "Thoát %@",
     "New": "Mới", "Open…": "Mở…", "Open Disk…": "Mở ổ đĩa…", "Open Disk Image…": "Mở ảnh đĩa…",
+    "Open Recent Disk Image": "Mở ảnh đĩa gần đây", "Clear Menu": "Xóa menu",
+    "Sector size: %lld bytes": "Kích thước sector: %lld byte",
     "Close": "Đóng", "Close All": "Đóng tất cả",
     "Save": "Lưu", "Save As…": "Lưu thành…", "Save All": "Lưu tất cả", "Save Selection As…": "Lưu vùng chọn thành…",
     "Reload from Disk": "Tải lại từ đĩa", "Import": "Nhập", "Export": "Xuất", "Intel Hex…": "Intel Hex…",
@@ -403,7 +405,12 @@ VI = {
     "These defaults apply to newly opened documents. The View menu changes the current window.":
         "Các giá trị mặc định này áp dụng cho tài liệu mở sau. Menu Hiển thị thay đổi cửa sổ hiện tại.",
     "Line break determined by": "Xuống dòng theo", "Bytes per line": "Số byte mỗi dòng", "Characters per line": "Số ký tự mỗi dòng",
-    "Types shown": "Kiểu được hiển thị", "Reset": "Đặt lại", "Source code": "Mã nguồn", "Width": "Độ rộng",
+    "Source code": "Mã nguồn", "Width": "Độ rộng",
+    "Use a type’s ⋯ button to rename it or move it within its group.":
+        "Dùng nút ⋯ của một kiểu để đổi tên hoặc di chuyển nó trong nhóm.",
+    "Restore Defaults": "Khôi phục mặc định", "Rename “%@”": "Đổi tên “%@”", "Rename": "Đổi tên", "Rename…": "Đổi tên…",
+    "Leave the name empty to use “%@”.": "Để trống tên để dùng “%@”.", "Rename or move this type": "Đổi tên hoặc di chuyển kiểu này",
+    "Options for %@": "Tuỳ chọn cho %@", "Use Default Name": "Dùng tên mặc định", "Move Up": "Chuyển lên", "Move Down": "Chuyển xuống",
 }
 
 def escape(s):

@@ -145,33 +145,113 @@ struct ViewSettingsView: View {
     }
 }
 
+/// The Rename alert of Settings ▸ Inspector.
 @Observable
 final class InspectorSettingsModel {
-    var enabled: Set<InspectorType> = Set(InspectorPreferences.enabledTypes)
+    /// One Settings window, one pane (`-HexerInspectorRename` opens the alert through it).
+    static let shared = InspectorSettingsModel()
+    var renaming: InspectorType?
+    var draft = ""
 }
 
+/// Settings ▸ Inspector: which types the Data Inspector shows, their order within each category
+/// (Move Up/Down in each row's menu, context menu or VoiceOver actions) and their names.
 struct InspectorSettingsView: View {
-    @Bindable private var model = InspectorSettingsModel()
+    @Bindable private var prefs = InspectorPreferences.shared
+    @Bindable private var model = InspectorSettingsModel.shared
 
     var body: some View {
         Form {
-            Section("Types shown") {
-                ForEach(InspectorType.allCases, id: \.self) { t in
-                    Toggle(LocalizedStringKey(t.displayName), isOn: Binding {
-                        model.enabled.contains(t)
-                    } set: { on in
-                        if on { model.enabled.insert(t) } else { model.enabled.remove(t) }
-                        InspectorPreferences.setEnabledTypes(InspectorType.allCases.filter(model.enabled.contains))
-                    })
+            ForEach(InspectorType.Category.allCases, id: \.self) { category in
+                Section(LocalizedStringKey(category.rawValue)) {
+                    // A grouped Form is not a table, so rows can't be dragged (`onMove` does nothing
+                    // here); the row's menu moves them.
+                    ForEach(prefs.layout.types(in: category), id: \.self) { type in row(type) }
                 }
             }
-            Button("Reset") {
-                model.enabled = Set(InspectorType.allCases)
-                InspectorPreferences.setEnabledTypes(InspectorType.allCases)
+            Section {
+                HStack {
+                    Text("Use a type’s ⋯ button to rename it or move it within its group.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer()
+                    Button("Restore Defaults") { prefs.layout = InspectorLayout() }
+                        .disabled(prefs.layout.isDefault)
+                }
             }
         }
         .formStyle(.grouped)
         .frame(height: 520)
+        .alert(Text(verbatim: L("Rename “%@”", model.renaming.map(defaultName) ?? "")),
+               isPresented: Binding { model.renaming != nil } set: { if !$0 { model.renaming = nil } },
+               presenting: model.renaming) { type in
+            TextField("Name", text: $model.draft, prompt: Text(verbatim: defaultName(type)))
+            Button("Rename") { prefs.layout.rename(type, to: model.draft) }
+            Button("Cancel", role: .cancel) {}
+        } message: { type in
+            Text(verbatim: L("Leave the name empty to use “%@”.", defaultName(type)))
+        }
+    }
+
+    /// The type's localized default name, as the Settings rows list it.
+    private func defaultName(_ type: InspectorType) -> String { L(type.shortName) }
+
+    private func row(_ type: InspectorType) -> some View {
+        let custom = prefs.layout.customName(for: type)
+        let title = custom ?? defaultName(type)
+        return HStack(spacing: 6) {
+            // Custom names are the user's text, shown as typed; the default name stays visible.
+            // Drawn beside the switch (not as its label) so the switch and menu center vertically.
+            VStack(alignment: .leading, spacing: 2) {
+                Text(verbatim: title)
+                if custom != nil {
+                    Text(verbatim: defaultName(type))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .accessibilityHidden(true)
+            Spacer(minLength: 8)
+            // In one stack: on its own a grouped Form puts the switch at the first line's height.
+            HStack(spacing: 6) {
+                Toggle(isOn: Binding { prefs.layout.isEnabled(type) } set: { prefs.layout.setEnabled(type, $0) }) {
+                    Text(verbatim: title)
+                }
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .accessibilityHint(custom == nil ? Text(verbatim: "") : Text(verbatim: defaultName(type)))
+                Menu {
+                    actions(type)
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .foregroundStyle(.secondary)
+                .help("Rename or move this type")
+                .accessibilityLabel(Text(verbatim: L("Options for %@", title)))
+            }
+            .frame(maxHeight: .infinity)
+        }
+        .contextMenu { actions(type) }
+        .accessibilityActions { actions(type) }
+    }
+
+    @ViewBuilder
+    private func actions(_ type: InspectorType) -> some View {
+        Button("Rename…") {
+            model.draft = prefs.layout.customName(for: type) ?? ""
+            model.renaming = type
+        }
+        Button("Use Default Name") { prefs.layout.rename(type, to: nil) }
+            .disabled(prefs.layout.customName(for: type) == nil)
+        Divider()
+        Button("Move Up") { prefs.layout.move(type, by: -1) }
+            .disabled(!prefs.layout.canMove(type, by: -1))
+        Button("Move Down") { prefs.layout.move(type, by: 1) }
+            .disabled(!prefs.layout.canMove(type, by: 1))
     }
 }
 

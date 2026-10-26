@@ -39,7 +39,7 @@ struct InspectorView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(InspectorType.Category.allCases, id: \.self) { category in
-                        let rows = types.filter { $0.category == category }
+                        let rows = prefs.layout.enabledTypes.filter { $0.category == category }
                         if !rows.isEmpty {
                             Text(LocalizedStringKey(category.rawValue))
                                 .font(.caption.weight(.bold))
@@ -89,11 +89,11 @@ struct InspectorView: View {
     private var footer: some View {
         HStack(spacing: 2) {
             Menu {
-                ForEach(InspectorType.allCases.filter { $0.fixedWidth != nil }, id: \.self) { t in
-                    Button(LocalizedStringKey(t.displayName)) { model.stepType = t }
+                ForEach(prefs.layout.order.filter { $0.fixedWidth != nil }, id: \.self) { t in
+                    Button(prefs.name(t)) { model.stepType = t }
                 }
             } label: {
-                Text("Step as \(L(model.stepType.displayName))")
+                Text("Step as \(prefs.name(model.stepType))")
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
@@ -110,9 +110,7 @@ struct InspectorView: View {
         .padding(.vertical, 7)
     }
 
-    private var types: [InspectorType] {
-        InspectorPreferences.enabledTypes
-    }
+    private var prefs: InspectorPreferences { .shared }
 
     private var options: InspectorOptions {
         InspectorOptions(littleEndian: littleEndian, hexIntegers: hexIntegers, encoding: session.encoding)
@@ -135,7 +133,7 @@ struct InspectorView: View {
         // Invalid values carry a short English word from HexerCore ("Invalid").
         let text = value.isValid ? value.text : L(value.text)
         HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Text(LocalizedStringKey(type.shortName))
+            Text(verbatim: prefs.rowTitle(type))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .layoutPriority(1)
@@ -184,11 +182,11 @@ struct InspectorView: View {
             let before = session.selection
             if session.buffer.isFixedSize && p + UInt64(bytes.count) > session.length { NSSound.beep(); return }
             if p + UInt64(bytes.count) > session.length && !session.confirmSizeChange() { return }
-            try session.buffer.overwrite(bytes, at: p, name: L("Edit %@", L(type.displayName)),
+            try session.buffer.overwrite(bytes, at: p, name: L("Edit %@", prefs.name(type)),
                                          selectionBefore: before, selectionAfter: before)
         } catch {
             NSSound.beep()
-            session.document?.showMessage(L("“%@” is not a valid %@ value.", model.draft, L(type.displayName)), info: "")
+            session.document?.showMessage(L("“%@” is not a valid %@ value.", model.draft, prefs.name(type)), info: "")
         }
     }
 
@@ -216,18 +214,47 @@ struct InspectorView: View {
     }
 }
 
-/// Which inspector types are shown, in which order (Settings ▸ Data Inspector).
-enum InspectorPreferences {
-    static let key = "InspectorTypes"
+/// Which inspector types are shown, in which order and under which names (Settings ▸ Inspector).
+/// Observed by the inspector panels, so changes in Settings show at once.
+@Observable
+final class InspectorPreferences {
+    static let shared = InspectorPreferences()
 
-    static var enabledTypes: [InspectorType] {
-        guard let raw = UserDefaults.standard.array(forKey: key) as? [String] else { return InspectorType.allCases }
-        return raw.compactMap(InspectorType.init(rawValue:))
+    /// The shown types; versions up to 0.5 read and wrote only this key.
+    static let enabledKey = "InspectorTypes"
+    static let orderKey = "InspectorTypeOrder"
+    static let namesKey = "InspectorTypeNames"
+
+    var layout: InspectorLayout { didSet { if layout != oldValue { save() } } }
+
+    private init() {
+        let d = UserDefaults.standard
+        layout = InspectorLayout(storedOrder: d.stringArray(forKey: Self.orderKey),
+                                 storedEnabled: d.stringArray(forKey: Self.enabledKey),
+                                 storedNames: d.dictionary(forKey: Self.namesKey) as? [String: String])
     }
 
-    static func setEnabledTypes(_ types: [InspectorType]) {
-        UserDefaults.standard.set(types.map(\.rawValue), forKey: key)
+    /// The default layout stores nothing, so a later version's defaults apply to it.
+    private func save() {
+        let d = UserDefaults.standard
+        guard !layout.isDefault else {
+            for key in [Self.enabledKey, Self.orderKey, Self.namesKey] { d.removeObject(forKey: key) }
+            return
+        }
+        d.set(layout.storedEnabled, forKey: Self.enabledKey)
+        d.set(layout.storedOrder, forKey: Self.orderKey)
+        if layout.storedNames.isEmpty {
+            d.removeObject(forKey: Self.namesKey)
+        } else {
+            d.set(layout.storedNames, forKey: Self.namesKey)
+        }
     }
+
+    /// The type's name in menus and messages: the user's name as typed, else the localized default.
+    func name(_ type: InspectorType) -> String { layout.customName(for: type) ?? L(type.displayName) }
+
+    /// The row title under a category heading: disassembly rows drop the repeated "Disassembly".
+    func rowTitle(_ type: InspectorType) -> String { layout.customName(for: type) ?? L(type.shortName) }
 }
 
 /// Editing state of the inspector.
